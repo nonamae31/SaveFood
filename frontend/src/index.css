@@ -1,1 +1,132 @@
 @import "tailwindcss";
+
+/* ─── SaveFood Design System Tokens ────────────────────────────────────────── */
+/* Dựa theo SKILL.md — KHÔNG thay đổi màu sắc tùy tiện, phải dùng các token này */
+
+@theme {
+  /* ── Brand Colors (tông xanh lá sinh thái) ── */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  --color-brand-900: #14532d;
+
+  /* ── Expiry Status Colors (màu cảnh báo hết hạn) ── */
+  --color-expiry-fresh: #22c55e;
+  --color-expiry-soon: #f59e0b;
+  --color-expiry-urgent: #ef4444;
+  --color-expiry-expired: #9ca3af;
+
+  /* ── Surface Colors (nền & border) ── */
+  --color-surface-base: #ffffff;
+  --color-surface-subtle: #f9fafb;
+  --color-surface-muted: #f3f4f6;
+  --color-surface-border: #e5e7eb;
+  --color-surface-strong: #111827;
+
+  /* ── Ink Colors (chữ) ── */
+  --color-ink-primary: #111827;
+  --color-ink-secondary: #4b5563;
+  --color-ink-tertiary: #9ca3af;
+  --color-ink-inverse: #ffffff;
+
+  /* ── Typography ── */
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Fraunces', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* ── Font Size Scale ── */
+  --text-display-2xl: 4.5rem;
+  --text-display-xl: 3.75rem;
+  --text-display-lg: 3rem;
+  --text-heading-xl: 2rem;
+  --text-heading-lg: 1.5rem;
+  --text-heading-md: 1.25rem;
+  --text-heading-sm: 1.125rem;
+  --text-body-lg: 1.125rem;
+  --text-body-md: 1rem;
+  --text-body-sm: 0.875rem;
+  --text-caption: 0.75rem;
+
+  /* ── Spacing ── */
+  --spacing-section-y: 5rem;
+  --spacing-card-p: 1.25rem;
+  --spacing-container: 80rem;
+
+  /* ── Border Radius ── */
+  --radius-card: 1rem;
+  --radius-badge: 9999px;
+  --radius-button: 0.625rem;
+  --radius-input: 0.5rem;
+
+  /* ── Box Shadow ── */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 12px rgba(0,0,0,0.08), 0 16px 32px rgba(0,0,0,0.08);
+  --shadow-dropdown: 0 8px 24px rgba(0,0,0,0.12);
+
+  /* ── Animations ── */
+  --animate-fade-in: fadeIn 0.2s ease-out;
+  --animate-slide-up: slideUp 0.3s ease-out;
+  --animate-pulse-expiry: pulseExpiry 2s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+
+/* ─── Keyframes ─────────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulseExpiry {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* ─── Base Styles ────────────────────────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    color: var(--color-ink-primary);
+    background-color: var(--color-surface-subtle);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Focus ring mặc định cho accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: var(--radius-input);
+  }
+
+  /* Scrollbar mảnh và subtle */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-surface-muted);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-surface-border);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-ink-tertiary);
+  }
+}
