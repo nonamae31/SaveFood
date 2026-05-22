@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
-using SaveFoodBackend.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,12 +10,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database Context (In-Memory for demo purposes)
+// Database Context (SQL Server)
 builder.Services.AddDbContext<SaveFoodDbContext>(options =>
-    options.UseInMemoryDatabase("SaveFoodDemoDb"));
-
-// Repositories
-builder.Services.AddScoped<IProductRepository, ProductRepository>();
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddCors(options =>
 {
@@ -26,7 +22,7 @@ builder.Services.AddCors(options =>
             policy.WithOrigins("http://localhost:5173")
                   .AllowAnyHeader()
                   .AllowAnyMethod()
-                  .AllowCredentials(); // Often needed for frontend apps
+                  .AllowCredentials();
         });
 });
 

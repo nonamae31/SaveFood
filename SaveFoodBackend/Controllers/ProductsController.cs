@@ -1,82 +1,108 @@
-using Microsoft.AspNetCore.Mvc;
-using SaveFoodBackend.DTOs;
-using SaveFoodBackend.Models;
-using SaveFoodBackend.Repositories;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SaveFoodBackend.Data;
+using SaveFoodBackend.Models;
 
 namespace SaveFoodBackend.Controllers
 {
-    [ApiController]
     [Route("api/[controller]")]
-    public class ProductsController(IProductRepository productRepo) : ControllerBase
+    [ApiController]
+    public class ProductsController : ControllerBase
     {
+        private readonly SaveFoodDbContext _context;
+
+        public ProductsController(SaveFoodDbContext context)
+        {
+            _context = context;
+        }
+
+        // GET: api/Products
         [HttpGet]
-        public async Task<ActionResult<ApiResponse<IEnumerable<ProductResponse>>>> GetAll(CancellationToken ct)
+        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            var products = await productRepo.GetAllAsync(ct);
-            var response = products.Select(p => new ProductResponse
-            {
-                Id = p.Id,
-                Name = p.Name,
-                OriginalPrice = p.OriginalPrice,
-                DiscountedPrice = p.DiscountedPrice,
-                StockQuantity = p.StockQuantity,
-                ExpiryDate = p.ExpiryDate
-            });
-            return Ok(ApiResponse<IEnumerable<ProductResponse>>.Ok(response));
+            return await _context.Products.ToListAsync();
         }
 
-        [HttpPost]
-        public async Task<ActionResult<ApiResponse<ProductResponse>>> Create(CreateProductRequest request, CancellationToken ct)
-        {
-            var product = new Product
-            {
-                Name = request.Name,
-                OriginalPrice = request.OriginalPrice,
-                DiscountedPrice = request.DiscountedPrice,
-                StockQuantity = request.StockQuantity,
-                ExpiryDate = request.ExpiryDate
-            };
-
-            await productRepo.AddAsync(product, ct);
-            await productRepo.SaveChangesAsync(ct);
-
-            var response = new ProductResponse
-            {
-                Id = product.Id,
-                Name = product.Name,
-                OriginalPrice = product.OriginalPrice,
-                DiscountedPrice = product.DiscountedPrice,
-                StockQuantity = product.StockQuantity,
-                ExpiryDate = product.ExpiryDate
-            };
-
-            return CreatedAtAction(nameof(Get), new { id = product.Id }, ApiResponse<ProductResponse>.Ok(response, "Product created successfully"));
-        }
-
+        // GET: api/Products/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<ProductResponse>>> Get(Guid id, CancellationToken ct)
+        public async Task<ActionResult<Product>> GetProduct(Guid id)
         {
-            var product = await productRepo.GetByIdAsync(id, ct);
+            var product = await _context.Products.FindAsync(id);
+
             if (product == null)
             {
-                return NotFound(ApiResponse<ProductResponse>.Fail("Product not found"));
+                return NotFound();
             }
 
-            var response = new ProductResponse
+            return product;
+        }
+
+        // PUT: api/Products/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutProduct(Guid id, Product product)
+        {
+            if (id != product.Id)
             {
-                Id = product.Id,
-                Name = product.Name,
-                OriginalPrice = product.OriginalPrice,
-                DiscountedPrice = product.DiscountedPrice,
-                StockQuantity = product.StockQuantity,
-                ExpiryDate = product.ExpiryDate
-            };
-            return Ok(ApiResponse<ProductResponse>.Ok(response));
+                return BadRequest();
+            }
+
+            _context.Entry(product).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ProductExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // POST: api/Products
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPost]
+        public async Task<ActionResult<Product>> PostProduct(Product product)
+        {
+            _context.Products.Add(product);
+            await _context.SaveChangesAsync();
+
+            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
+        }
+
+        // DELETE: api/Products/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProduct(Guid id)
+        {
+            var product = await _context.Products.FindAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+
+            _context.Products.Remove(product);
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        private bool ProductExists(Guid id)
+        {
+            return _context.Products.Any(e => e.Id == id);
         }
     }
 }

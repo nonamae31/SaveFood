@@ -1,0 +1,31 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace SaveFoodBackend.Models;
+
+public partial class Order
+{
+    public Guid Id { get; set; }
+
+    public Guid UserId { get; set; }
+
+    public Guid StoreId { get; set; }
+
+    public decimal TotalAmount { get; set; }
+
+    public Guid? ConfirmedById { get; set; }
+
+    public byte OrderStatus { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public virtual User? ConfirmedBy { get; set; }
+
+    public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
+
+    public virtual Payment? Payment { get; set; }
+
+    public virtual Store Store { get; set; } = null!;
+
+    public virtual User User { get; set; } = null!;
+}
