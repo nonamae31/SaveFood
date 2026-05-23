@@ -24,6 +24,38 @@ public class AuthService : IAuthService
         _configuration = configuration;
     }
 
+    public async Task<Guid> RegisterAsync(RegisterRequest request)
+    {
+        var existingUser = await _context.Users.AnyAsync(u => u.Email == request.Email);
+        if (existingUser)
+        {
+            throw new InvalidOperationException("Email already in use.");
+        }
+
+        var newUser = new Models.User
+        {
+            Id = Guid.NewGuid(),
+            Email = request.Email,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            FullName = request.FullName,
+            PhoneNumber = request.PhoneNumber,
+            UserStatusEnum = Models.Enums.UserStatus.Active,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        // Gán Role mặc định (Customer)
+        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer");
+        if (role != null)
+        {
+            newUser.UserRoles.Add(new Models.UserRole { RoleId = role.Id, UserId = newUser.Id });
+        }
+
+        _context.Users.Add(newUser);
+        await _context.SaveChangesAsync();
+
+        return newUser.Id;
+    }
+
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
     {
         // 1. Find user by email

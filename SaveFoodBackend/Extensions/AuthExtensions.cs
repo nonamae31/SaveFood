@@ -38,16 +38,24 @@ public static class AuthExtensions
                 ClockSkew = TimeSpan.Zero // Không cho phép dung sai thời gian — token hết hạn là hết ngay
             };
 
-            // Hỗ trợ JWT từ query string cho SignalR WebSocket connection
             options.Events = new JwtBearerEvents
             {
                 OnMessageReceived = ctx =>
                 {
+                    // Đọc token từ Cookie "jwt"
+                    var cookieToken = ctx.Request.Cookies["jwt"];
+                    if (!string.IsNullOrEmpty(cookieToken))
+                    {
+                        ctx.Token = cookieToken;
+                    }
+
                     var accessToken = ctx.Request.Query["access_token"];
                     var path = ctx.HttpContext.Request.Path;
-                    // Chỉ đọc token từ query string khi kết nối đến SignalR hub
+                    // Hỗ trợ token từ query string cho SignalR hub
                     if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
                         ctx.Token = accessToken;
+                    }
                     return Task.CompletedTask;
                 }
             };

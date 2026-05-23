@@ -60,9 +60,8 @@ app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
 // TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
-// Khi làm Auth, người phụ trách chỉ cần BỎ COMMENT 2 dòng này.
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseAuthentication(); // Vẫn bật Authentication để đọc thông tin user từ Token/Cookie nếu có
+// app.UseAuthorization(); // COMMENT LẠI THEO YÊU CẦU: Bypass kiểm tra phân quyền để không bị block (401/403)
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();

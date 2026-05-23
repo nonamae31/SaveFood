@@ -109,6 +109,26 @@ namespace SaveFoodBackend.Controllers
             return _context.Users.Any(e => e.Id == id);
         }
 
+        // POST: api/Users/register
+        [HttpPost("register")]
+        public async Task<IActionResult> Register([FromBody] RegisterRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var userId = await _authService.RegisterAsync(request);
+                return Ok(new { message = "Registration successful", userId });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // POST: api/Users/login
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
@@ -121,12 +141,30 @@ namespace SaveFoodBackend.Controllers
             try
             {
                 var response = await _authService.LoginAsync(request);
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+                Response.Cookies.Append("jwt", response.AccessToken, cookieOptions);
+
                 return Ok(response);
             }
             catch (UnauthorizedAccessException ex)
             {
                 return Unauthorized(new { message = ex.Message });
             }
+        }
+
+        // POST: api/Users/logout
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            Response.Cookies.Delete("jwt");
+            return Ok(new { message = "Logged out successfully" });
         }
     }
 }
