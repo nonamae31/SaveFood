@@ -4,6 +4,7 @@ import { queryClient } from '@/lib/queryClient'
 import { ROUTES } from '@/lib/constants'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
+import { LoginPage } from '@/pages/auth/LoginPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -56,7 +57,7 @@ function App() {
           <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
 
           {/* ── Auth (Người 1) ── */}
-          <Route path={ROUTES.LOGIN}           element={<PlaceholderPage title="Đăng nhập" />} />
+          <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
           <Route path={ROUTES.REGISTER}        element={<PlaceholderPage title="Đăng ký" />} />
           <Route path={ROUTES.FORGOT_PASSWORD} element={<PlaceholderPage title="Khôi phục mật khẩu" />} />
 

@@ -16,7 +16,6 @@ public static class AuthExtensions
         // TẠM THỜI VÔ HIỆU HÓA JWT ĐỂ CÁC THÀNH VIÊN KHÁC KHÔNG BỊ CHẶN KHI CODE & TEST API.
         // Người đảm nhận chức năng Auth chỉ cần BỎ COMMENT đoạn code dưới đây là kích hoạt lại.
         // ─────────────────────────────────────────────────────────────────────────────
-        /*
         var jwtSettings = configuration.GetSection("Jwt");
         var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
 
@@ -53,7 +52,6 @@ public static class AuthExtensions
                 }
             };
         });
-        */
 
         // Đăng ký dịch vụ Authorization mặc định (không yêu cầu JWT Bearer tạm thời)
         services.AddAuthorization();

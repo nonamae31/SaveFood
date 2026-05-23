@@ -38,6 +38,7 @@ builder.Services.AddHttpContextAccessor();
 // Ví dụ:
 // builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -60,8 +61,8 @@ app.UseCors("SaveFoodCors");
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
 // TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
 // Khi làm Auth, người phụ trách chỉ cần BỎ COMMENT 2 dòng này.
-// app.UseAuthentication();
-// app.UseAuthorization();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();
