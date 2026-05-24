@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { ROUTES } from '@/lib/constants'
 import { Button } from '@/components/ui/Button'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { useLogout } from '@/hooks/useAuth'
 
 // ─── Navbar Component ─────────────────────────────────────────────────────────
 // Thanh điều hướng dùng chung cho toàn bộ ứng dụng.
@@ -17,6 +19,8 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const location = useLocation()
+  const { isAuthenticated, user } = useAuthContext()
+  const logoutMutation = useLogout()
 
   const isActive = (href: string) =>
     href === ROUTES.HOME
@@ -83,13 +87,32 @@ export function Navbar() {
               <ShoppingCart width={20} height={20} />
             </Link>
 
-            {/* Auth buttons — TODO: Người 1 sẽ cập nhật khi có auth state */}
-            <Link to={ROUTES.LOGIN}>
-              <Button variant="ghost" size="sm">Đăng nhập</Button>
-            </Link>
-            <Link to={ROUTES.REGISTER}>
-              <Button size="sm">Đăng ký</Button>
-            </Link>
+            {/* ── Auth buttons ── */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center gap-4">
+                <Link to={ROUTES.PROFILE} className="text-[--text-body-sm] font-medium text-[--color-ink-primary] hover:text-[--color-brand-600]">
+                  Hồ sơ
+                </Link>
+                <Link to={ROUTES.WISHLIST} className="text-[--text-body-sm] font-medium text-[--color-ink-primary] hover:text-[--color-brand-600]">
+                  Yêu thích
+                </Link>
+                <span className="text-[--text-body-sm] text-[--color-ink-secondary] border-l border-[--color-surface-border] pl-4">
+                  Chào, {user.fullName}
+                </span>
+                <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
+                  Đăng xuất
+                </Button>
+              </div>
+            ) : (
+              <>
+                <Link to={ROUTES.LOGIN}>
+                  <Button variant="ghost" size="sm">Đăng nhập</Button>
+                </Link>
+                <Link to={ROUTES.REGISTER}>
+                  <Button size="sm">Đăng ký</Button>
+                </Link>
+              </>
+            )}
           </div>
 
           {/* ── Mobile Hamburger ── */}

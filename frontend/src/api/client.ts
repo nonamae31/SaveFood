@@ -1,0 +1,34 @@
+// src/api/client.ts
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api';
+
+export class ApiError extends Error {
+  constructor(public status: number, public code: string, message: string) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export async function apiClient<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    // RẤT QUAN TRỌNG ĐỂ GỬI VÀ NHẬN HTTPONLY COOKIE
+    credentials: 'include',
+    headers: { 
+      'Content-Type': 'application/json', 
+      ...options?.headers 
+    },
+    ...options,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = err.message || err.title || 'Request failed';
+    throw new ApiError(res.status, err.code ?? 'UNKNOWN', message);
+  }
+
+  // Handle empty responses (like 204 No Content or empty 200 OK)
+  const text = await res.text();
+  return text ? JSON.parse(text) : {} as T;
+}

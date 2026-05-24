@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
-import { useLogin, useGoogleLoginMutation } from '@/hooks/useAuth';
+import { useRegister, useGoogleLoginMutation } from '@/hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
 
-export function LoginPage() {
+export function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
-  const loginMutation = useLogin();
+  
+  const registerMutation = useRegister();
   const googleLoginMutation = useGoogleLoginMutation();
   const navigate = useNavigate();
-  const location = useLocation();
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
@@ -41,18 +44,23 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     
-    if (!email || !password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu');
+    if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
+      setError('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
-    loginMutation.mutate({ email, password }, {
+    if (password !== confirmPassword) {
+      setError('Mật khẩu và Nhập lại mật khẩu không khớp');
+      return;
+    }
+
+    registerMutation.mutate({ email, password, fullName, phoneNumber }, {
       onSuccess: () => {
-        // Đăng nhập thành công, context sẽ tự động fetch lại profile
-        navigate(ROUTES.HOME);
+        // Chuyển hướng sang trang nhập OTP và truyền email theo
+        navigate(ROUTES.VERIFY_OTP, { state: { email } });
       },
       onError: (err: any) => {
-        setError(err.message || 'Sai email hoặc mật khẩu.');
+        setError(err.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
       }
     });
   };
@@ -69,11 +77,10 @@ export function LoginPage() {
         <span>Về trang chủ</span>
       </Link>
 
-      {/* Cột trái: Form Đăng nhập */}
-      <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 xl:px-32 relative z-10">
+      {/* Cột trái: Form Đăng ký */}
+      <div className="flex-1 flex flex-col justify-center px-4 sm:px-12 lg:px-24 xl:px-32 relative z-10 py-12">
         <div className="mx-auto w-full max-w-md bg-surface-base p-8 sm:p-10 rounded-2xl shadow-card border border-surface-border">
           
-          {/* Logo / Tên ứng dụng */}
           <div className="mb-8 text-center">
             <Link to={ROUTES.HOME} className="inline-block">
               <span className="text-heading-xl font-bold font-display text-brand-600">
@@ -81,20 +88,34 @@ export function LoginPage() {
               </span>
             </Link>
             <h1 className="mt-4 text-heading-lg font-bold text-ink-primary">
-              Chào mừng trở lại
+              Tạo tài khoản mới
             </h1>
             <p className="mt-2 text-body-md text-ink-secondary">
-              Đăng nhập để tiếp tục giải cứu thức ăn.
+              Tham gia cùng chúng tôi để giải cứu thức ăn mỗi ngày.
             </p>
           </div>
 
-          {location.state?.message && (
-            <div className="mb-6 p-3 bg-brand-50 border border-brand-100 rounded-md text-brand-700 text-body-sm text-center">
-              {location.state.message}
-            </div>
-          )}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <Input
+              id="fullName"
+              type="text"
+              label="Họ và tên"
+              placeholder="Nguyễn Văn A"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+            />
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              id="phoneNumber"
+              type="tel"
+              label="Số điện thoại"
+              placeholder="0912345678"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              required
+            />
+
             <Input
               id="email"
               type="email"
@@ -105,27 +126,25 @@ export function LoginPage() {
               required
             />
             
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="text-body-sm font-medium text-ink-primary" htmlFor="password">
-                  Mật khẩu
-                </label>
-                <Link 
-                  to={ROUTES.FORGOT_PASSWORD} 
-                  className="text-body-sm font-medium text-brand-600 hover:text-brand-700 transition-colors"
-                >
-                  Quên mật khẩu?
-                </Link>
-              </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            <Input
+              id="password"
+              type="password"
+              label="Mật khẩu"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+
+            <Input
+              id="confirmPassword"
+              type="password"
+              label="Xác nhận mật khẩu"
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+            />
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-md text-expiry-urgent text-body-sm">
@@ -135,11 +154,11 @@ export function LoginPage() {
 
             <Button 
               type="submit" 
-              className="w-full mt-4 shadow-dropdown"
+              className="w-full mt-6 shadow-dropdown"
               size="lg"
-              isLoading={loginMutation.isPending}
+              isLoading={registerMutation.isPending}
             >
-              Đăng nhập
+              Đăng ký
             </Button>
           </form>
 
@@ -176,12 +195,12 @@ export function LoginPage() {
           </div>
 
           <p className="mt-8 text-center text-body-sm text-ink-secondary">
-            Bạn chưa có tài khoản?{' '}
+            Bạn đã có tài khoản?{' '}
             <Link 
-              to={ROUTES.REGISTER} 
+              to={ROUTES.LOGIN} 
               className="font-medium text-brand-600 hover:text-brand-700 transition-colors"
             >
-              Đăng ký ngay
+              Đăng nhập ngay
             </Link>
           </p>
         </div>
@@ -194,16 +213,14 @@ export function LoginPage() {
           src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80"
           alt="Fresh groceries background"
         />
-        {/* Lớp phủ gradient đen từ dưới lên để chữ hiển thị rõ */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
         
-        {/* Quote overlay */}
         <div className="absolute bottom-16 left-16 right-16 text-white">
           <h2 className="text-display-lg font-display font-bold leading-tight mb-4 max-w-lg drop-shadow-lg">
             "Mỗi phần ăn được cứu là một phần trái đất được bảo vệ."
           </h2>
           <p className="text-body-lg text-gray-200 max-w-md drop-shadow-md">
-            Hàng ngàn cửa hàng và siêu thị đang chờ bạn giải cứu những thực phẩm tươi ngon mỗi ngày.
+            Hãy bắt đầu hành trình của bạn ngay hôm nay cùng SaveFood!
           </p>
         </div>
       </div>

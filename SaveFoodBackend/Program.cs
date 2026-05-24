@@ -3,7 +3,13 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.Extensions;
 using SaveFoodBackend.Middleware;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.IdentityModel.Tokens.Jwt;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Tắt tự động map claim (sub -> nameidentifier) của .NET để giữ nguyên claim chuẩn của JWT
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -39,6 +45,8 @@ builder.Services.AddHttpContextAccessor();
 // builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -60,9 +68,8 @@ app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
 // TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
-// Khi làm Auth, người phụ trách chỉ cần BỎ COMMENT 2 dòng này.
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseAuthentication(); // Vẫn bật Authentication để đọc thông tin user từ Token/Cookie nếu có
+// app.UseAuthorization(); // COMMENT LẠI THEO YÊU CẦU: Bypass kiểm tra phân quyền để không bị block (401/403)
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();

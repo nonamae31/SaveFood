@@ -7,10 +7,14 @@
     <UserSecretsId>dee64d41-6ab5-4cb2-bdbe-e3d76a161e75</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerfileContext>.</DockerfileContext>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.2.0" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.74.0" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.23" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.23">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
