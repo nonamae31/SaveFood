@@ -99,3 +99,11 @@ export function useUpdateProfile() {
     },
   });
 }
+
+import { changePassword } from '@/api/auth.api';
+
+export function useChangePassword() {
+  return useMutation({
+    mutationFn: changePassword,
+  });
+}

@@ -96,9 +96,9 @@ export function Navbar() {
                 <Link to={ROUTES.WISHLIST} className="text-[--text-body-sm] font-medium text-[--color-ink-primary] hover:text-[--color-brand-600]">
                   Yêu thích
                 </Link>
-                <span className="text-[--text-body-sm] text-[--color-ink-secondary] border-l border-[--color-surface-border] pl-4">
-                  Chào, {user.fullName}
-                </span>
+                <Link to={ROUTES.PROFILE} className="text-[--text-body-sm] text-[--color-ink-primary] hover:text-[--color-brand-600] border-l border-[--color-surface-border] pl-4 transition-colors">
+                  Chào, <span className="font-semibold">{user.fullName}</span>
+                </Link>
                 <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
                   Đăng xuất
                 </Button>

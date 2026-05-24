@@ -11,10 +11,12 @@ namespace SaveFoodBackend.Services
     public class UserService : IUserService
     {
         private readonly SaveFoodDbContext _context;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public UserService(SaveFoodDbContext context)
+        public UserService(SaveFoodDbContext context, ICloudinaryService cloudinaryService)
         {
             _context = context;
+            _cloudinaryService = cloudinaryService;
         }
 
         public async Task<UserProfileDTO> GetProfileAsync(Guid userId)
@@ -40,8 +42,51 @@ namespace SaveFoodBackend.Services
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
                             .Select(ur => ur.Role.Name)
-                            .ToList()
+                            .ToList(),
+                HasPassword = user.PasswordHash != null && !Guid.TryParse(user.PasswordHash, out _)
             };
+        }
+
+        public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            bool hasPassword = user.PasswordHash != null && !Guid.TryParse(user.PasswordHash, out _);
+
+            if (hasPassword)
+            {
+                if (string.IsNullOrEmpty(request.OldPassword))
+                {
+                    throw new InvalidOperationException("Vui lòng nhập mật khẩu cũ.");
+                }
+
+                bool isPasswordValid = false;
+                try
+                {
+                    isPasswordValid = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash);
+                }
+                catch (BCrypt.Net.SaltParseException)
+                {
+                    isPasswordValid = request.OldPassword == user.PasswordHash;
+                }
+
+                if (!isPasswordValid)
+                {
+                    throw new InvalidOperationException("Mật khẩu cũ không chính xác.");
+                }
+            }
+            else
+            {
+                // Nếu chưa có mật khẩu, user không được phép gọi endpoint này. User phải dùng forgot-password và reset-password
+                throw new InvalidOperationException("Tài khoản chưa có mật khẩu. Vui lòng sử dụng tính năng gửi OTP để tạo mật khẩu.");
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            await _context.SaveChangesAsync();
         }
 
         public async Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
@@ -55,8 +100,15 @@ namespace SaveFoodBackend.Services
 
             user.FullName = request.FullName;
             user.PhoneNumber = request.PhoneNumber;
-            user.Address = request.Address;
-            user.AvatarUrl = request.AvatarUrl;
+
+            if (request.AvatarFile != null)
+            {
+                var newAvatarUrl = await _cloudinaryService.UploadImageAsync(request.AvatarFile);
+                if (!string.IsNullOrEmpty(newAvatarUrl))
+                {
+                    user.AvatarUrl = newAvatarUrl;
+                }
+            }
 
             await _context.SaveChangesAsync();
         }

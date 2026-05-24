@@ -14,5 +14,8 @@ namespace SaveFoodBackend.DTOs.User
         
         // Trả về danh sách tên Role thay vì toàn bộ object Role
         public List<string> Roles { get; set; } = new List<string>();
+
+        // Trạng thái mật khẩu
+        public bool HasPassword { get; set; }
     }
 }

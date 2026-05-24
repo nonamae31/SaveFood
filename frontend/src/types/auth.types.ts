@@ -59,8 +59,12 @@ export interface LoginResponse {
 export interface UpdateProfileRequest {
   fullName: string;
   phoneNumber?: string | null;
-  address?: string | null;
-  avatarUrl?: string | null;
+  avatarFile?: File | null;
+}
+
+export interface ChangePasswordRequest {
+  oldPassword?: string;
+  newPassword: string;
 }
 
 export interface UserProfileDTO {
@@ -73,4 +77,5 @@ export interface UserProfileDTO {
   status: string;
   createdAt: string;
   roles: string[];
+  hasPassword: boolean;
 }

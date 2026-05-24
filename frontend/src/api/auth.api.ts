@@ -51,8 +51,20 @@ export const resetPassword = (data: import('@/types/auth.types').ResetPasswordRe
 export const getProfile = (): Promise<UserProfileDTO> =>
   apiClient('/Users/profile');
 
-export const updateProfile = (data: import('@/types/auth.types').UpdateProfileRequest): Promise<{ message: string }> =>
-  apiClient('/Users/profile', {
+export const updateProfile = (data: import('@/types/auth.types').UpdateProfileRequest): Promise<{ message: string }> => {
+  const formData = new FormData();
+  formData.append('fullName', data.fullName);
+  if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
+  if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
+
+  return apiClient('/Users/profile', {
+    method: 'PUT',
+    body: formData
+  });
+};
+
+export const changePassword = (data: import('@/types/auth.types').ChangePasswordRequest): Promise<{ message: string }> =>
+  apiClient('/Users/change-password', {
     method: 'PUT',
     body: JSON.stringify(data)
   });

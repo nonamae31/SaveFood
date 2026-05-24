@@ -12,11 +12,14 @@ export async function apiClient<T>(
   path: string,
   options?: RequestInit
 ): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
+  const defaultHeaders: HeadersInit = isFormData ? {} : { 'Content-Type': 'application/json' };
+
   const res = await fetch(`${BASE_URL}${path}`, {
     // RẤT QUAN TRỌNG ĐỂ GỬI VÀ NHẬN HTTPONLY COOKIE
     credentials: 'include',
     headers: { 
-      'Content-Type': 'application/json', 
+      ...defaultHeaders,
       ...options?.headers 
     },
     ...options,
