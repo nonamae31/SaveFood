@@ -114,6 +114,15 @@
     border-radius: var(--radius-input);
   }
 
+  /* Ẩn con mắt mặc định của Edge/Chrome trong ô password */
+  input[type="password"]::-ms-reveal,
+  input[type="password"]::-ms-clear {
+    display: none;
+  }
+  input[type="password"]::-webkit-reveal {
+    display: none;
+  }
+
   /* Scrollbar mảnh và subtle */
   ::-webkit-scrollbar {
     width: 6px;

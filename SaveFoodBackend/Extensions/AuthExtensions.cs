@@ -17,7 +17,12 @@ public static class AuthExtensions
         // Người đảm nhận chức năng Auth chỉ cần BỎ COMMENT đoạn code dưới đây là kích hoạt lại.
         // ─────────────────────────────────────────────────────────────────────────────
         var jwtSettings = configuration.GetSection("Jwt");
-        var key = Encoding.UTF8.GetBytes(jwtSettings["Key"]!);
+        var keyString = jwtSettings["Key"];
+        if (string.IsNullOrEmpty(keyString))
+        {
+            throw new InvalidOperationException("JWT Key is not configured in appsettings.json. Please check your appsettings.json file.");
+        }
+        var key = Encoding.UTF8.GetBytes(keyString);
 
         services.AddAuthentication(options =>
         {
@@ -57,12 +62,34 @@ public static class AuthExtensions
                         ctx.Token = accessToken;
                     }
                     return Task.CompletedTask;
+                },
+                OnTokenValidated = async ctx =>
+                {
+                    var sessionIdStr = ctx.Principal?.FindFirst("sessionId")?.Value;
+                    if (string.IsNullOrEmpty(sessionIdStr) || !Guid.TryParse(sessionIdStr, out Guid sessionId))
+                    {
+                        ctx.Fail("Invalid session in token");
+                        return;
+                    }
+
+                    var dbContext = ctx.HttpContext.RequestServices.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                    var session = await dbContext.UserSessions.FindAsync(sessionId);
+
+                    if (session == null || session.RevokedAt != null)
+                    {
+                        ctx.Fail("Token has been revoked");
+                    }
                 }
             };
         });
 
-        // Đăng ký dịch vụ Authorization mặc định (không yêu cầu JWT Bearer tạm thời)
-        services.AddAuthorization();
+        // Đăng ký dịch vụ Authorization mặc định cùng với cấu hình các Role Policies
+        services.AddAuthorization(options =>
+        {
+            options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+            options.AddPolicy("RequireStoreOwnerRole", policy => policy.RequireRole("StoreOwner"));
+            options.AddPolicy("RequireCustomerRole", policy => policy.RequireRole("Customer"));
+        });
 
         return services;
     }

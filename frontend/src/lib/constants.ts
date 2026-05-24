@@ -52,7 +52,10 @@ export const ROUTES = {
   // Auth
   LOGIN:          '/login',
   REGISTER:       '/register',
+  VERIFY_OTP:     '/verify-otp',
   FORGOT_PASSWORD:'/forgot-password',
+  PROFILE:        '/profile',
+  WISHLIST:       '/wishlist',
 
   // Store Dashboard
   DASHBOARD:              '/dashboard',

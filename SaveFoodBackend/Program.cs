@@ -3,7 +3,13 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.Extensions;
 using SaveFoodBackend.Middleware;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.IdentityModel.Tokens.Jwt;
+
 var builder = WebApplication.CreateBuilder(args);
+
+// Tắt tự động map claim (sub -> nameidentifier) của .NET để giữ nguyên claim chuẩn của JWT
+JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
@@ -39,6 +45,8 @@ builder.Services.AddHttpContextAccessor();
 // builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();

@@ -5,6 +5,10 @@ import { ROUTES } from '@/lib/constants'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { LoginPage } from '@/pages/auth/LoginPage'
+import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { VerifyOtpPage } from '@/pages/auth/VerifyOtpPage'
+import { ProfilePage } from '@/pages/profile/ProfilePage'
+import { WishlistPage } from '@/pages/profile/WishlistPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -38,46 +42,53 @@ function PlaceholderPage({ title }: { title: string }) {
 
 // ─── App Component ────────────────────────────────────────────────────────────
 
+import { AuthProvider } from '@/contexts/AuthContext'
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          {/* ── Public Pages ── */}
-          <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ — SaveFood" />} />
-          <Route path={ROUTES.PRODUCTS}        element={<PlaceholderPage title="Đồ ăn cận date" />} />
-          <Route path="/products/:id"          element={<PlaceholderPage title="Chi tiết sản phẩm" />} />
-          <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
-          <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* ── Public Pages ── */}
+            <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ — SaveFood" />} />
+            <Route path={ROUTES.PRODUCTS}        element={<PlaceholderPage title="Đồ ăn cận date" />} />
+            <Route path="/products/:id"          element={<PlaceholderPage title="Chi tiết sản phẩm" />} />
+            <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
+            <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
 
-          {/* ── Cart & Orders (Người 4) ── */}
-          <Route path={ROUTES.CART}            element={<PlaceholderPage title="Giỏ hàng" />} />
-          <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
-          <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
-          <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
+            {/* ── Cart & Orders (Người 4) ── */}
+            <Route path={ROUTES.CART}            element={<PlaceholderPage title="Giỏ hàng" />} />
+            <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
+            <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
+            <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
 
-          {/* ── Auth (Người 1) ── */}
-          <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
-          <Route path={ROUTES.REGISTER}        element={<PlaceholderPage title="Đăng ký" />} />
-          <Route path={ROUTES.FORGOT_PASSWORD} element={<PlaceholderPage title="Khôi phục mật khẩu" />} />
+            {/* ── Auth (Người 1) ── */}
+            <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
+            <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
+            <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<PlaceholderPage title="Khôi phục mật khẩu" />} />
+            <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
+            <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
 
-          {/* ── Store Dashboard (Người 2 & 3) ── */}
-          <Route path={ROUTES.DASHBOARD}           element={<PlaceholderPage title="Dashboard" />} />
-          <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<PlaceholderPage title="Quản lý tin đăng" />} />
-          <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Đơn hàng" />} />
-          <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<PlaceholderPage title="Thống kê" />} />
-          <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
+            {/* ── Store Dashboard (Người 2 & 3) ── */}
+            <Route path={ROUTES.DASHBOARD}           element={<PlaceholderPage title="Dashboard" />} />
+            <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<PlaceholderPage title="Quản lý tin đăng" />} />
+            <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Đơn hàng" />} />
+            <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<PlaceholderPage title="Thống kê" />} />
+            <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
 
-          {/* ── Admin (Người 5) ── */}
-          <Route path={ROUTES.ADMIN}           element={<PlaceholderPage title="Admin Portal" />} />
+            {/* ── Admin (Người 5) ── */}
+            <Route path={ROUTES.ADMIN}           element={<PlaceholderPage title="Admin Portal" />} />
 
-          {/* ── Payment Return (Người 5) ── */}
-          <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
+            {/* ── Payment Return (Người 5) ── */}
+            <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
 
-          {/* ── 404 Fallback ── */}
-          <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-        </Routes>
-      </BrowserRouter>
+            {/* ── 404 Fallback ── */}
+            <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   )
 }
