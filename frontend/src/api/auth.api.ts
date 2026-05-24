@@ -36,6 +36,18 @@ export const logout = (): Promise<{ message: string }> =>
     method: 'POST' 
   });
 
+export const forgotPassword = (data: import('@/types/auth.types').ForgotPasswordRequest): Promise<{ message: string }> =>
+  apiClient('/Users/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
+export const resetPassword = (data: import('@/types/auth.types').ResetPasswordRequest): Promise<{ message: string }> =>
+  apiClient('/Users/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  });
+
 export const getProfile = (): Promise<UserProfileDTO> =>
   apiClient('/Users/profile');
 

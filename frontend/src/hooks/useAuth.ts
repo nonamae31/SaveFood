@@ -49,6 +49,20 @@ export function useResendOtp() {
   });
 }
 
+import { forgotPassword, resetPassword } from '@/api/auth.api';
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: forgotPassword,
+  });
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: resetPassword,
+  });
+}
+
 export function useLogout() {
   const queryClient = useQueryClient();
   

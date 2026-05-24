@@ -10,4 +10,6 @@ public interface IAuthService
     Task<bool> VerifyOtpAsync(VerifyOtpRequest request);
     Task<bool> ResendOtpAsync(ResendOtpRequest request);
     Task<LoginResponse> GoogleLoginAsync(GoogleLoginRequest request);
+    Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request);
+    Task<bool> ResetPasswordAsync(ResetPasswordRequest request);
 }

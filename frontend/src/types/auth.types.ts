@@ -37,6 +37,16 @@ export interface GoogleLoginRequest {
   token: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+}
+
 export interface LoginResponse {
   accessToken: string; // Thực tế không cần lưu accessToken này ở local storage vì đã có HttpOnly Cookie, nhưng API vẫn trả về
   user: {

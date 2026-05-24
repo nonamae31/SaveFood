@@ -282,24 +282,63 @@ public class AuthService : IAuthService
         if (string.IsNullOrEmpty(clientId))
             throw new InvalidOperationException("Google ClientId is not configured.");
 
-        GoogleJsonWebSignature.Payload payload;
+        string payloadEmail = null;
+        string payloadName = null;
+        string payloadPicture = null;
+
+        // Thêm ClockTolerance theo gợi ý của user để tránh lỗi lệch giờ (clock skew) 5 phút
+        var settings = new GoogleJsonWebSignature.ValidationSettings()
+        {
+            Audience = new[] { clientId },
+            ExpirationTimeClockTolerance = TimeSpan.FromMinutes(5),
+            IssuedAtClockTolerance = TimeSpan.FromMinutes(5)
+        };
+
         try
         {
-            var settings = new GoogleJsonWebSignature.ValidationSettings()
-            {
-                Audience = new[] { clientId }
-            };
-            payload = await GoogleJsonWebSignature.ValidateAsync(request.Token, settings);
+            // Thử giải mã nếu là id_token (JWT)
+            var payload = await GoogleJsonWebSignature.ValidateAsync(request.Token, settings);
+            payloadEmail = payload.Email;
+            payloadName = payload.Name;
+            payloadPicture = payload.Picture;
         }
-        catch (InvalidJwtException)
+        catch (InvalidJwtException ex)
         {
-            throw new UnauthorizedAccessException("Invalid Google Token.");
+            // Nếu không phải là id_token hợp lệ (ví dụ: là access_token từ useGoogleLogin)
+            // hoặc bị lỗi khác, ta fallback sang gọi Google UserInfo API
+            using var httpClient = new System.Net.Http.HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.Token);
+            var response = await httpClient.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo");
+
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                throw new UnauthorizedAccessException($"Invalid Google Token. JWT Error: {ex.Message}. UserInfo Error: {response.StatusCode} - {errorBody}");
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            
+            if (root.TryGetProperty("email", out var emailProp))
+                payloadEmail = emailProp.GetString();
+                
+            if (root.TryGetProperty("name", out var nameProp))
+                payloadName = nameProp.GetString();
+                
+            if (root.TryGetProperty("picture", out var picProp))
+                payloadPicture = picProp.GetString();
+        }
+
+        if (string.IsNullOrEmpty(payloadEmail))
+        {
+            throw new UnauthorizedAccessException("Could not retrieve email from Google Token.");
         }
 
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == payload.Email);
+            .FirstOrDefaultAsync(u => u.Email == payloadEmail);
 
         if (user == null)
         {
@@ -307,10 +346,10 @@ public class AuthService : IAuthService
             user = new Models.User
             {
                 Id = Guid.NewGuid(),
-                Email = payload.Email,
-                FullName = payload.Name ?? payload.Email,
+                Email = payloadEmail,
+                FullName = payloadName ?? payloadEmail,
                 PasswordHash = Guid.NewGuid().ToString(), // Không ai biết mật khẩu này
-                AvatarUrl = payload.Picture,
+                AvatarUrl = payloadPicture,
                 UserStatusEnum = Models.Enums.UserStatus.Active,
                 EmailVerified = true, // Được Google xác thực
                 CreatedAt = DateTime.UtcNow
@@ -333,9 +372,9 @@ public class AuthService : IAuthService
             }
             
             // Cập nhật Avatar nếu cần
-            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payload.Picture))
+            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payloadPicture))
             {
-                user.AvatarUrl = payload.Picture;
+                user.AvatarUrl = payloadPicture;
             }
             
             // Đảm bảo đã verify
@@ -368,5 +407,86 @@ public class AuthService : IAuthService
             Role = roleName,
             RefreshToken = session.RefreshTokenHash
         };
+    }
+
+    public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (user == null)
+        {
+            // Trả về true luôn để tránh lộ thông tin email có tồn tại hay không (bảo mật)
+            return true;
+        }
+
+        var latestOtp = await _context.EmailVerifications
+            .Where(e => e.UserId == user.Id)
+            .OrderByDescending(e => e.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        // Kiểm tra chống spam: Không cho gửi nếu lần gửi gần nhất cách đây chưa đầy 60 giây
+        if (latestOtp != null && latestOtp.CreatedAt > DateTime.UtcNow.AddSeconds(-60))
+        {
+            var waitTime = (int)(60 - (DateTime.UtcNow - latestOtp.CreatedAt).TotalSeconds);
+            throw new InvalidOperationException($"Vui lòng đợi {waitTime} giây trước khi gửi yêu cầu mới.");
+        }
+
+        // Tạo mã OTP ngẫu nhiên 6 số mới
+        var random = new Random();
+        var otpCode = random.Next(100000, 999999).ToString();
+
+        var verification = new Models.EmailVerification
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            VerificationCode = otpCode,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15) // Hết hạn sau 15 phút
+        };
+        _context.EmailVerifications.Add(verification);
+
+        await _context.SaveChangesAsync();
+
+        // Gửi mã OTP qua Email
+        var emailBody = $@"
+            <h2>Khôi phục mật khẩu SaveFood</h2>
+            <p>Chào {user.FullName},</p>
+            <p>Bạn vừa yêu cầu khôi phục mật khẩu. Mã xác nhận OTP của bạn là:</p>
+            <h1 style='color: #10b981; font-size: 32px; letter-spacing: 4px;'>{otpCode}</h1>
+            <p>Mã này sẽ hết hạn sau 15 phút. Nếu bạn không yêu cầu việc này, vui lòng bỏ qua email này.</p>
+            <p>Trân trọng,<br>Đội ngũ SaveFood</p>
+        ";
+        await _emailService.SendEmailAsync(user.Email, "Mã xác nhận Khôi phục mật khẩu", emailBody);
+
+        return true;
+    }
+
+    public async Task<bool> ResetPasswordAsync(ResetPasswordRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        if (user == null)
+            throw new InvalidOperationException("User not found.");
+
+        var latestOtp = await _context.EmailVerifications
+            .Where(e => e.UserId == user.Id && e.VerifiedAt == null)
+            .OrderByDescending(e => e.CreatedAt)
+            .FirstOrDefaultAsync();
+
+        if (latestOtp == null)
+            throw new InvalidOperationException("Không tìm thấy yêu cầu khôi phục mật khẩu hợp lệ.");
+
+        if (latestOtp.ExpiresAt < DateTime.UtcNow)
+            throw new InvalidOperationException("Mã OTP đã hết hạn.");
+
+        if (latestOtp.VerificationCode != request.OtpCode)
+            throw new InvalidOperationException("Mã OTP không chính xác.");
+
+        // Mark as verified
+        latestOtp.VerifiedAt = DateTime.UtcNow;
+        
+        // Đặt lại mật khẩu mới
+        user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+        await _context.SaveChangesAsync();
+        return true;
     }
 }

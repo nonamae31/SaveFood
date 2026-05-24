@@ -54,6 +54,7 @@ export const ROUTES = {
   REGISTER:       '/register',
   VERIFY_OTP:     '/verify-otp',
   FORGOT_PASSWORD:'/forgot-password',
+  RESET_PASSWORD: '/reset-password',
   PROFILE:        '/profile',
   WISHLIST:       '/wishlist',
 
