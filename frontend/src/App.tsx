@@ -11,6 +11,10 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { WishlistPage } from '@/pages/profile/WishlistPage'
+import AccountManagementPage from '@/pages/admin/AccountManagementPage'
+import StoreApprovalPage from '@/pages/admin/StoreApprovalPage'
+import { AdminLayout } from '@/components/layout/AdminLayout'
+import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -82,7 +86,13 @@ function App() {
             <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
 
             {/* ── Admin (Người 5) ── */}
-            <Route path={ROUTES.ADMIN}           element={<PlaceholderPage title="Admin Portal" />} />
+            <Route element={<AdminProtectedRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_ACCOUNTS} replace />} />
+                <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+              </Route>
+            </Route>
 
             {/* ── Payment Return (Người 5) ── */}
             <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />

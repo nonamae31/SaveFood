@@ -33,6 +33,8 @@ public partial class Store
 
     public DateTime CreatedAt { get; set; }
 
+    public string? ReviewNotes { get; set; }
+
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 
     public virtual ICollection<Product> Products { get; set; } = new List<Product>();

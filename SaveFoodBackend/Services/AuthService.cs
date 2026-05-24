@@ -141,8 +141,10 @@ public class AuthService : IAuthService
         // 3. Generate Token
         var token = GenerateJwtToken(user, session.Id.ToString());
 
-        // Extract primary role, or default to empty
-        var roleName = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
+        // Extract primary role code (Prioritize ADMIN, then STORE, then default)
+        var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
+                       user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
+                       user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
         return new LoginResponse
         {
@@ -150,7 +152,7 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Email = user.Email,
             FullName = user.FullName,
-            Role = roleName,
+            Role = roleCode,
             RefreshToken = session.RefreshTokenHash
         };
     }
@@ -177,7 +179,7 @@ public class AuthService : IAuthService
         {
             if (userRole.Role != null)
             {
-                claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
+                claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Code));
             }
         }
 
@@ -396,7 +398,9 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         var token = GenerateJwtToken(user, session.Id.ToString());
-        var roleName = user.UserRoles.FirstOrDefault()?.Role?.Name ?? "Customer";
+        var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
+                       user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
+                       user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
         return new LoginResponse
         {
@@ -404,7 +408,7 @@ public class AuthService : IAuthService
             UserId = user.Id,
             Email = user.Email,
             FullName = user.FullName,
-            Role = roleName,
+            Role = roleCode,
             RefreshToken = session.RefreshTokenHash
         };
     }

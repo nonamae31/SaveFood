@@ -39,7 +39,7 @@ namespace SaveFoodBackend.Services
                 AvatarUrl = user.AvatarUrl,
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
-                            .Select(ur => ur.Role.Name)
+                            .Select(ur => ur.Role.Code)
                             .ToList()
             };
         }
