@@ -7,12 +7,14 @@ import { Footer } from '@/components/layout/Footer'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { VerifyOtpPage } from '@/pages/auth/VerifyOtpPage'
+import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { WishlistPage } from '@/pages/profile/WishlistPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
-// Người 1: LoginPage, RegisterPage
+// Người 1: LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage
 // Người 2: StorePage, StoresPage  
 // Người 3: ProductListPage, ProductDetailPage
 // Người 4: CartPage, CheckoutPage, OrderDetailPage
@@ -67,7 +69,8 @@ function App() {
             <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
             <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
             <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
-            <Route path={ROUTES.FORGOT_PASSWORD} element={<PlaceholderPage title="Khôi phục mật khẩu" />} />
+            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+            <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
             <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
             <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
 
