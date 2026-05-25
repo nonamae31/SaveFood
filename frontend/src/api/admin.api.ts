@@ -1,6 +1,26 @@
 import { apiClient } from './client';
 
 // Types
+export interface PaginatedList<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPreviousPage: boolean;
+  hasNextPage: boolean;
+}
+
+export interface GetUsersRequest {
+  search?: string;
+  roleFilter?: string;
+  statusFilter?: string;
+  sortBy?: string;
+  sortDirection?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
 export interface AdminUserListDTO {
   id: string;
   email: string;
@@ -44,7 +64,17 @@ export interface AdminStoreApprovalDTO {
 
 // API methods
 export const adminApi = {
-  getUsers: () => apiClient<AdminUserListDTO[]>('/admin/users'),
+  getUsers: (params?: GetUsersRequest) => {
+    if (!params) return apiClient<PaginatedList<AdminUserListDTO>>('/admin/users');
+    const searchParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        searchParams.append(key, value.toString());
+      }
+    });
+    const queryString = searchParams.toString();
+    return apiClient<PaginatedList<AdminUserListDTO>>(`/admin/users${queryString ? `?${queryString}` : ''}`);
+  },
   
   getUserDetails: (id: string) => apiClient<AdminUserDetailsDTO>(`/admin/users/${id}`),
   

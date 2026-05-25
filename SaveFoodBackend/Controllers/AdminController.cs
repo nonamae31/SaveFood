@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Common;
 
 namespace SaveFoodBackend.Controllers
 {
@@ -22,9 +23,9 @@ namespace SaveFoodBackend.Controllers
 
         // GET: api/admin/users
         [HttpGet("users")]
-        public async Task<ActionResult<IEnumerable<AdminUserListDTO>>> GetUsers()
+        public async Task<ActionResult<PaginatedList<AdminUserListDTO>>> GetUsers([FromQuery] GetUsersRequestDTO request)
         {
-            var users = await _adminService.GetUsersAsync();
+            var users = await _adminService.GetUsersAsync(request);
             return Ok(users);
         }
 

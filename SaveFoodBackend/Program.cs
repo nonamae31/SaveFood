@@ -48,6 +48,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBack
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminService, SaveFoodBackend.Services.AdminService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ISubscriptionPlanService, SaveFoodBackend.Services.SubscriptionPlanService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();

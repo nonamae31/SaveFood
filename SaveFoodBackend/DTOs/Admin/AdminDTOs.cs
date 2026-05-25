@@ -3,6 +3,17 @@ using System.Collections.Generic;
 
 namespace SaveFoodBackend.DTOs.Admin
 {
+    public class GetUsersRequestDTO
+    {
+        public string? Search { get; set; }
+        public string? RoleFilter { get; set; }
+        public string? StatusFilter { get; set; }
+        public string? SortBy { get; set; }
+        public string? SortDirection { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 5;
+    }
+
     public class AdminUserListDTO
     {
         public Guid Id { get; set; }

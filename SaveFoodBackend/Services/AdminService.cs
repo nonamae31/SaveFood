@@ -8,6 +8,7 @@ using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Common;
 
 namespace SaveFoodBackend.Services
 {
@@ -20,21 +21,57 @@ namespace SaveFoodBackend.Services
             _context = context;
         }
 
-        public async Task<IEnumerable<AdminUserListDTO>> GetUsersAsync()
+        public async Task<PaginatedList<AdminUserListDTO>> GetUsersAsync(GetUsersRequestDTO request)
         {
-            return await _context.Users
+            var query = _context.Users
                 .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
-                .Select(u => new AdminUserListDTO
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var search = request.Search.ToLower();
+                query = query.Where(u => u.Email.ToLower().Contains(search) || u.FullName.ToLower().Contains(search));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.StatusFilter) && request.StatusFilter != "All")
+            {
+                if (byte.TryParse(request.StatusFilter, out byte status))
                 {
-                    Id = u.Id,
-                    Email = u.Email,
-                    FullName = u.FullName,
-                    Status = u.Status,
-                    CreatedAt = u.CreatedAt,
-                    Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
-                })
-                .OrderByDescending(u => u.CreatedAt)
-                .ToListAsync();
+                    query = query.Where(u => u.Status == status);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.RoleFilter) && request.RoleFilter != "All")
+            {
+                if (request.RoleFilter == "Customer")
+                {
+                    query = query.Where(u => !u.UserRoles.Any());
+                }
+                else
+                {
+                    query = query.Where(u => u.UserRoles.Any(ur => ur.Role.Name == request.RoleFilter));
+                }
+            }
+
+            query = request.SortBy switch
+            {
+                "fullName" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.FullName) : query.OrderBy(u => u.FullName),
+                "status" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.Status) : query.OrderBy(u => u.Status),
+                "createdAt" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.CreatedAt) : query.OrderBy(u => u.CreatedAt),
+                _ => query.OrderByDescending(u => u.CreatedAt)
+            };
+
+            var mappedQuery = query.Select(u => new AdminUserListDTO
+            {
+                Id = u.Id,
+                Email = u.Email,
+                FullName = u.FullName,
+                Status = u.Status,
+                CreatedAt = u.CreatedAt,
+                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+            });
+
+            return await PaginatedList<AdminUserListDTO>.CreateAsync(mappedQuery, request.PageNumber, request.PageSize);
         }
 
         public async Task<AdminUserDetailsDTO> GetUserDetailsAsync(Guid userId)

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Users, Store, LogOut, Menu, X, Shield, ChevronRight } from 'lucide-react';
+import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
@@ -33,6 +33,7 @@ export function AdminLayout() {
   const navItems = [
     { name: 'Accounts', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
     { name: 'Approvals', href: ROUTES.ADMIN_APPROVALS, icon: Store },
+    { name: 'Subscriptions', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
   ];
 
   return (

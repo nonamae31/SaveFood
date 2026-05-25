@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin.api';
-import type { AdminUserListDTO, AdminUserDetailsDTO } from '../../api/admin.api';
-import { Shield, AlertCircle, CheckCircle, Search, X, Store, User as UserIcon, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronDown } from 'lucide-react';
+import type { AdminUserListDTO, AdminUserDetailsDTO, PaginatedList, GetUsersRequest } from '../../api/admin.api';
+import { Shield, AlertCircle, CheckCircle, Search, X, Store, User as UserIcon, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -221,84 +222,85 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
 }
 
 export default function AccountManagementPage() {
-  const [users, setUsers] = useState<AdminUserListDTO[]>([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [data, setData] = useState<PaginatedList<AdminUserListDTO> | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Filtering states
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState('All');
-  const [statusFilter, setStatusFilter] = useState('All');
-  
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState<{ key: keyof AdminUserListDTO, direction: 'asc' | 'desc' } | null>(null);
-  
+  // Extract from URL
+  const search = searchParams.get('search') || '';
+  const roleFilter = searchParams.get('roleFilter') || 'All';
+  const statusFilter = searchParams.get('statusFilter') || 'All';
+  const sortBy = searchParams.get('sortBy') || '';
+  const sortDirection = searchParams.get('sortDirection') || 'desc';
+  const currentPage = parseInt(searchParams.get('pageNumber') || '1', 10);
+  const ITEMS_PER_PAGE = 5; // Bạn có thể thay đổi số lượng item trên mỗi trang ở đây
+
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    adminApi.getUsers()
-      .then(setUsers)
+    setLoading(true);
+    const request: GetUsersRequest = {
+      search: search || undefined,
+      roleFilter: roleFilter !== 'All' ? roleFilter : undefined,
+      statusFilter: statusFilter !== 'All' ? statusFilter : undefined,
+      sortBy: sortBy || undefined,
+      sortDirection: sortBy ? sortDirection : undefined,
+      pageNumber: currentPage,
+      pageSize: ITEMS_PER_PAGE
+    };
+
+    adminApi.getUsers(request)
+      .then(setData)
+      .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [search, roleFilter, statusFilter, sortBy, sortDirection, currentPage]);
 
-  const uniqueRoles = useMemo(() => {
-    const roles = new Set<string>();
-    users.forEach(u => u.roles.forEach(r => roles.add(r)));
-    return Array.from(roles).sort();
-  }, [users]);
-
-  const requestSort = (key: keyof AdminUserListDTO) => {
-    let direction: 'asc' | 'desc' = 'asc';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
-      direction = 'desc';
+  const updateFilter = (key: string, value: string) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value && value !== 'All' && value !== '') {
+      newParams.set(key, value);
+    } else {
+      newParams.delete(key);
     }
-    setSortConfig({ key, direction });
+    newParams.set('pageNumber', '1');
+    setSearchParams(newParams);
   };
 
-  const getSortIcon = (key: keyof AdminUserListDTO) => {
-    if (!sortConfig || sortConfig.key !== key) {
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('pageNumber', page.toString());
+    setSearchParams(newParams);
+  };
+
+  const requestSort = (key: string) => {
+    if (key === 'roles') return; // Disabled sorting on roles
+    let direction = 'asc';
+    if (sortBy === key && sortDirection === 'asc') {
+      direction = 'desc';
+    }
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set('sortBy', key);
+    newParams.set('sortDirection', direction);
+    newParams.set('pageNumber', '1');
+    setSearchParams(newParams);
+  };
+
+  const getSortIcon = (key: string) => {
+    if (key === 'roles') return null;
+    if (sortBy !== key) {
       return <ArrowUpDown className="w-3.5 h-3.5 ml-1 inline text-mint-stone opacity-50 group-hover:opacity-100" />;
     }
-    return sortConfig.direction === 'asc' ? 
+    return sortDirection === 'asc' ? 
       <ArrowUp className="w-3.5 h-3.5 ml-1 inline text-mint-ink" /> : 
       <ArrowDown className="w-3.5 h-3.5 ml-1 inline text-mint-ink" />;
   };
 
-  const processedUsers = useMemo(() => {
-    let filtered = users.filter(u => 
-      (u.email.toLowerCase().includes(search.toLowerCase()) || 
-       u.fullName.toLowerCase().includes(search.toLowerCase()))
-    );
-
-    if (roleFilter !== 'All') {
-      filtered = filtered.filter(u => u.roles.includes(roleFilter));
-    }
-
-    if (statusFilter !== 'All') {
-      filtered = filtered.filter(u => u.status.toString() === statusFilter);
-    }
-
-    if (sortConfig !== null) {
-      filtered.sort((a, b) => {
-        let aVal = a[sortConfig.key];
-        let bVal = b[sortConfig.key];
-        
-        if (sortConfig.key === 'roles') {
-          aVal = a.roles.join(', ');
-          bVal = b.roles.join(', ');
-        }
-
-        if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-        if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-        return 0;
-      });
-    }
-
-    return filtered;
-  }, [users, search, roleFilter, statusFilter, sortConfig]);
-
   const roleOptions = [
     { label: 'All Roles', value: 'All' },
-    ...uniqueRoles.map(role => ({ label: role, value: role }))
+    { label: 'Admin', value: 'ADMIN' },
+    { label: 'Store Owner', value: 'STORE' },
+    { label: 'Store Staff', value: 'STORE_STAFF' },
+    { label: 'Customer', value: 'Customer' }
   ];
 
   const statusOptions = [
@@ -330,7 +332,7 @@ export default function AccountManagementPage() {
             type="text"
             placeholder="Search by name or email..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => updateFilter('search', e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-mint-canvas border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] h-[40px] transition-all"
           />
         </div>
@@ -338,13 +340,13 @@ export default function AccountManagementPage() {
         <div className="flex items-center gap-3">
           <CustomSelect 
             value={roleFilter}
-            onChange={setRoleFilter}
+            onChange={(val) => updateFilter('roleFilter', val)}
             options={roleOptions}
             icon={<Filter className="w-4 h-4 text-mint-stone" />}
           />
           <CustomSelect 
             value={statusFilter}
-            onChange={setStatusFilter}
+            onChange={(val) => updateFilter('statusFilter', val)}
             options={statusOptions}
           />
         </div>
@@ -359,8 +361,8 @@ export default function AccountManagementPage() {
                 <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('fullName')}>
                   User {getSortIcon('fullName')}
                 </th>
-                <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('roles')}>
-                  Roles {getSortIcon('roles')}
+                <th className="px-6 py-4 font-medium select-none">
+                  Roles
                 </th>
                 <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('status')}>
                   Status {getSortIcon('status')}
@@ -378,14 +380,14 @@ export default function AccountManagementPage() {
                     <div className="inline-block w-6 h-6 border-[2px] border-mint-brand-green border-t-transparent rounded-full animate-spin"></div>
                   </td>
                 </tr>
-              ) : processedUsers.length === 0 ? (
+              ) : !data || data.items.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-mint-steel border-b border-mint-hairline-soft text-[14px]">
                     No users found matching your filters
                   </td>
                 </tr>
               ) : (
-                processedUsers.map(user => (
+                data.items.map(user => (
                   <tr key={user.id} className="hover:bg-mint-surface transition-colors group border-b border-mint-hairline-soft last:border-0">
                     <td className="px-6 py-4">
                       <div className="font-medium text-mint-ink text-[14px]">{user.fullName}</div>
@@ -427,6 +429,45 @@ export default function AccountManagementPage() {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {data && data.totalPages > 1 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50">
+            <span className="text-[13px] text-mint-stone">
+              Showing {(data.pageNumber - 1) * data.pageSize + 1} to {Math.min(data.pageNumber * data.pageSize, data.totalCount)} of {data.totalCount} users
+            </span>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => handlePageChange(data.pageNumber - 1)}
+                disabled={!data.hasPreviousPage}
+                className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="flex gap-1">
+                {Array.from({ length: data.totalPages }, (_, i) => i + 1).map(page => (
+                  <button
+                    key={page}
+                    onClick={() => handlePageChange(page)}
+                    className={cn(
+                      "w-7 h-7 rounded-[6px] text-[13px] font-medium transition-colors flex items-center justify-center",
+                      data.pageNumber === page ? "bg-mint-canvas border border-mint-hairline text-mint-ink shadow-sm" : "text-mint-stone hover:bg-mint-surface hover:text-mint-ink border border-transparent"
+                    )}
+                  >
+                    {page}
+                  </button>
+                ))}
+              </div>
+              <button 
+                onClick={() => handlePageChange(data.pageNumber + 1)}
+                disabled={!data.hasNextPage}
+                className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {selectedUserId && (
