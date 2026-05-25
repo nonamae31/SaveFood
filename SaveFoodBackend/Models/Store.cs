@@ -33,6 +33,8 @@ public partial class Store
 
     public DateTime CreatedAt { get; set; }
 
+    public int TrustScore { get; set; }
+
     public string? ReviewNotes { get; set; }
 
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
@@ -42,4 +44,8 @@ public partial class Store
     public virtual ICollection<StoreStaff> StoreStaffs { get; set; } = new List<StoreStaff>();
 
     public virtual ICollection<StoreSubscription> StoreSubscriptions { get; set; } = new List<StoreSubscription>();
+
+    public virtual StoreWallet? StoreWallet { get; set; }
+
+    public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
 }

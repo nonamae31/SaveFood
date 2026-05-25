@@ -42,6 +42,8 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<ProductImage> ProductImages { get; set; }
 
+    public virtual DbSet<RefundRequest> RefundRequests { get; set; }
+
     public virtual DbSet<Review> Reviews { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
@@ -52,6 +54,8 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<StoreSubscription> StoreSubscriptions { get; set; }
 
+    public virtual DbSet<StoreWallet> StoreWallets { get; set; }
+
     public virtual DbSet<SubscriptionPlan> SubscriptionPlans { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -59,6 +63,10 @@ public partial class SaveFoodDbContext : DbContext
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
     public virtual DbSet<UserSession> UserSessions { get; set; }
+
+    public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
+
+    public virtual DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
@@ -243,6 +251,31 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_ProductImages_Products");
         });
 
+        modelBuilder.Entity<RefundRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RefundRe__3214EC07722B756F");
+
+            entity.HasIndex(e => e.OrderId, "IX_RefundRequests_OrderId");
+
+            entity.HasIndex(e => e.RequestedBy, "IX_RefundRequests_RequestedBy");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AdminNote).HasMaxLength(500);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.Reason).HasMaxLength(500);
+
+            entity.HasOne(d => d.Order).WithMany(p => p.RefundRequests)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RefundRequests_Orders");
+
+            entity.HasOne(d => d.RequestedByNavigation).WithMany(p => p.RefundRequests)
+                .HasForeignKey(d => d.RequestedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_RefundRequests_Users");
+        });
+
         modelBuilder.Entity<Review>(entity =>
         {
             entity.HasIndex(e => e.OrderItemId, "UQ_Reviews_OrderItemId").IsUnique();
@@ -279,6 +312,8 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.Name).HasMaxLength(200);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.ReviewNotes).HasMaxLength(1000);
+            entity.Property(e => e.TrustScore).HasDefaultValue(100);
             entity.Property(e => e.Ward).HasMaxLength(100);
         });
 
@@ -315,6 +350,25 @@ public partial class SaveFoodDbContext : DbContext
                 .HasForeignKey(d => d.StoreId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StoreSubscriptions_Stores");
+        });
+
+        modelBuilder.Entity<StoreWallet>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__StoreWal__3214EC07655DB49F");
+
+            entity.HasIndex(e => e.StoreId, "IX_StoreWallets_StoreId");
+
+            entity.HasIndex(e => e.StoreId, "UQ__StoreWal__3B82F100E99E60F3").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AvailableBalance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.PendingBalance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(d => d.Store).WithOne(p => p.StoreWallet)
+                .HasForeignKey<StoreWallet>(d => d.StoreId)
+                .HasConstraintName("FK_StoreWallets_Stores");
         });
 
         modelBuilder.Entity<SubscriptionPlan>(entity =>
@@ -367,6 +421,48 @@ public partial class SaveFoodDbContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_UserSessions_Users");
+        });
+
+        modelBuilder.Entity<WalletTransaction>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__WalletTr__3214EC075F798F76");
+
+            entity.HasIndex(e => e.OrderId, "IX_WalletTransactions_OrderId");
+
+            entity.HasIndex(e => e.StoreWalletId, "IX_WalletTransactions_StoreWalletId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(d => d.Order).WithMany(p => p.WalletTransactions)
+                .HasForeignKey(d => d.OrderId)
+                .HasConstraintName("FK_WalletTransactions_Orders");
+
+            entity.HasOne(d => d.StoreWallet).WithMany(p => p.WalletTransactions)
+                .HasForeignKey(d => d.StoreWalletId)
+                .HasConstraintName("FK_WalletTransactions_StoreWallets");
+        });
+
+        modelBuilder.Entity<WithdrawalRequest>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Withdraw__3214EC07A81D6E6A");
+
+            entity.HasIndex(e => e.StoreId, "IX_WithdrawalRequests_StoreId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AdminNote).HasMaxLength(500);
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.BankAccountName).HasMaxLength(255);
+            entity.Property(e => e.BankAccountNumber).HasMaxLength(50);
+            entity.Property(e => e.BankName).HasMaxLength(255);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(d => d.Store).WithMany(p => p.WithdrawalRequests)
+                .HasForeignKey(d => d.StoreId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_WithdrawalRequests_Stores");
         });
 
         OnModelCreatingPartial(modelBuilder);

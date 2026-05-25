@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin.api';
 import type { AdminUserListDTO, AdminUserDetailsDTO, PaginatedList, GetUsersRequest } from '../../api/admin.api';
@@ -238,21 +238,37 @@ export default function AccountManagementPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    const request: GetUsersRequest = {
-      search: search || undefined,
-      roleFilter: roleFilter !== 'All' ? roleFilter : undefined,
-      statusFilter: statusFilter !== 'All' ? statusFilter : undefined,
-      sortBy: sortBy || undefined,
-      sortDirection: sortBy ? sortDirection : undefined,
-      pageNumber: currentPage,
-      pageSize: ITEMS_PER_PAGE
+    let ignore = false;
+    
+    const fetchUsers = async () => {
+      setLoading(true);
+      try {
+        const request: GetUsersRequest = {
+          search: search || undefined,
+          roleFilter: roleFilter !== 'All' ? roleFilter : undefined,
+          statusFilter: statusFilter !== 'All' ? statusFilter : undefined,
+          sortBy: sortBy || undefined,
+          sortDirection: sortBy ? sortDirection : undefined,
+          pageNumber: currentPage,
+          pageSize: ITEMS_PER_PAGE
+        };
+
+        const result = await adminApi.getUsers(request);
+        if (!ignore) {
+          setData(result);
+        }
+      } catch (err) {
+        if (!ignore) console.error(err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
     };
 
-    adminApi.getUsers(request)
-      .then(setData)
-      .catch(console.error)
-      .finally(() => setLoading(false));
+    fetchUsers();
+
+    return () => {
+      ignore = true;
+    };
   }, [search, roleFilter, statusFilter, sortBy, sortDirection, currentPage]);
 
   const updateFilter = (key: string, value: string) => {

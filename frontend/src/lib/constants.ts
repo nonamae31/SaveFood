@@ -67,6 +67,7 @@ export const ROUTES = {
 
   // Admin
   ADMIN:          '/admin',
+  ADMIN_DASHBOARD:'/admin/dashboard',
   ADMIN_ACCOUNTS: '/admin/accounts',
   ADMIN_APPROVALS:'/admin/approvals',
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',

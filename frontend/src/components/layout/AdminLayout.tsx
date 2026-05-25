@@ -31,6 +31,7 @@ export function AdminLayout() {
   };
 
   const navItems = [
+    { name: 'Dashboard', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
     { name: 'Accounts', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
     { name: 'Approvals', href: ROUTES.ADMIN_APPROVALS, icon: Store },
     { name: 'Subscriptions', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },

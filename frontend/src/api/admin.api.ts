@@ -62,6 +62,30 @@ export interface AdminStoreApprovalDTO {
   createdAt: string;
 }
 
+export interface MonthlyRevenue {
+  year: number;
+  month: number;
+  revenue: number;
+}
+
+export interface AdminRevenueStatsResponse {
+  totalRevenue: number;
+  monthlyRevenues: MonthlyRevenue[];
+}
+
+export interface MonthlySubscriptionStats {
+  year: number;
+  month: number;
+  newSubscriptionsCount: number;
+  revenue: number;
+}
+
+export interface AdminSubscriptionStatsResponse {
+  totalActiveSubscriptions: number;
+  totalSubscriptionRevenue: number;
+  monthlyStats: MonthlySubscriptionStats[];
+}
+
 // API methods
 export const adminApi = {
   getUsers: (params?: GetUsersRequest) => {
@@ -96,4 +120,7 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ reviewNotes }),
     }),
+
+  getRevenueStats: () => apiClient<AdminRevenueStatsResponse>('/admin/stats/revenue'),
+  getSubscriptionStats: () => apiClient<AdminSubscriptionStatsResponse>('/admin/stats/subscriptions'),
 };

@@ -35,6 +35,8 @@ public partial class User
 
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 
+    public virtual ICollection<RefundRequest> RefundRequests { get; set; } = new List<RefundRequest>();
+
     public virtual ICollection<StoreStaff> StoreStaffs { get; set; } = new List<StoreStaff>();
 
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
