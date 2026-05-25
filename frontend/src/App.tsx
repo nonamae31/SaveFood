@@ -14,6 +14,7 @@ import { WishlistPage } from '@/pages/profile/WishlistPage'
 import AccountManagementPage from '@/pages/admin/AccountManagementPage'
 import StoreApprovalPage from '@/pages/admin/StoreApprovalPage'
 import SubscriptionManagementPage from '@/pages/admin/SubscriptionManagementPage'
+import AdminFinancePage from '@/pages/admin/AdminFinancePage'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
@@ -94,6 +95,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+                <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
               </Route>
             </Route>

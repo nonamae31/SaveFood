@@ -34,6 +34,7 @@ export function AdminLayout() {
     { name: 'Dashboard', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
     { name: 'Accounts', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
     { name: 'Approvals', href: ROUTES.ADMIN_APPROVALS, icon: Store },
+    { name: 'Finance', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
     { name: 'Subscriptions', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
   ];
 

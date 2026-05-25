@@ -78,11 +78,23 @@ public class AdminStatsController : ControllerBase
             .OrderBy(m => m.Year).ThenBy(m => m.Month)
             .ToList();
 
+        var activeSubscriptionsByPlan = subscriptionsWithPlans
+            .Where(s => s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .GroupBy(s => new { s.Plan.Id, s.Plan.Name })
+            .Select(g => new PlanSubscriptionCount
+            {
+                PlanId = g.Key.Id,
+                PlanName = g.Key.Name,
+                ActiveCount = g.Count()
+            })
+            .ToList();
+
         return Ok(new AdminSubscriptionStatsResponse
         {
             TotalActiveSubscriptions = totalActiveSubscriptions,
             TotalSubscriptionRevenue = totalRevenue,
-            MonthlyStats = monthlyStats
+            MonthlyStats = monthlyStats,
+            ActiveSubscriptionsByPlan = activeSubscriptionsByPlan
         });
     }
 }

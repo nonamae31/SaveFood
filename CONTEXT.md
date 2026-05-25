@@ -21,8 +21,12 @@ The virtual financial ledger for a store within the platform, tracking both `Ava
 _Avoid_: Số dư shop, Account Balance.
 
 **Withdrawal Request**:
-A request made by a Store to transfer funds from their `Available Balance` in the Store Wallet to their real-world bank account. Handled manually by Admin (Payout).
-_Avoid_: Payout Request.
+A request made by a Store to transfer funds strictly from their `Available Balance` in the Store Wallet to their real-world bank account. Admins must manually transfer the funds via external bank applications before marking the request as 'Paid' in the system.
+_Avoid_: Payout Request, Payout.
+
+**Refund Request**:
+A request handled exclusively by the Admin to return money to a Customer for a failed, cancelled, or disputed order. The refund amount is deducted from the Store's `Pending Balance` (since the funds have not yet cleared). Admins must manually transfer funds to the customer's account externally before marking the request as 'Refunded' in the system.
+_Avoid_: Store Refund.
 
 **Trust Score**:
 A rating system that tracks a Store's reliability, affected by successful orders (+), cancellations (-), refunds (-), and user reports for policy violations (e.g., bypassing platform payments). Influences ranking and visibility.

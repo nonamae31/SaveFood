@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin.api';
 import type { AdminRevenueStatsResponse, AdminSubscriptionStatsResponse } from '../../api/admin.api';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, DollarSign, Package, Users } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -74,6 +74,13 @@ export default function AdminDashboardPage() {
     NewSubscriptions: s.newSubscriptionsCount,
     Revenue: s.revenue
   })) || [];
+
+  const activePlansData = subStats?.activeSubscriptionsByPlan.map(p => ({
+    name: p.planName,
+    value: p.activeCount
+  })) || [];
+
+  const PIE_COLORS = ['#10B981', '#0EA5E9', '#F59E0B', '#8B5CF6', '#EC4899'];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
@@ -176,6 +183,39 @@ export default function AdminDashboardPage() {
                 />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Active Subscriptions by Plan Pie Chart */}
+        <div className="bg-mint-canvas border border-mint-hairline rounded-[12px] p-6 shadow-sm lg:col-span-2">
+          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Active Subscriptions by Plan</h3>
+          <div className="h-[300px] w-full flex items-center justify-center">
+            {activePlansData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={activePlansData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={80}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                    labelLine={true}
+                  >
+                    {activePlansData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-mint-stone text-[14px]">No active subscriptions found</div>
+            )}
           </div>
         </div>
       </div>
