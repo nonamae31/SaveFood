@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
 /* ─── SaveFood Design System Tokens ────────────────────────────────────────── */
@@ -39,6 +40,30 @@
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-display: 'Fraunces', serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* ── Mintlify Design System (Admin Area) ── */
+  --color-mint-primary: #0a0a0a;
+  --color-mint-on-primary: #ffffff;
+  --color-mint-brand-green: #00d4a4;
+  --color-mint-brand-green-deep: #00b48a;
+  --color-mint-brand-green-soft: #7cebcb;
+  --color-mint-brand-error: #d45656;
+  --color-mint-brand-warn: #c37d0d;
+  --color-mint-canvas: #ffffff;
+  --color-mint-surface: #f7f7f7;
+  --color-mint-surface-soft: #fafafa;
+  --color-mint-hairline: #e5e5e5;
+  --color-mint-hairline-soft: #ededed;
+  --color-mint-ink: #0a0a0a;
+  --color-mint-charcoal: #1c1c1e;
+  --color-mint-slate: #3a3a3c;
+  --color-mint-steel: #5a5a5c;
+  --color-mint-stone: #888888;
+  --color-mint-muted: #a8a8aa;
+
+  --font-inter: 'Inter', sans-serif;
+  --font-geist: 'Geist Mono', 'SF Mono', Menlo, Consolas, monospace;
+
 
   /* ── Font Size Scale ── */
   --text-display-2xl: 4.5rem;

@@ -22,6 +22,7 @@ export interface AdminUserDetailsDTO {
   id: string;
   email: string;
   fullName: string;
+  avatarUrl?: string;
   phoneNumber?: string;
   address?: string;
   status: number;

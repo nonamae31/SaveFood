@@ -54,6 +54,7 @@ namespace SaveFoodBackend.Services
                 Id = user.Id,
                 Email = user.Email,
                 FullName = user.FullName,
+                AvatarUrl = user.AvatarUrl,
                 PhoneNumber = user.PhoneNumber,
                 Address = user.Address,
                 Status = user.Status,
