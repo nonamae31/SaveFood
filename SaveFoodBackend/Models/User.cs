@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -6,10 +6,6 @@ namespace SaveFoodBackend.Models;
 public partial class User
 {
     public Guid Id { get; set; }
-
-    public string Username { get; set; } = null!;
-
-    public string NormalizedEmail { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
@@ -22,8 +18,6 @@ public partial class User
     public string? Address { get; set; }
 
     public string? AvatarUrl { get; set; }
-
-    public string? ImgCloudinaryId { get; set; }
 
     public byte Status { get; set; }
 
@@ -40,6 +34,8 @@ public partial class User
     public virtual ICollection<Order> OrderUsers { get; set; } = new List<Order>();
 
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
+    public virtual ICollection<RefundRequest> RefundRequests { get; set; } = new List<RefundRequest>();
 
     public virtual ICollection<StoreStaff> StoreStaffs { get; set; } = new List<StoreStaff>();
 
