@@ -5,6 +5,13 @@ namespace SaveFoodBackend.Models;
 
 public partial class User
 {
+    // Restored properties missing from scaffolded DB
+    public string Username { get; set; } = null!;
+    
+    public string NormalizedEmail { get; set; } = null!;
+    
+    public string? ImgCloudinaryId { get; set; }
+
     [NotMapped]
     public UserStatus UserStatusEnum
     {
@@ -31,5 +38,12 @@ public partial class User
     {
         get => (UserFlags & (byte)UserFlagsEnum.EmailVerified) == (byte)UserFlagsEnum.EmailVerified;
         set => UserFlags = (byte)(value ? (UserFlags | (byte)UserFlagsEnum.EmailVerified) : (UserFlags & ~(byte)UserFlagsEnum.EmailVerified));
+    }
+
+    [NotMapped]
+    public bool PhoneVerified
+    {
+        get => (UserFlags & (byte)UserFlagsEnum.PhoneVerified) == (byte)UserFlagsEnum.PhoneVerified;
+        set => UserFlags = (byte)(value ? (UserFlags | (byte)UserFlagsEnum.PhoneVerified) : (UserFlags & ~(byte)UserFlagsEnum.PhoneVerified));
     }
 }

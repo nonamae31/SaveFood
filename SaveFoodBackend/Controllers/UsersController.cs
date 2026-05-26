@@ -288,6 +288,14 @@ namespace SaveFoodBackend.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
+                if (ex.Message.StartsWith("UNVERIFIED_ACCOUNT:"))
+                {
+                    return StatusCode(403, new { 
+                        code = "UNVERIFIED_ACCOUNT", 
+                        message = ex.Message.Substring("UNVERIFIED_ACCOUNT:".Length).Trim(),
+                        email = request.Email
+                    });
+                }
                 return Unauthorized(new { message = ex.Message });
             }
         }
@@ -368,7 +376,7 @@ namespace SaveFoodBackend.Controllers
         /// <response code="404">Không tìm thấy user</response>
         // [Authorize] // Vô hiệu hóa tạm thời theo yêu cầu
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile([FromBody] DTOs.User.UpdateProfileRequest request, [FromQuery] Guid? overrideUserId = null)
+        public async Task<IActionResult> UpdateProfile([FromForm] DTOs.User.UpdateProfileRequest request, [FromQuery] Guid? overrideUserId = null)
         {
             if (!ModelState.IsValid)
             {
@@ -400,6 +408,45 @@ namespace SaveFoodBackend.Controllers
             catch (InvalidOperationException ex)
             {
                 return NotFound(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Đổi mật khẩu cho User đang đăng nhập
+        /// </summary>
+        [HttpPut("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] DTOs.User.ChangePasswordRequest request, [FromQuery] Guid? overrideUserId = null)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                         ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid userId;
+
+            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            {
+                userId = parsedId;
+            }
+            else if (overrideUserId.HasValue)
+            {
+                userId = overrideUserId.Value;
+            }
+            else
+            {
+                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+            }
+
+            try
+            {
+                await _userService.ChangePasswordAsync(userId, request);
+                return Ok(new { message = "Đổi mật khẩu thành công." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
         }
     }

@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Utils;
 
 namespace SaveFoodBackend.Services;
 
@@ -29,32 +30,69 @@ public class AuthService : IAuthService
 
     public async Task<Guid> RegisterAsync(RegisterRequest request)
     {
-        var existingUser = await _context.Users.AnyAsync(u => u.Email == request.Email);
-        if (existingUser)
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+
+        var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
+        Models.User targetUser;
+
+        if (existingUser != null)
         {
-            throw new InvalidOperationException("Email already in use.");
+            if (existingUser.EmailVerified)
+            {
+                throw new InvalidOperationException("Email này đã được sử dụng.");
+            }
+            else
+            {
+                // Unverified -> Ghi đè thông tin
+                targetUser = existingUser;
+                targetUser.Email = request.Email;
+                targetUser.NormalizedEmail = normalizedEmail;
+                targetUser.Username = request.Username;
+                targetUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                targetUser.FullName = request.FullName;
+                targetUser.PhoneNumber = request.PhoneNumber;
+                targetUser.CreatedAt = DateTime.UtcNow; // Reset time
+            }
+        }
+        else
+        {
+            targetUser = new Models.User
+            {
+                Id = Guid.NewGuid(),
+                Email = request.Email,
+                NormalizedEmail = normalizedEmail,
+                Username = request.Username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                FullName = request.FullName,
+                PhoneNumber = request.PhoneNumber,
+                UserStatusEnum = Models.Enums.UserStatus.Active,
+                EmailVerified = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer");
+            if (role != null)
+            {
+                targetUser.UserRoles.Add(new Models.UserRole { RoleId = role.Id, UserId = targetUser.Id });
+            }
+            _context.Users.Add(targetUser);
         }
 
-        var newUser = new Models.User
+        // Check Username
+        var existingUserByUsername = await _context.Users.AnyAsync(u => u.Username == request.Username && u.Id != targetUser.Id);
+        if (existingUserByUsername)
         {
-            Id = Guid.NewGuid(),
-            Email = request.Email,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            FullName = request.FullName,
-            PhoneNumber = request.PhoneNumber,
-            UserStatusEnum = Models.Enums.UserStatus.Active,
-            EmailVerified = false, // Chờ xác nhận OTP
-            CreatedAt = DateTime.UtcNow
-        };
-
-        // Gán Role mặc định (Customer)
-        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer");
-        if (role != null)
-        {
-            newUser.UserRoles.Add(new Models.UserRole { RoleId = role.Id, UserId = newUser.Id });
+            throw new InvalidOperationException("Username này đã được sử dụng.");
         }
 
-        _context.Users.Add(newUser);
+        if (!string.IsNullOrEmpty(request.PhoneNumber))
+        {
+            var existingUserByPhone = await _context.Users.AnyAsync(u => u.PhoneNumber == request.PhoneNumber && (u.UserFlags & 8) == 8 && u.Id != targetUser.Id);
+            if (existingUserByPhone)
+            {
+                throw new InvalidOperationException("Số điện thoại này đã được sử dụng.");
+            }
+        }
 
         // Tạo mã OTP ngẫu nhiên 6 số
         var random = new Random();
@@ -63,7 +101,7 @@ public class AuthService : IAuthService
         var verification = new Models.EmailVerification
         {
             Id = Guid.NewGuid(),
-            UserId = newUser.Id,
+            UserId = targetUser.Id,
             VerificationCode = otpCode,
             CreatedAt = DateTime.UtcNow,
             ExpiresAt = DateTime.UtcNow.AddMinutes(15) // Hết hạn sau 15 phút
@@ -75,24 +113,25 @@ public class AuthService : IAuthService
         // Gửi mã OTP qua Email thật
         var emailBody = $@"
             <h2>Xác thực tài khoản SaveFood</h2>
-            <p>Chào {newUser.FullName},</p>
+            <p>Chào {targetUser.FullName},</p>
             <p>Cảm ơn bạn đã đăng ký tài khoản tại SaveFood. Mã xác nhận OTP của bạn là:</p>
             <h1 style='color: #10b981; font-size: 32px; letter-spacing: 4px;'>{otpCode}</h1>
             <p>Mã này sẽ hết hạn sau 15 phút.</p>
             <p>Trân trọng,<br>Đội ngũ SaveFood</p>
         ";
-        await _emailService.SendEmailAsync(newUser.Email, "Mã xác nhận OTP của bạn", emailBody);
+        await _emailService.SendEmailAsync(targetUser.Email, "Mã xác nhận OTP của bạn", emailBody);
 
-        return newUser.Id;
+        return targetUser.Id;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
     {
         // 1. Find user by email
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
 
         if (user == null)
         {
@@ -105,10 +144,9 @@ public class AuthService : IAuthService
         {
             isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
         }
-        catch (BCrypt.Net.SaltParseException)
+        catch (Exception)
         {
-            // Fallback to plain text check if DB has plain text passwords (useful during migration)
-            isPasswordValid = request.Password == user.PasswordHash;
+            // Ignore parse errors (e.g., if it's not a bcrypt hash), validation just fails.
         }
 
         if (!isPasswordValid)
@@ -123,7 +161,7 @@ public class AuthService : IAuthService
 
         if (!user.EmailVerified)
         {
-            throw new UnauthorizedAccessException("Please verify your email first.");
+            throw new UnauthorizedAccessException("UNVERIFIED_ACCOUNT: Please verify your email first.");
         }
 
         // Tạo UserSession mới để quản lý trạng thái Đăng nhập
@@ -196,7 +234,8 @@ public class AuthService : IAuthService
 
     public async Task<bool> VerifyOtpAsync(VerifyOtpRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
         if (user == null)
             throw new InvalidOperationException("User not found.");
 
@@ -227,7 +266,8 @@ public class AuthService : IAuthService
 
     public async Task<bool> ResendOtpAsync(ResendOtpRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
         if (user == null)
             throw new InvalidOperationException("User not found.");
 
@@ -323,13 +363,13 @@ public class AuthService : IAuthService
             var root = doc.RootElement;
             
             if (root.TryGetProperty("email", out var emailProp))
-                payloadEmail = emailProp.GetString();
+                payloadEmail = emailProp.GetString() ?? string.Empty;
                 
             if (root.TryGetProperty("name", out var nameProp))
-                payloadName = nameProp.GetString();
+                payloadName = nameProp.GetString() ?? string.Empty;
                 
             if (root.TryGetProperty("picture", out var picProp))
-                payloadPicture = picProp.GetString();
+                payloadPicture = picProp.GetString() ?? string.Empty;
         }
 
         if (string.IsNullOrEmpty(payloadEmail))
@@ -337,18 +377,35 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("Could not retrieve email from Google Token.");
         }
 
+        var normalizedEmail = AuthUtils.NormalizeEmail(payloadEmail);
+
         var user = await _context.Users
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
-            .FirstOrDefaultAsync(u => u.Email == payloadEmail);
+            .FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail);
 
         if (user == null)
         {
+            // Tự tạo username từ email
+            var username = payloadEmail.Split('@')[0];
+            username = new string(username.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+            if (username.Length < 3) username = username.PadRight(3, 'a');
+            if (username.Length > 20) username = username.Substring(0, 20);
+
+            // Xử lý trùng username
+            var isUsernameTaken = await _context.Users.AnyAsync(u => u.Username == username);
+            if (isUsernameTaken)
+            {
+                username = username.Substring(0, Math.Min(15, username.Length)) + new Random().Next(1000, 9999).ToString();
+            }
+
             // Tạo user mới
             user = new Models.User
             {
                 Id = Guid.NewGuid(),
                 Email = payloadEmail,
+                NormalizedEmail = normalizedEmail,
+                Username = username,
                 FullName = payloadName ?? payloadEmail,
                 PasswordHash = Guid.NewGuid().ToString(), // Không ai biết mật khẩu này
                 AvatarUrl = payloadPicture,
@@ -415,7 +472,8 @@ public class AuthService : IAuthService
 
     public async Task<bool> ForgotPasswordAsync(ForgotPasswordRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
         if (user == null)
         {
             // Trả về true luôn để tránh lộ thông tin email có tồn tại hay không (bảo mật)
@@ -466,7 +524,8 @@ public class AuthService : IAuthService
 
     public async Task<bool> ResetPasswordAsync(ResetPasswordRequest request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
         if (user == null)
             throw new InvalidOperationException("User not found.");
 

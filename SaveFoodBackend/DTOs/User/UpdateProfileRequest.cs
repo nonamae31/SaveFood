@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace SaveFoodBackend.DTOs.User
 {
@@ -11,10 +12,6 @@ namespace SaveFoodBackend.DTOs.User
         [StringLength(20, ErrorMessage = "Số điện thoại không quá 20 ký tự")]
         public string? PhoneNumber { get; set; }
 
-        [StringLength(300, ErrorMessage = "Địa chỉ không quá 300 ký tự")]
-        public string? Address { get; set; }
-
-        [StringLength(500, ErrorMessage = "Đường dẫn ảnh đại diện không hợp lệ")]
-        public string? AvatarUrl { get; set; }
+        public IFormFile? AvatarFile { get; set; }
     }
 }

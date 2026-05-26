@@ -49,6 +49,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBack
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminService, SaveFoodBackend.Services.AdminService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ISubscriptionPlanService, SaveFoodBackend.Services.SubscriptionPlanService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICloudinaryService, SaveFoodBackend.Services.CloudinaryService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -80,5 +81,47 @@ app.MapControllers();
 // TODO: SignalR Hub (Người 4 đăng ký tại đây)
 // app.MapHub<NotificationHub>("/hubs/notifications");
 // ─────────────────────────────────────────────────────────────────────────────
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+    // Auto-migrate schema for new columns Username and NormalizedEmail
+    var sql = @"
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Username')
+        BEGIN
+            ALTER TABLE Users ADD Username nvarchar(50) NULL;
+            ALTER TABLE Users ADD NormalizedEmail nvarchar(255) NULL;
+        END
+    ";
+    db.Database.ExecuteSqlRaw(sql);
+    
+    // Update existing records properly using AuthUtils
+    var usersToUpdate = db.Users.ToList();
+    bool anyChanges = false;
+    foreach (var u in usersToUpdate)
+    {
+        var correctNormalized = SaveFoodBackend.Utils.AuthUtils.NormalizeEmail(u.Email);
+        if (u.NormalizedEmail != correctNormalized)
+        {
+            u.NormalizedEmail = correctNormalized;
+            anyChanges = true;
+        }
+        
+        if (string.IsNullOrEmpty(u.Username))
+        {
+            var username = u.Email.Split('@')[0];
+            username = new string(username.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+            if (username.Length < 3) username = username.PadRight(3, 'a');
+            if (username.Length > 20) username = username.Substring(0, 20);
+            u.Username = username;
+            anyChanges = true;
+        }
+    }
+    
+    if (anyChanges)
+    {
+        db.SaveChanges();
+    }
+}
 
 app.Run();
