@@ -288,6 +288,14 @@ namespace SaveFoodBackend.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
+                if (ex.Message.StartsWith("UNVERIFIED_ACCOUNT:"))
+                {
+                    return StatusCode(403, new { 
+                        code = "UNVERIFIED_ACCOUNT", 
+                        message = ex.Message.Substring("UNVERIFIED_ACCOUNT:".Length).Trim(),
+                        email = request.Email
+                    });
+                }
                 return Unauthorized(new { message = ex.Message });
             }
         }

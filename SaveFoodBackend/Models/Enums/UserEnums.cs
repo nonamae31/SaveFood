@@ -15,5 +15,6 @@ public enum UserFlagsEnum : byte
     None = 0,
     IsMale = 1,
     IsDeleted = 2,
-    EmailVerified = 4
+    EmailVerified = 4,
+    PhoneVerified = 8
 }

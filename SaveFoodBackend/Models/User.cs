@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -6,6 +6,10 @@ namespace SaveFoodBackend.Models;
 public partial class User
 {
     public Guid Id { get; set; }
+
+    public string Username { get; set; } = null!;
+
+    public string NormalizedEmail { get; set; } = null!;
 
     public string Email { get; set; } = null!;
 
@@ -18,6 +22,8 @@ public partial class User
     public string? Address { get; set; }
 
     public string? AvatarUrl { get; set; }
+
+    public string? ImgCloudinaryId { get; set; }
 
     public byte Status { get; set; }
 

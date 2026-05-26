@@ -32,4 +32,11 @@ public partial class User
         get => (UserFlags & (byte)UserFlagsEnum.EmailVerified) == (byte)UserFlagsEnum.EmailVerified;
         set => UserFlags = (byte)(value ? (UserFlags | (byte)UserFlagsEnum.EmailVerified) : (UserFlags & ~(byte)UserFlagsEnum.EmailVerified));
     }
+
+    [NotMapped]
+    public bool PhoneVerified
+    {
+        get => (UserFlags & (byte)UserFlagsEnum.PhoneVerified) == (byte)UserFlagsEnum.PhoneVerified;
+        set => UserFlags = (byte)(value ? (UserFlags | (byte)UserFlagsEnum.PhoneVerified) : (UserFlags & ~(byte)UserFlagsEnum.PhoneVerified));
+    }
 }

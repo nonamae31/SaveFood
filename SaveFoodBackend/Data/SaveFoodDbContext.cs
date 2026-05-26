@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Models;
@@ -329,8 +329,12 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email, "UQ_Users_Email").IsUnique();
+            entity.HasIndex(e => e.Username, "UQ_Users_Username").IsUnique();
+            entity.HasIndex(e => e.NormalizedEmail, "UQ_Users_NormalizedEmail").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Username).HasMaxLength(50);
+            entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.Address).HasMaxLength(300);
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");

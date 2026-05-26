@@ -52,7 +52,11 @@ export function LoginPage() {
         navigate(ROUTES.HOME);
       },
       onError: (err: any) => {
-        setError(err.message || 'Sai email hoặc mật khẩu.');
+        if (err.code === 'UNVERIFIED_ACCOUNT') {
+          navigate(ROUTES.VERIFY_OTP, { state: { email: err.details?.email || email } });
+        } else {
+          setError(err.message || 'Sai email hoặc mật khẩu.');
+        }
       }
     });
   };

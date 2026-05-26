@@ -69,9 +69,9 @@ namespace SaveFoodBackend.Services
                 {
                     isPasswordValid = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash);
                 }
-                catch (BCrypt.Net.SaltParseException)
+                catch (Exception)
                 {
-                    isPasswordValid = request.OldPassword == user.PasswordHash;
+                    // Ignore parse errors, validation fails.
                 }
 
                 if (!isPasswordValid)

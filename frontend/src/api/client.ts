@@ -2,9 +2,11 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api';
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string) {
+  public details?: any;
+  constructor(public status: number, public code: string, message: string, details?: any) {
     super(message);
     this.name = 'ApiError';
+    this.details = details;
   }
 }
 
@@ -28,7 +30,7 @@ export async function apiClient<T>(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const message = err.message || err.title || 'Request failed';
-    throw new ApiError(res.status, err.code ?? 'UNKNOWN', message);
+    throw new ApiError(res.status, err.code ?? 'UNKNOWN', message, err);
   }
 
   // Handle empty responses (like 204 No Content or empty 200 OK)

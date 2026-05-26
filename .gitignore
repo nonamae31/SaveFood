@@ -439,3 +439,4 @@ node_modules
 .DS_Store
 SaveFoodBackend/appsettings.json
 SaveFoodBackend/appsettings.Development.json
+frontend/.env.example

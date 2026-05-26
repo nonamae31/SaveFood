@@ -8,12 +8,14 @@ import { useRegister, useGoogleLoginMutation } from '@/hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
 
 export function RegisterPage() {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [globalError, setGlobalError] = useState('');
   
   const registerMutation = useRegister();
   const googleLoginMutation = useGoogleLoginMutation();
@@ -40,27 +42,47 @@ export function RegisterPage() {
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
     
-    if (!email || !password || !confirmPassword || !fullName || !phoneNumber) {
-      setError('Vui lòng nhập đầy đủ thông tin');
-      return;
+    if (!username) newErrors.username = 'Username là bắt buộc';
+    else if (username.length < 3 || username.length > 20) newErrors.username = 'Username phải từ 3-20 ký tự';
+    else if (!/^[a-zA-Z0-9_]+$/.test(username)) newErrors.username = 'Username chỉ chứa chữ cái, số và dấu gạch dưới';
+
+    if (!email) newErrors.email = 'Email là bắt buộc';
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
+
+    if (!password) newErrors.password = 'Mật khẩu là bắt buộc';
+    else if (password.length < 8) newErrors.password = 'Mật khẩu phải ít nhất 8 ký tự';
+    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/.test(password)) {
+      newErrors.password = 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt';
     }
 
     if (password !== confirmPassword) {
-      setError('Mật khẩu và Nhập lại mật khẩu không khớp');
-      return;
+      newErrors.confirmPassword = 'Mật khẩu và Nhập lại mật khẩu không khớp';
     }
 
-    registerMutation.mutate({ email, password, fullName, phoneNumber }, {
+    if (!fullName) newErrors.fullName = 'Họ và tên là bắt buộc';
+    if (!phoneNumber) newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setGlobalError('');
+    setErrors({});
+    
+    if (!validateForm()) return;
+
+    registerMutation.mutate({ username, email, password, fullName, phoneNumber }, {
       onSuccess: () => {
         // Chuyển hướng sang trang nhập OTP và truyền email theo
         navigate(ROUTES.VERIFY_OTP, { state: { email } });
       },
       onError: (err: any) => {
-        setError(err.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
+        setGlobalError(err.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
       }
     });
   };
@@ -96,59 +118,87 @@ export function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input
-              id="fullName"
-              type="text"
-              label="Họ và tên"
-              placeholder="Nguyễn Văn A"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
+            <div>
+              <Input
+                id="username"
+                type="text"
+                label="Username"
+                placeholder="Ví dụ: nguyenvana_123"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
+              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
+            </div>
 
-            <Input
-              id="phoneNumber"
-              type="tel"
-              label="Số điện thoại"
-              placeholder="0912345678"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              required
-            />
+            <div>
+              <Input
+                id="fullName"
+                type="text"
+                label="Họ và tên"
+                placeholder="Nguyễn Văn A"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+              />
+              {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
+            </div>
 
-            <Input
-              id="email"
-              type="email"
-              label="Email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+            <div>
+              <Input
+                id="phoneNumber"
+                type="tel"
+                label="Số điện thoại"
+                placeholder="0912345678"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                required
+              />
+              {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
+            </div>
+
+            <div>
+              <Input
+                id="email"
+                type="email"
+                label="Email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
+            </div>
             
-            <Input
-              id="password"
-              type="password"
-              label="Mật khẩu"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div>
+              <Input
+                id="password"
+                type="password"
+                label="Mật khẩu"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
+            </div>
 
-            <Input
-              id="confirmPassword"
-              type="password"
-              label="Xác nhận mật khẩu"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <div>
+              <Input
+                id="confirmPassword"
+                type="password"
+                label="Xác nhận mật khẩu"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
+            </div>
 
-            {error && (
+            {globalError && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-md text-expiry-urgent text-body-sm">
-                {error}
+                {globalError}
               </div>
             )}
 
