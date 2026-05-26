@@ -22,9 +22,9 @@ namespace SaveFoodBackend.Services
             _cloudinary = new Cloudinary(acc);
         }
 
-        public async Task<string> UploadImageAsync(IFormFile file)
+        public async Task<(string SecureUrl, string PublicId)> UploadImageAsync(IFormFile file, string? existingPublicId = null)
         {
-            if (file == null || file.Length == 0) return null;
+            if (file == null || file.Length == 0) return (null, null);
 
             using var stream = file.OpenReadStream();
             var uploadParams = new ImageUploadParams
@@ -33,6 +33,12 @@ namespace SaveFoodBackend.Services
                 Transformation = new Transformation().Height(500).Width(500).Crop("fill").Gravity("face")
             };
 
+            if (!string.IsNullOrEmpty(existingPublicId))
+            {
+                uploadParams.PublicId = existingPublicId;
+                uploadParams.Overwrite = true;
+            }
+
             var uploadResult = await _cloudinary.UploadAsync(uploadParams);
             
             if (uploadResult.Error != null)
@@ -40,7 +46,7 @@ namespace SaveFoodBackend.Services
                 throw new Exception(uploadResult.Error.Message);
             }
 
-            return uploadResult.SecureUrl.ToString();
+            return (uploadResult.SecureUrl.ToString(), uploadResult.PublicId);
         }
     }
 }

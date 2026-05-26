@@ -5,6 +5,6 @@ namespace SaveFoodBackend.Interfaces
 {
     public interface ICloudinaryService
     {
-        Task<string> UploadImageAsync(IFormFile file);
+        Task<(string SecureUrl, string PublicId)> UploadImageAsync(IFormFile file, string? existingPublicId = null);
     }
 }

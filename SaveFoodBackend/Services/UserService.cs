@@ -103,10 +103,11 @@ namespace SaveFoodBackend.Services
 
             if (request.AvatarFile != null)
             {
-                var newAvatarUrl = await _cloudinaryService.UploadImageAsync(request.AvatarFile);
-                if (!string.IsNullOrEmpty(newAvatarUrl))
+                var uploadResult = await _cloudinaryService.UploadImageAsync(request.AvatarFile, user.ImgCloudinaryId);
+                if (!string.IsNullOrEmpty(uploadResult.SecureUrl))
                 {
-                    user.AvatarUrl = newAvatarUrl;
+                    user.AvatarUrl = uploadResult.SecureUrl;
+                    user.ImgCloudinaryId = uploadResult.PublicId;
                 }
             }
 

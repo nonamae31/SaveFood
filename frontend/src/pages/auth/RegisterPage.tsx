@@ -23,7 +23,7 @@ export function RegisterPage() {
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
-      setError('');
+      setGlobalError('');
       googleLoginMutation.mutate(
         { token: codeResponse.access_token },
         {
@@ -31,14 +31,14 @@ export function RegisterPage() {
             navigate(ROUTES.HOME);
           },
           onError: (err: any) => {
-            setError(err.message || 'Đăng nhập Google thất bại.');
+            setGlobalError(err.message || 'Đăng nhập Google thất bại.');
           }
         }
       );
     },
     onError: (error) => {
       console.error('Google Login Failed', error);
-      setError('Lỗi khi kết nối với Google.');
+      setGlobalError('Lỗi khi kết nối với Google.');
     }
   });
 

@@ -3,10 +3,12 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useUpdateProfile, useChangePassword, useForgotPassword, useResetPassword } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
+import { ArrowLeft } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
 export function ProfilePage() {
+  const navigate = useNavigate();
   const { user, isAuthenticated, isLoading } = useAuthContext();
   
   const updateProfileMutation = useUpdateProfile();
@@ -144,6 +146,16 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
+      {/* Nút quay lại */}
+      <div>
+        <button 
+          onClick={() => navigate(-1)} 
+          className="flex items-center gap-2 text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors font-medium text-[--text-body-sm]"
+        >
+          <ArrowLeft size={20} /> Quay lại
+        </button>
+      </div>
+
       {/* SECTION: THÔNG TIN CÁ NHÂN */}
       <div className="bg-surface-base shadow-card rounded-2xl overflow-hidden">
         <div className="bg-brand-50 px-8 py-6 border-b border-brand-100 flex items-center gap-6">
