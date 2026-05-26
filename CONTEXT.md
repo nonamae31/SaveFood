@@ -37,3 +37,14 @@ A specific permission level (Owner, Manager, Staff) that a User holds within a p
 
 **Trust Score**:
 A rating system that tracks a Store's reliability, affected by successful orders (+), cancellations (-), refunds (-), and user reports for policy violations (e.g., bypassing platform payments). Influences ranking and visibility.
+
+**Product**:
+The catalog template or generic description of an item (e.g., "Bánh m? ng?t", category, barcode, original price). It is static and does not have an expiration date or sale price.
+_Avoid_: S?n ph?m (in code), Item Template.
+
+**Clearance Listing**:
+A specific physical batch of a Product that is nearing its expiration date, offered for sale with a specific sale price, available quantity, and expiry date. A single Product can have multiple active Clearance Listings simultaneously.
+_Avoid_: Tin ðãng (in code), Sale Event, Batch.
+
+**Surprise Bag**:
+A special type of Product (IsSurpriseBag flag) that guarantees a certain original total value (OriginalPrice) without detailing its exact contents. It is sold as a "blind box" via a Clearance Listing.

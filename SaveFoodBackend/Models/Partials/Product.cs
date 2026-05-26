@@ -18,4 +18,11 @@ public partial class Product
         get => (ProductFlags & (byte)ProductFlagsEnum.IsHidden) == (byte)ProductFlagsEnum.IsHidden;
         set => ProductFlags = (byte)(value ? (ProductFlags | (byte)ProductFlagsEnum.IsHidden) : (ProductFlags & ~(byte)ProductFlagsEnum.IsHidden));
     }
+
+    [NotMapped]
+    public bool IsSurpriseBag
+    {
+        get => (ProductFlags & (byte)ProductFlagsEnum.IsSurpriseBag) == (byte)ProductFlagsEnum.IsSurpriseBag;
+        set => ProductFlags = (byte)(value ? (ProductFlags | (byte)ProductFlagsEnum.IsSurpriseBag) : (ProductFlags & ~(byte)ProductFlagsEnum.IsSurpriseBag));
+    }
 }
