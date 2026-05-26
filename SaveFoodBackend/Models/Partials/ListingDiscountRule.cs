@@ -25,4 +25,6 @@ public partial class ListingDiscountRule
         get => (RuleFlags & (byte)RuleFlagsEnum.IsDeleted) == (byte)RuleFlagsEnum.IsDeleted;
         set => RuleFlags = (byte)(value ? (RuleFlags | (byte)RuleFlagsEnum.IsDeleted) : (RuleFlags & ~(byte)RuleFlagsEnum.IsDeleted));
     }
+
+
 }

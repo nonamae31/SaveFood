@@ -25,4 +25,6 @@ public partial class ClearanceListing
         get => (ListingFlags & (byte)ListingFlagsEnum.IsAutoRenew) == (byte)ListingFlagsEnum.IsAutoRenew;
         set => ListingFlags = (byte)(value ? (ListingFlags | (byte)ListingFlagsEnum.IsAutoRenew) : (ListingFlags & ~(byte)ListingFlagsEnum.IsAutoRenew));
     }
+
+
 }

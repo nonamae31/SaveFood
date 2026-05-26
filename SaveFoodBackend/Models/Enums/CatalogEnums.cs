@@ -7,7 +7,8 @@ public enum ProductFlagsEnum : byte
 {
     None = 0,
     IsDeleted = 1,
-    IsHidden = 2
+    IsHidden = 2,
+    IsSurpriseBag = 4
 }
 
 [Flags]
