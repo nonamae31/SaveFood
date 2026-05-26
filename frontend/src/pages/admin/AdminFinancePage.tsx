@@ -97,23 +97,33 @@ export default function AdminFinancePage() {
     }
   };
 
-  const renderStatus = (status: number, type: 'tx' | 'req') => {
+  const renderStatus = (status: number, type: 'tx' | 'withdrawal' | 'refund') => {
     if (type === 'tx') {
-      // WalletTransaction StatusEnum: 1=Pending, 2=Completed, 3=Failed
-      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Completed</span>;
-      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Failed</span>;
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Completed</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Failed</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-stone bg-mint-canvas px-2 py-1 rounded-full">Cancelled</span>;
       return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
-    } else {
-      // Withdrawal/Refund StatusEnum: 1=Pending, 2=Processing, 3=Paid/Refunded, 4=Rejected
-      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Processed</span>;
-      if (status === 4) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Rejected</span>;
-      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Processing</span>;
+    } 
+    
+    if (type === 'withdrawal') {
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Processing</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Paid</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Rejected</span>;
       return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
     }
+
+    if (type === 'refund') {
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Rejected</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Refunded</span>;
+      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
+    }
+    
+    return null;
   };
 
   return (
-    <div className="w-full">
+    <div className="p-8 max-w-[1280px] mx-auto font-inter bg-mint-surface-soft min-h-[calc(100vh-64px)] rounded-tl-[16px] border-t border-l border-mint-hairline shadow-sm">
       <div className="mb-8">
         <h1 className="text-[24px] font-semibold text-mint-ink tracking-tight flex items-center gap-2">
           <CreditCard className="w-6 h-6 text-mint-brand-green" />
@@ -231,9 +241,9 @@ export default function AdminFinancePage() {
                       <div><span className="font-medium text-mint-ink">Name:</span> {w.bankAccountName}</div>
                     </td>
                     <td className="px-6 py-4 text-[14px] font-medium text-right text-mint-ink">{formatCurrency(w.amount)}</td>
-                    <td className="px-6 py-4">{renderStatus(w.status, 'req')}</td>
+                    <td className="px-6 py-4">{renderStatus(w.status, 'withdrawal')}</td>
                     <td className="px-6 py-4 text-right">
-                      {w.status === 1 && (
+                      {(w.status === 0 || w.status === 1) && (
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => openProcessModal('withdrawal', w.id, true)}
@@ -249,7 +259,7 @@ export default function AdminFinancePage() {
                           </button>
                         </div>
                       )}
-                      {w.status !== 1 && <span className="text-[12px] text-mint-stone">{w.adminNote ? `Note: ${w.adminNote}` : '-'}</span>}
+                      {(w.status !== 0 && w.status !== 1) && <span className="text-[12px] text-mint-stone">{w.adminNote ? `Note: ${w.adminNote}` : '-'}</span>}
                     </td>
                   </tr>
                 ))}
@@ -276,9 +286,9 @@ export default function AdminFinancePage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-[14px] font-medium text-right text-mint-ink">{formatCurrency(r.amount)}</td>
-                    <td className="px-6 py-4">{renderStatus(r.status, 'req')}</td>
+                    <td className="px-6 py-4">{renderStatus(r.status, 'refund')}</td>
                     <td className="px-6 py-4 text-right">
-                      {r.status === 1 && (
+                      {(r.status === 0 || r.status === 1) && (
                         <div className="flex items-center justify-end gap-2">
                           <button 
                             onClick={() => openProcessModal('refund', r.id, true)}
@@ -296,7 +306,7 @@ export default function AdminFinancePage() {
                           </button>
                         </div>
                       )}
-                      {r.status !== 1 && <span className="text-[12px] text-mint-stone">{r.adminNote ? `Note: ${r.adminNote}` : '-'}</span>}
+                      {(r.status !== 0 && r.status !== 1) && <span className="text-[12px] text-mint-stone">{r.adminNote ? `Note: ${r.adminNote}` : '-'}</span>}
                     </td>
                   </tr>
                 ))}

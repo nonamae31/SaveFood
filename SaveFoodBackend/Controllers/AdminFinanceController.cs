@@ -168,7 +168,7 @@ public class AdminFinanceController : ControllerBase
             CustomerName = r.RequestedByNavigation.FullName,
             Amount = r.Amount,
             Reason = r.Reason,
-            Status = r.Status,
+            Status = r.Status == 1 ? (byte)0 : r.Status,
             AdminNote = r.AdminNote,
             CustomerBankName = r.CustomerBankName,
             CustomerBankAccount = r.CustomerBankAccount,
@@ -190,7 +190,7 @@ public class AdminFinanceController : ControllerBase
             .FirstOrDefaultAsync(r => r.Id == id);
 
         if (refund == null) return NotFound("Refund request not found.");
-        if (refund.Status != (byte)RefundStatusEnum.Pending) 
+        if (refund.Status != (byte)RefundStatusEnum.Pending && refund.Status != 1) 
             return BadRequest("Refund request has already been processed.");
 
         var wallet = refund.Order.Store.StoreWallet;
