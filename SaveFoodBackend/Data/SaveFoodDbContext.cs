@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Models;
@@ -7,6 +7,10 @@ namespace SaveFoodBackend.Data;
 
 public partial class SaveFoodDbContext : DbContext
 {
+    public SaveFoodDbContext()
+    {
+    }
+
     public SaveFoodDbContext(DbContextOptions<SaveFoodDbContext> options)
         : base(options)
     {
@@ -64,6 +68,8 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
 
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -247,7 +253,7 @@ public partial class SaveFoodDbContext : DbContext
 
         modelBuilder.Entity<RefundRequest>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__RefundRe__3214EC07DAA5315C");
+            entity.HasKey(e => e.Id).HasName("PK__RefundRe__3214EC07722B756F");
 
             entity.HasIndex(e => e.OrderId, "IX_RefundRequests_OrderId");
 
@@ -351,11 +357,11 @@ public partial class SaveFoodDbContext : DbContext
 
         modelBuilder.Entity<StoreWallet>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__StoreWal__3214EC07D0962A24");
+            entity.HasKey(e => e.Id).HasName("PK__StoreWal__3214EC07655DB49F");
 
             entity.HasIndex(e => e.StoreId, "IX_StoreWallets_StoreId");
 
-            entity.HasIndex(e => e.StoreId, "UQ__StoreWal__3B82F1003EC3BC2F").IsUnique();
+            entity.HasIndex(e => e.StoreId, "UQ__StoreWal__3B82F100E99E60F3").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.AvailableBalance).HasColumnType("decimal(18, 2)");
@@ -380,19 +386,17 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email, "UQ_Users_Email").IsUnique();
-            entity.HasIndex(e => e.Username, "UQ_Users_Username").IsUnique();
-            entity.HasIndex(e => e.NormalizedEmail, "UQ_Users_NormalizedEmail").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.Username).HasMaxLength(50);
-            entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.Address).HasMaxLength(300);
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(150);
+            entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Username).HasMaxLength(50);
         });
 
         modelBuilder.Entity<UserRole>(entity =>
@@ -426,7 +430,7 @@ public partial class SaveFoodDbContext : DbContext
 
         modelBuilder.Entity<WalletTransaction>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__WalletTr__3214EC0783487A0F");
+            entity.HasKey(e => e.Id).HasName("PK__WalletTr__3214EC075F798F76");
 
             entity.HasIndex(e => e.OrderId, "IX_WalletTransactions_OrderId");
 
@@ -448,7 +452,7 @@ public partial class SaveFoodDbContext : DbContext
 
         modelBuilder.Entity<WithdrawalRequest>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Withdraw__3214EC07B7701C58");
+            entity.HasKey(e => e.Id).HasName("PK__Withdraw__3214EC07A81D6E6A");
 
             entity.HasIndex(e => e.StoreId, "IX_WithdrawalRequests_StoreId");
 

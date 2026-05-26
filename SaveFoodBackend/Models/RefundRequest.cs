@@ -17,17 +17,17 @@ public partial class RefundRequest
 
     public byte Status { get; set; }
 
-    public string? CustomerBankName { get; set; }
-
-    public string? CustomerBankAccount { get; set; }
-
-    public string? CustomerBankAccountName { get; set; }
-
     public string? AdminNote { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
     public DateTime? ProcessedAt { get; set; }
+
+    public string? CustomerBankName { get; set; }
+
+    public string? CustomerBankAccount { get; set; }
+
+    public string? CustomerBankAccountName { get; set; }
 
     public virtual Order Order { get; set; } = null!;
 

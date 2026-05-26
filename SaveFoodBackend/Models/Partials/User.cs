@@ -5,13 +5,6 @@ namespace SaveFoodBackend.Models;
 
 public partial class User
 {
-    // Restored properties missing from scaffolded DB
-    public string Username { get; set; } = null!;
-    
-    public string NormalizedEmail { get; set; } = null!;
-    
-    public string? ImgCloudinaryId { get; set; }
-
     [NotMapped]
     public UserStatus UserStatusEnum
     {
