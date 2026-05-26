@@ -29,6 +29,21 @@ namespace SaveFoodBackend.Controllers
             return Ok(users);
         }
 
+        // POST: api/admin/users
+        [HttpPost("users")]
+        public async Task<IActionResult> AddUser([FromBody] AddUserRequestDTO request)
+        {
+            try
+            {
+                await _adminService.AddUserAsync(request);
+                return Ok(new { message = "User created successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // GET: api/admin/users/{id}
         [HttpGet("users/{id}")]
         public async Task<ActionResult<AdminUserDetailsDTO>> GetUserDetails(Guid id)

@@ -19,6 +19,19 @@ export interface GetUsersRequest {
   sortDirection?: string;
   pageNumber?: number;
   pageSize?: number;
+  staffRoleFilter?: number;
+}
+
+export interface RoleInfoDTO {
+  code: string;
+  name: string;
+}
+
+export interface AddUserRequest {
+  email: string;
+  fullName: string;
+  password?: string; // Optional if you auto-generate, but we specified it in DTO
+  roleCode: string;
 }
 
 export interface AdminUserListDTO {
@@ -26,7 +39,7 @@ export interface AdminUserListDTO {
   email: string;
   fullName: string;
   status: number;
-  roles: string[];
+  roles: RoleInfoDTO[];
   createdAt: string;
 }
 
@@ -48,7 +61,7 @@ export interface AdminUserDetailsDTO {
   status: number;
   userFlags: number;
   createdAt: string;
-  roles: string[];
+  roles: RoleInfoDTO[];
   storeAffiliations: AdminStoreStaffInfoDTO[];
 }
 
@@ -156,6 +169,12 @@ export const adminApi = {
   
   getUserDetails: (id: string) => apiClient<AdminUserDetailsDTO>(`/admin/users/${id}`),
   
+  addUser: (request: AddUserRequest) => 
+    apiClient('/admin/users', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    }),
+
   updateUserStatus: (id: string, newStatus: number) => 
     apiClient(`/admin/users/${id}/status`, {
       method: 'PUT',

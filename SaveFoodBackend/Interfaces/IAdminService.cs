@@ -15,5 +15,6 @@ namespace SaveFoodBackend.Interfaces
         Task<IEnumerable<AdminStoreApprovalDTO>> GetPendingStoresAsync();
         Task ApproveStoreAsync(Guid storeId);
         Task RejectStoreAsync(Guid storeId, RejectStoreRequest request);
+        Task AddUserAsync(AddUserRequestDTO request);
     }
 }

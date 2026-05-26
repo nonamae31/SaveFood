@@ -9,6 +9,7 @@ using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
 using SaveFoodBackend.Common;
+using SaveFoodBackend.Utils;
 
 namespace SaveFoodBackend.Services
 {
@@ -43,14 +44,19 @@ namespace SaveFoodBackend.Services
 
             if (!string.IsNullOrWhiteSpace(request.RoleFilter) && request.RoleFilter != "All")
             {
-                if (request.RoleFilter == "Customer")
+                if (request.RoleFilter.Equals("Customer", StringComparison.OrdinalIgnoreCase))
                 {
-                    query = query.Where(u => !u.UserRoles.Any());
+                    query = query.Where(u => !u.UserRoles.Any() || u.UserRoles.Any(ur => ur.Role.Name == "Customer" || ur.Role.Code == "Customer"));
                 }
                 else
                 {
-                    query = query.Where(u => u.UserRoles.Any(ur => ur.Role.Name == request.RoleFilter));
+                    query = query.Where(u => u.UserRoles.Any(ur => ur.Role.Code == request.RoleFilter || ur.Role.Name == request.RoleFilter));
                 }
+            }
+
+            if (request.StaffRoleFilter.HasValue)
+            {
+                query = query.Where(u => u.StoreStaffs.Any(ss => ss.StaffRole == request.StaffRoleFilter.Value));
             }
 
             query = request.SortBy switch
@@ -68,7 +74,7 @@ namespace SaveFoodBackend.Services
                 FullName = u.FullName,
                 Status = u.Status,
                 CreatedAt = u.CreatedAt,
-                Roles = u.UserRoles.Select(ur => ur.Role.Name).ToList()
+                Roles = u.UserRoles.Select(ur => new RoleInfoDTO { Code = ur.Role.Code, Name = ur.Role.Name }).ToList()
             });
 
             return await PaginatedList<AdminUserListDTO>.CreateAsync(mappedQuery, request.PageNumber, request.PageSize);
@@ -97,7 +103,7 @@ namespace SaveFoodBackend.Services
                 Status = user.Status,
                 UserFlags = user.UserFlags,
                 CreatedAt = user.CreatedAt,
-                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList(),
+                Roles = user.UserRoles.Select(ur => new RoleInfoDTO { Code = ur.Role.Code, Name = ur.Role.Name }).ToList(),
                 StoreAffiliations = user.StoreStaffs.Select(ss => new AdminStoreStaffInfoDTO
                 {
                     StoreId = ss.StoreId,
@@ -184,6 +190,52 @@ namespace SaveFoodBackend.Services
             store.Status = (byte)StoreStatus.Rejected;
             store.ReviewNotes = request.ReviewNotes;
 
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task AddUserAsync(AddUserRequestDTO request)
+        {
+            var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
+            var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email);
+            
+            if (existingUser != null)
+            {
+                throw new InvalidOperationException("Email này đã được sử dụng.");
+            }
+
+            var username = request.Email.Split('@')[0];
+            username = new string(username.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+            if (username.Length < 3) username = username.PadRight(3, 'a');
+            if (username.Length > 20) username = username.Substring(0, 20);
+
+            var isUsernameTaken = await _context.Users.AnyAsync(u => u.Username == username);
+            if (isUsernameTaken)
+            {
+                username = username.Substring(0, Math.Min(15, username.Length)) + new Random().Next(1000, 9999).ToString();
+            }
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == request.RoleCode);
+            if (role == null)
+            {
+                throw new InvalidOperationException("Role không hợp lệ.");
+            }
+
+            var newUser = new Models.User
+            {
+                Id = Guid.NewGuid(),
+                Email = request.Email,
+                NormalizedEmail = normalizedEmail,
+                Username = username,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                FullName = request.FullName,
+                UserStatusEnum = Models.Enums.UserStatus.Active,
+                EmailVerified = true, // Admin created users are pre-verified
+                CreatedAt = DateTime.UtcNow
+            };
+
+            newUser.UserRoles.Add(new Models.UserRole { RoleId = role.Id, UserId = newUser.Id });
+
+            _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
         }
     }

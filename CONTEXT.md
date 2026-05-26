@@ -28,5 +28,12 @@ _Avoid_: Payout Request, Payout.
 A request handled exclusively by the Admin to return money to a Customer for a failed, cancelled, or disputed order. The refund amount is deducted from the Store's `Pending Balance` (since the funds have not yet cleared). Admins must manually transfer funds to the customer's account externally before marking the request as 'Refunded' in the system.
 _Avoid_: Store Refund.
 
+**User**:
+The core identity and login account for any individual accessing the platform. A User can have one or more system-level Roles (Admin, Store, Customer).
+_Avoid_: Account.
+
+**Staff Role**:
+A specific permission level (Owner, Manager, Staff) that a User holds within a particular Store. This is distinct from their system-level Role.
+
 **Trust Score**:
 A rating system that tracks a Store's reliability, affected by successful orders (+), cancellations (-), refunds (-), and user reports for policy violations (e.g., bypassing platform payments). Influences ranking and visibility.

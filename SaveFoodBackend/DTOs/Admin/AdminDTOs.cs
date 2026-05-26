@@ -12,6 +12,13 @@ namespace SaveFoodBackend.DTOs.Admin
         public string? SortDirection { get; set; }
         public int PageNumber { get; set; } = 1;
         public int PageSize { get; set; } = 5;
+        public byte? StaffRoleFilter { get; set; }
+    }
+
+    public class RoleInfoDTO
+    {
+        public string Code { get; set; } = null!;
+        public string Name { get; set; } = null!;
     }
 
     public class AdminUserListDTO
@@ -20,7 +27,7 @@ namespace SaveFoodBackend.DTOs.Admin
         public string Email { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public byte Status { get; set; }
-        public List<string> Roles { get; set; } = new List<string>();
+        public List<RoleInfoDTO> Roles { get; set; } = new List<RoleInfoDTO>();
         public DateTime CreatedAt { get; set; }
     }
 
@@ -35,7 +42,7 @@ namespace SaveFoodBackend.DTOs.Admin
         public byte Status { get; set; }
         public byte UserFlags { get; set; }
         public DateTime CreatedAt { get; set; }
-        public List<string> Roles { get; set; } = new List<string>();
+        public List<RoleInfoDTO> Roles { get; set; } = new List<RoleInfoDTO>();
         public List<AdminStoreStaffInfoDTO> StoreAffiliations { get; set; } = new List<AdminStoreStaffInfoDTO>();
     }
 
@@ -67,5 +74,13 @@ namespace SaveFoodBackend.DTOs.Admin
     public class RejectStoreRequest
     {
         public string ReviewNotes { get; set; } = null!;
+    }
+
+    public class AddUserRequestDTO
+    {
+        public string Email { get; set; } = null!;
+        public string FullName { get; set; } = null!;
+        public string Password { get; set; } = null!;
+        public string RoleCode { get; set; } = null!;
     }
 }
