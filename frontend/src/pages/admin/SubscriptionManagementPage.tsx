@@ -87,7 +87,7 @@ function SubscriptionPlanModal({
       onClose();
     } catch (error) {
       console.error(error);
-      alert('Failed to save plan');
+      alert('Không thể lưu gói đăng ký');
     } finally {
       setSubmitting(false);
     }
@@ -99,7 +99,7 @@ function SubscriptionPlanModal({
         <div className="sticky top-0 bg-mint-canvas/80 backdrop-blur-md border-b border-mint-hairline-soft px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-[22px] font-semibold text-mint-ink flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-mint-steel" />
-            {plan ? 'Edit Subscription Plan' : 'Add New Plan'}
+            {plan ? 'Chỉnh sửa Gói Đăng Ký' : 'Thêm Gói Mới'}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-mint-surface rounded-full transition-colors text-mint-stone hover:text-mint-ink">
             <X className="w-5 h-5" />
@@ -109,18 +109,18 @@ function SubscriptionPlanModal({
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-mint-stone font-medium text-[14px] mb-1">Plan Name</label>
+              <label className="block text-mint-stone font-medium text-[14px] mb-1">Tên Gói</label>
               <input
                 required
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                placeholder="e.g. Basic Plan"
+                placeholder="VD: Gói Cơ Bản"
                 className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
               />
             </div>
             <div>
-              <label className="block text-mint-stone font-medium text-[14px] mb-1">Monthly Price (VND)</label>
+              <label className="block text-mint-stone font-medium text-[14px] mb-1">Giá Hàng Tháng (VND)</label>
               <input
                 required
                 type="number"
@@ -137,7 +137,7 @@ function SubscriptionPlanModal({
           <div className="space-y-4">
             <div className="flex items-center justify-between border-b border-mint-hairline-soft pb-2">
               <label className="block text-mint-stone font-medium text-[14px]">
-                Plan Features
+                Tính năng của Gói
               </label>
               <div className="flex gap-2">
                 <button
@@ -146,7 +146,7 @@ function SubscriptionPlanModal({
                   className="text-[13px] font-medium text-mint-brand-green hover:text-mint-brand-green-deep transition-colors flex items-center gap-1 bg-mint-brand-green/10 px-2 py-1 rounded"
                 >
                   <Copy className="w-3.5 h-3.5" />
-                  Copy from another plan
+                  Sao chép từ gói khác
                 </button>
                 <button
                   type="button"
@@ -154,14 +154,14 @@ function SubscriptionPlanModal({
                   className="text-[13px] font-medium text-mint-ink hover:text-black transition-colors flex items-center gap-1 bg-mint-surface px-2 py-1 rounded border border-mint-hairline"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  Add Feature
+                  Thêm Tính năng
                 </button>
               </div>
             </div>
 
             {showCopySection && (
               <div className="bg-mint-surface-soft p-4 rounded-[8px] border border-mint-hairline animate-in slide-in-from-top-2">
-                <h4 className="text-[13px] font-medium text-mint-ink mb-3">Copy features from:</h4>
+                <h4 className="text-[13px] font-medium text-mint-ink mb-3">Sao chép tính năng từ:</h4>
                 <select 
                   className="w-full px-3 py-2 border border-mint-hairline rounded-[6px] text-[13px] mb-3"
                   value={selectedPlanToCopy}
@@ -170,7 +170,7 @@ function SubscriptionPlanModal({
                     setSelectedFeaturesToCopy([]);
                   }}
                 >
-                  <option value="">Select a plan...</option>
+                  <option value="">Chọn một gói...</option>
                   {allPlans.filter(p => p.id !== plan?.id).map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
@@ -200,14 +200,14 @@ function SubscriptionPlanModal({
                 
                 {selectedPlanToCopy && (
                   <div className="flex justify-end gap-2">
-                    <button type="button" onClick={() => setShowCopySection(false)} className="px-3 py-1.5 text-[12px] hover:bg-mint-canvas rounded">Cancel</button>
+                    <button type="button" onClick={() => setShowCopySection(false)} className="px-3 py-1.5 text-[12px] hover:bg-mint-canvas rounded">Hủy</button>
                     <button 
                       type="button" 
                       onClick={handleCopyFeatures}
                       disabled={selectedFeaturesToCopy.length === 0}
                       className="px-3 py-1.5 text-[12px] bg-mint-brand-green text-mint-primary font-medium rounded disabled:opacity-50"
                     >
-                      Add Selected ({selectedFeaturesToCopy.length})
+                      Thêm Đã Chọn ({selectedFeaturesToCopy.length})
                     </button>
                   </div>
                 )}
@@ -217,7 +217,7 @@ function SubscriptionPlanModal({
             <div className="space-y-3">
               {features.length === 0 && (
                 <p className="text-center text-mint-steel text-[13px] py-4 italic bg-mint-surface rounded-[8px]">
-                  No features added yet.
+                  Chưa có tính năng nào.
                 </p>
               )}
               {features.map((feature, index) => (
@@ -248,7 +248,7 @@ function SubscriptionPlanModal({
                     value={feature.text}
                     onChange={(e) => handleFeatureChange(feature.id, e.target.value)}
                     disabled={feature.markedForDeletion}
-                    placeholder="Describe a feature..."
+                    placeholder="Mô tả tính năng..."
                     className={`flex-1 px-3 py-2 bg-transparent text-[14px] focus:outline-none ${feature.markedForDeletion ? 'line-through text-mint-stone' : 'text-mint-ink'}`}
                   />
                   
@@ -260,7 +260,7 @@ function SubscriptionPlanModal({
                       onChange={() => toggleDeleteFeature(feature.id)}
                       className="w-4 h-4 rounded text-[#d45656] focus:ring-[#d45656]"
                     />
-                    <span className={feature.markedForDeletion ? 'text-[#d45656]' : 'text-mint-stone'}>Delete</span>
+                    <span className={feature.markedForDeletion ? 'text-[#d45656]' : 'text-mint-stone'}>Xóa</span>
                   </label>
 
                 </div>
@@ -270,7 +270,7 @@ function SubscriptionPlanModal({
             {features.some(f => f.markedForDeletion) && (
               <p className="text-[12px] text-[#d45656] font-medium flex items-center gap-1">
                 <Trash2 className="w-3.5 h-3.5" />
-                Features marked for deletion will be removed when you save the plan.
+                Các tính năng được đánh dấu xóa sẽ bị xóa khi bạn lưu gói.
               </p>
             )}
 
@@ -282,14 +282,14 @@ function SubscriptionPlanModal({
               onClick={onClose}
               className="px-5 py-2.5 rounded-[8px] text-[14px] font-medium text-mint-ink hover:bg-mint-surface border border-mint-hairline transition-colors"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
               disabled={submitting}
               className="px-5 py-2.5 rounded-[8px] text-[14px] font-medium text-mint-primary bg-mint-brand-green hover:bg-mint-brand-green-deep transition-colors disabled:opacity-50"
             >
-              {submitting ? 'Saving...' : 'Save Plan'}
+              {submitting ? 'Đang lưu...' : 'Lưu Gói'}
             </button>
           </div>
         </form>
@@ -329,13 +329,13 @@ export default function SubscriptionManagementPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this subscription plan?')) return;
+    if (!confirm('Bạn có chắc chắn muốn xóa gói đăng ký này không?')) return;
     try {
       await subscriptionPlansApi.deletePlan(id);
       await loadPlans();
     } catch (e) {
       console.error(e);
-      alert('Failed to delete plan');
+      alert('Không thể xóa gói');
     }
   };
 
@@ -345,16 +345,16 @@ export default function SubscriptionManagementPage() {
         <div>
           <h1 className="text-[36px] font-semibold text-mint-ink tracking-[-0.5px] flex items-center gap-3">
             <CreditCard className="w-8 h-8 text-mint-ink" />
-            Subscription Plans
+            Các Gói Đăng Ký
           </h1>
-          <p className="text-[16px] text-mint-steel mt-2">Manage platform pricing tiers and limits.</p>
+          <p className="text-[16px] text-mint-steel mt-2">Quản lý các hạng mức giá và giới hạn của nền tảng.</p>
         </div>
         <button
           onClick={() => setModalState({ isOpen: true, plan: null })}
           className="bg-mint-ink hover:bg-black text-mint-canvas px-5 py-2.5 rounded-[8px] font-medium text-[14px] transition-colors flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
-          Add New Plan
+          Thêm Gói Mới
         </button>
       </div>
 
@@ -363,11 +363,11 @@ export default function SubscriptionManagementPage() {
           <table className="w-full text-left text-[14px]">
             <thead className="text-mint-steel border-b border-mint-hairline bg-mint-surface/50">
               <tr>
-                <th className="px-6 py-4 font-medium">Plan Name</th>
-                <th className="px-6 py-4 font-medium">Monthly Price</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium w-1/2">Features / Description</th>
-                <th className="px-6 py-4 font-medium text-right">Actions</th>
+                <th className="px-6 py-4 font-medium">Tên Gói</th>
+                <th className="px-6 py-4 font-medium">Giá Hàng Tháng</th>
+                <th className="px-6 py-4 font-medium">Trạng thái</th>
+                <th className="px-6 py-4 font-medium w-1/2">Tính năng / Mô tả</th>
+                <th className="px-6 py-4 font-medium text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -380,7 +380,7 @@ export default function SubscriptionManagementPage() {
               ) : plans.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-mint-steel text-[14px]">
-                    No subscription plans found.
+                    Không tìm thấy gói đăng ký nào.
                   </td>
                 </tr>
               ) : (
@@ -394,7 +394,7 @@ export default function SubscriptionManagementPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-0.5 rounded-[6px] text-[11px] font-semibold tracking-[0.5px] uppercase ${plan.isActive ? 'bg-[#7cebcb]/20 text-[#1ba673]' : 'bg-[#c37d0d]/10 text-[#c37d0d]'}`}>
-                        {plan.isActive ? 'Active' : 'Inactive'}
+                        {plan.isActive ? 'Đang hoạt động' : 'Không hoạt động'}
                       </span>
                     </td>
                     <td className="px-6 py-4">
@@ -411,14 +411,14 @@ export default function SubscriptionManagementPage() {
                         <button
                           onClick={() => setModalState({ isOpen: true, plan })}
                           className="p-2 text-mint-stone hover:text-mint-ink hover:bg-mint-surface rounded-[8px] transition-colors"
-                          title="Edit"
+                          title="Chỉnh sửa"
                         >
                           <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(plan.id)}
                           className="p-2 text-mint-stone hover:text-[#d45656] hover:bg-[#d45656]/10 rounded-[8px] transition-colors"
-                          title="Delete"
+                          title="Xóa"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

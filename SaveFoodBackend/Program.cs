@@ -55,6 +55,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IProductService, SaveFoodB
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IListingRepository, SaveFoodBackend.Repositories.ListingRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IListingService, SaveFoodBackend.Services.ListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, SaveFoodBackend.Services.CustomerListingService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,13 +74,14 @@ if (app.Environment.IsDevelopment())
 // ─── 9. HTTPS Redirect ────────────────────────────────────────────────────────
 app.UseHttpsRedirection();
 
-// ─── 10. CORS (phải đứng TRƯỚC Authentication) ───────────────────────────────
+// ─── 10. CORS & Routing (phải đứng TRƯỚC Authentication) ───────────────────
+app.UseRouting();
 app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
 // TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
 app.UseAuthentication(); // Vẫn bật Authentication để đọc thông tin user từ Token/Cookie nếu có
-// app.UseAuthorization(); // COMMENT LẠI THEO YÊU CẦU: Bypass kiểm tra phân quyền để không bị block (401/403)
+app.UseAuthorization(); // RE-ENABLED: Kiểm tra phân quyền
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();

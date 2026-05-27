@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
@@ -13,7 +14,7 @@ namespace SaveFoodBackend.Controllers;
 
 [Route("api/admin/finance")]
 [ApiController]
-// [Authorize(Roles = "Admin")]
+[Authorize(Roles = "ADMIN,Admin")]
 public class AdminFinanceController : ControllerBase
 {
     private readonly SaveFoodDbContext _context;

@@ -18,6 +18,7 @@ import AdminFinancePage from '@/pages/admin/AdminFinancePage'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
+import CategoryManagementPage from '@/pages/admin/CategoryManagementPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -97,6 +98,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
                 <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
+                <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
               </Route>
             </Route>
 

@@ -89,31 +89,31 @@ export default function AdminDashboardPage() {
   return (
     <div className="p-8 max-w-[1280px] mx-auto font-inter bg-mint-surface-soft min-h-[calc(100vh-64px)] rounded-tl-[16px] border-t border-l border-mint-hairline shadow-sm">
       <div className="mb-8">
-        <h1 className="text-[36px] font-semibold text-mint-ink tracking-[-0.5px]">Dashboard Overview</h1>
-        <p className="text-[16px] text-mint-steel mt-2">Monitor platform revenue and subscription metrics.</p>
+        <h1 className="text-[36px] font-semibold text-mint-ink tracking-[-0.5px]">Tổng quan Bảng điều khiển</h1>
+        <p className="text-[16px] text-mint-steel mt-2">Theo dõi doanh thu nền tảng và các chỉ số gói đăng ký.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard 
-          title="Total Platform Revenue" 
+          title="Tổng doanh thu nền tảng" 
           value={formatCurrency(revenueStats?.totalRevenue || 0)} 
           icon={<DollarSign className="w-5 h-5" />} 
-          trend="Lifetime"
+          trend="Toàn thời gian"
         />
         <StatCard 
-          title="Total Sub Revenue" 
+          title="Tổng doanh thu Gói ĐK" 
           value={formatCurrency(subStats?.totalSubscriptionRevenue || 0)} 
           icon={<Package className="w-5 h-5" />} 
-          trend="Lifetime"
+          trend="Toàn thời gian"
         />
         <StatCard 
-          title="Active Subscriptions" 
+          title="Gói ĐK đang hoạt động" 
           value={(subStats?.totalActiveSubscriptions || 0).toString()} 
           icon={<Users className="w-5 h-5" />} 
-          trend="Current"
+          trend="Hiện tại"
         />
         <StatCard 
-          title="Avg Revenue/Sub" 
+          title="Doanh thu TB / Gói ĐK" 
           value={formatCurrency(subStats?.totalActiveSubscriptions ? (subStats.totalSubscriptionRevenue / subStats.totalActiveSubscriptions) : 0)} 
           icon={<TrendingUp className="w-5 h-5" />} 
         />
@@ -122,7 +122,7 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Platform Revenue Chart */}
         <div className="bg-mint-canvas border border-mint-hairline rounded-[12px] p-6 shadow-sm">
-          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Platform Fee Revenue (Monthly)</h3>
+          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Doanh thu phí Nền tảng (Hàng tháng)</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueChartData}>
@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
 
         {/* Subscription Stats Chart */}
         <div className="bg-mint-canvas border border-mint-hairline rounded-[12px] p-6 shadow-sm">
-          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">New Subscriptions (Monthly)</h3>
+          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Gói ĐK Mới (Hàng tháng)</h3>
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={subChartData}>
@@ -175,7 +175,7 @@ export default function AdminDashboardPage() {
                 <Line 
                   type="monotone" 
                   dataKey="NewSubscriptions" 
-                  name="New Stores"
+                  name="Cửa hàng mới"
                   stroke="#10B981" 
                   strokeWidth={3}
                   dot={{ r: 4, fill: '#10B981', strokeWidth: 2, stroke: '#fff' }}
@@ -188,7 +188,7 @@ export default function AdminDashboardPage() {
 
         {/* Active Subscriptions by Plan Pie Chart */}
         <div className="bg-mint-canvas border border-mint-hairline rounded-[12px] p-6 shadow-sm lg:col-span-2">
-          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Active Subscriptions by Plan</h3>
+          <h3 className="text-[16px] font-semibold text-mint-ink mb-6">Gói ĐK đang hoạt động theo Gói</h3>
           <div className="h-[300px] w-full flex items-center justify-center">
             {activePlansData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
@@ -214,7 +214,7 @@ export default function AdminDashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="text-mint-stone text-[14px]">No active subscriptions found</div>
+              <div className="text-mint-stone text-[14px]">Không tìm thấy gói đăng ký nào đang hoạt động</div>
             )}
           </div>
         </div>

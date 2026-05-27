@@ -21,19 +21,19 @@ export default function StoreApprovalPage() {
   }, []);
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Are you sure you want to approve this store?')) return;
+    if (!confirm('Bạn có chắc chắn muốn duyệt cửa hàng này?')) return;
     try {
       await adminApi.approveStore(id);
       setStores(prev => prev.filter(s => s.id !== id));
     } catch (e) {
       console.error(e);
-      alert('Failed to approve store');
+      alert('Không thể duyệt cửa hàng');
     }
   };
 
   const handleReject = async (id: string) => {
     if (!reviewNotes.trim()) {
-      alert('Please provide review notes for rejection.');
+      alert('Vui lòng cung cấp lý do từ chối.');
       return;
     }
     try {
@@ -43,7 +43,7 @@ export default function StoreApprovalPage() {
       setReviewNotes('');
     } catch (e) {
       console.error(e);
-      alert('Failed to reject store');
+      alert('Không thể từ chối cửa hàng');
     }
   };
 
@@ -53,9 +53,9 @@ export default function StoreApprovalPage() {
         <div>
           <h1 className="text-[36px] font-semibold text-mint-ink tracking-[-0.5px] flex items-center gap-3">
             <Building className="w-8 h-8 text-mint-ink" />
-            Store Approvals
+            Duyệt Cửa Hàng
           </h1>
-          <p className="text-[16px] text-mint-steel mt-2">Review and manage pending store applications.</p>
+          <p className="text-[16px] text-mint-steel mt-2">Xem xét và quản lý các đơn đăng ký cửa hàng đang chờ duyệt.</p>
         </div>
       </div>
 
@@ -68,8 +68,8 @@ export default function StoreApprovalPage() {
           <div className="bg-mint-surface w-[64px] h-[64px] rounded-full flex items-center justify-center mx-auto mb-4 border border-mint-hairline-soft">
             <Check className="w-[32px] h-[32px] text-mint-brand-green" />
           </div>
-          <h3 className="text-[22px] font-semibold text-mint-ink">All caught up!</h3>
-          <p className="text-[16px] text-mint-steel mt-2">There are no pending store applications to review.</p>
+          <h3 className="text-[22px] font-semibold text-mint-ink">Tất cả đã xong!</h3>
+          <p className="text-[16px] text-mint-steel mt-2">Không có đơn đăng ký cửa hàng nào đang chờ duyệt.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -79,7 +79,7 @@ export default function StoreApprovalPage() {
                 <div className="flex items-start justify-between mb-4">
                   <h3 className="text-[22px] font-semibold text-mint-ink leading-tight">{store.name}</h3>
                   <span className="bg-[#c37d0d]/10 text-[#c37d0d] text-[11px] font-semibold px-2 py-0.5 rounded-[6px] uppercase tracking-[0.5px]">
-                    Pending
+                    Chờ duyệt
                   </span>
                 </div>
                 
@@ -90,7 +90,7 @@ export default function StoreApprovalPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Phone className="w-4 h-4 text-mint-stone shrink-0" />
-                    <span>{store.phoneNumber || 'Not provided'}</span>
+                    <span>{store.phoneNumber || 'Không cung cấp'}</span>
                   </div>
                   <div className="flex items-center gap-2 pt-4 border-t border-mint-hairline-soft mt-4">
                     <User className="w-4 h-4 text-mint-stone shrink-0" />
@@ -102,7 +102,7 @@ export default function StoreApprovalPage() {
                 </div>
                 
                 <div className="text-[13px] text-mint-stone font-medium">
-                  Applied on {new Date(store.createdAt).toLocaleDateString()}
+                  Đăng ký vào {new Date(store.createdAt).toLocaleDateString()}
                 </div>
               </div>
               
@@ -113,7 +113,7 @@ export default function StoreApprovalPage() {
                       <MessageSquare className="w-4 h-4 absolute left-3 top-3 text-mint-stone" />
                       <textarea 
                         autoFocus
-                        placeholder="Reason for rejection..."
+                        placeholder="Lý do từ chối..."
                         value={reviewNotes}
                         onChange={e => setReviewNotes(e.target.value)}
                         className="w-full pl-9 pr-3 py-2 bg-mint-canvas border border-mint-brand-error text-mint-ink rounded-[8px] focus:outline-none focus:ring-2 focus:ring-[#d45656]/20 focus:border-[#d45656] text-[14px] min-h-[80px]"
@@ -124,13 +124,13 @@ export default function StoreApprovalPage() {
                         onClick={() => handleReject(store.id)}
                         className="flex-1 bg-mint-brand-error text-mint-on-primary py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors hover:bg-red-600"
                       >
-                        Confirm Reject
+                        Xác nhận Từ chối
                       </button>
                       <button 
                         onClick={() => { setRejectingId(null); setReviewNotes(''); }}
                         className="bg-transparent hover:bg-mint-hairline-soft text-mint-ink border border-mint-hairline px-[16px] py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors"
                       >
-                        Cancel
+                        Hủy
                       </button>
                     </div>
                   </div>
@@ -141,14 +141,14 @@ export default function StoreApprovalPage() {
                       className="flex-1 bg-mint-primary hover:bg-mint-charcoal text-mint-on-primary py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Check className="w-4 h-4" />
-                      Approve
+                      Duyệt
                     </button>
                     <button 
                       onClick={() => setRejectingId(store.id)}
                       className="flex-1 bg-transparent hover:bg-[#d45656]/5 text-[#d45656] border border-mint-hairline hover:border-[#d45656] py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <X className="w-4 h-4" />
-                      Reject
+                      Từ chối
                     </button>
                   </div>
                 )}

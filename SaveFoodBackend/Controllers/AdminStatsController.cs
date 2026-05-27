@@ -12,7 +12,7 @@ namespace SaveFoodBackend.Controllers;
 
 [Route("api/admin/stats")]
 [ApiController]
-// [Authorize(Roles = "Admin")] // Uncomment when authentication is fully ready for admin
+[Authorize(Roles = "ADMIN,Admin")] // Uncomment when authentication is fully ready for admin
 public class AdminStatsController : ControllerBase
 {
     private readonly SaveFoodDbContext _context;

@@ -10,7 +10,7 @@ namespace SaveFoodBackend.Controllers
 {
     [Route("api/admin/subscription-plans")]
     [ApiController]
-    // [Authorize(Roles = "ADMIN")] // Uncomment when auth is re-enabled globally
+    [Authorize(Roles = "ADMIN,Admin")] // Uncomment when auth is re-enabled globally
     public class AdminSubscriptionPlansController : ControllerBase
     {
         private readonly ISubscriptionPlanService _subscriptionPlanService;

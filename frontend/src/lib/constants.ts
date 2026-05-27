@@ -34,6 +34,10 @@ export const QUERY_KEYS = {
   auth: {
     me: (): readonly string[] => ['auth', 'me'],
   },
+  categories: {
+    all:         (): readonly string[] => ['categories'],
+    adminAll:    (): readonly string[] => ['categories', 'admin'],
+  },
 } as const
 
 // ── Frontend Routes ───────────────────────────────────────────────────────────
@@ -66,12 +70,13 @@ export const ROUTES = {
   DASHBOARD_SETTINGS:     '/dashboard/settings',
 
   // Admin
-  ADMIN:          '/admin',
-  ADMIN_DASHBOARD:'/admin/dashboard',
-  ADMIN_FINANCE:  '/admin/finance',
-  ADMIN_ACCOUNTS: '/admin/accounts',
-  ADMIN_APPROVALS:'/admin/approvals',
+  ADMIN:               '/admin',
+  ADMIN_DASHBOARD:     '/admin/dashboard',
+  ADMIN_FINANCE:       '/admin/finance',
+  ADMIN_ACCOUNTS:      '/admin/accounts',
+  ADMIN_APPROVALS:     '/admin/approvals',
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
+  ADMIN_CATEGORIES:    '/admin/categories',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────
@@ -107,6 +112,12 @@ export const API_ENDPOINTS = {
   // Payment
   PAYMENT_CREATE:       '/payment/create',
   PAYMENT_CALLBACK:     '/payment/vnpay-return',
+
+  // Categories
+  CATEGORIES:           '/categories',
+  CATEGORIES_ADMIN_ALL: '/categories/all',
+  CATEGORY:             (id: string) => `/categories/${id}`,
+  CATEGORY_RESTORE:     (id: string) => `/categories/${id}/restore`,
 } as const
 
 // ── Pagination Defaults ───────────────────────────────────────────────────────

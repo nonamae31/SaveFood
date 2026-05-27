@@ -99,24 +99,24 @@ export default function AdminFinancePage() {
 
   const renderStatus = (status: number, type: 'tx' | 'withdrawal' | 'refund') => {
     if (type === 'tx') {
-      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Completed</span>;
-      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Failed</span>;
-      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-stone bg-mint-canvas px-2 py-1 rounded-full">Cancelled</span>;
-      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Hoàn thành</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Thất bại</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-stone bg-mint-canvas px-2 py-1 rounded-full">Đã hủy</span>;
+      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Đang chờ</span>;
     } 
     
     if (type === 'withdrawal') {
-      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Processing</span>;
-      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Paid</span>;
-      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Rejected</span>;
-      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Đang xử lý</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Đã thanh toán</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Bị từ chối</span>;
+      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Đang chờ</span>;
     }
 
     if (type === 'refund') {
-      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
-      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Rejected</span>;
-      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Refunded</span>;
-      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Pending</span>;
+      if (status === 1) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Đang chờ</span>;
+      if (status === 2) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full"><AlertCircle className="w-3 h-3" /> Bị từ chối</span>;
+      if (status === 3) return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-mint-brand-green bg-mint-brand-green/10 px-2 py-1 rounded-full"><CheckCircle className="w-3 h-3" /> Đã hoàn tiền</span>;
+      return <span className="inline-flex items-center gap-1 text-[12px] font-medium text-amber-600 bg-amber-100 px-2 py-1 rounded-full"><Clock className="w-3 h-3" /> Đang chờ</span>;
     }
     
     return null;
@@ -127,9 +127,9 @@ export default function AdminFinancePage() {
       <div className="mb-8">
         <h1 className="text-[24px] font-semibold text-mint-ink tracking-tight flex items-center gap-2">
           <CreditCard className="w-6 h-6 text-mint-brand-green" />
-          Finance Management
+          Quản lý Tài chính
         </h1>
-        <p className="text-mint-stone mt-1 text-[14px]">Manage system ledger, store payouts, and customer refunds.</p>
+        <p className="text-mint-stone mt-1 text-[14px]">Quản lý sổ cái hệ thống, thanh toán cửa hàng và hoàn tiền khách hàng.</p>
       </div>
 
       {/* Tabs */}
@@ -141,7 +141,7 @@ export default function AdminFinancePage() {
             activeTab === 'ledger' ? "text-mint-brand-green bg-mint-brand-green/5" : "text-mint-stone hover:text-mint-ink hover:bg-mint-canvas"
           )}
         >
-          Transaction Ledger
+          Sổ cái Giao dịch
           {activeTab === 'ledger' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
         </button>
         <button
@@ -151,7 +151,7 @@ export default function AdminFinancePage() {
             activeTab === 'withdrawals' ? "text-mint-brand-green bg-mint-brand-green/5" : "text-mint-stone hover:text-mint-ink hover:bg-mint-canvas"
           )}
         >
-          Withdrawal Requests
+          Yêu cầu Rút tiền
           {activeTab === 'withdrawals' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
         </button>
         <button
@@ -161,7 +161,7 @@ export default function AdminFinancePage() {
             activeTab === 'refunds' ? "text-mint-brand-green bg-mint-brand-green/5" : "text-mint-stone hover:text-mint-ink hover:bg-mint-canvas"
           )}
         >
-          Refund Requests
+          Yêu cầu Hoàn tiền
           {activeTab === 'refunds' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
         </button>
       </div>
@@ -179,38 +179,38 @@ export default function AdminFinancePage() {
                 <tr className="bg-mint-canvas/50 border-b border-mint-hairline">
                   {activeTab === 'ledger' && (
                     <>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Store</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Amount</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Ngày</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Cửa hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Mô tả</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
                     </>
                   )}
                   {activeTab === 'withdrawals' && (
                     <>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Store</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Bank Details</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Amount</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Actions</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Ngày</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Cửa hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Thông tin Ngân hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Thao tác</th>
                     </>
                   )}
                   {activeTab === 'refunds' && (
                     <>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Customer</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Reason & Bank</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Amount</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Actions</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Ngày</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Khách hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Lý do & Ngân hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Thao tác</th>
                     </>
                   )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-mint-hairline">
                 {activeTab === 'ledger' && transactions.length === 0 && (
-                  <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">No transactions found</td></tr>
+                  <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
                 {activeTab === 'ledger' && transactions.map(t => (
                   <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
@@ -229,16 +229,16 @@ export default function AdminFinancePage() {
                 ))}
 
                 {activeTab === 'withdrawals' && withdrawals.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">No withdrawal requests found</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu rút tiền nào</td></tr>
                 )}
                 {activeTab === 'withdrawals' && withdrawals.map(w => (
                   <tr key={w.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(w.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{w.storeName}</td>
                     <td className="px-6 py-4 text-[13px] text-mint-stone">
-                      <div><span className="font-medium text-mint-ink">Bank:</span> {w.bankName}</div>
-                      <div><span className="font-medium text-mint-ink">Acc:</span> {w.bankAccountNumber}</div>
-                      <div><span className="font-medium text-mint-ink">Name:</span> {w.bankAccountName}</div>
+                      <div><span className="font-medium text-mint-ink">Ngân hàng:</span> {w.bankName}</div>
+                      <div><span className="font-medium text-mint-ink">STK:</span> {w.bankAccountNumber}</div>
+                      <div><span className="font-medium text-mint-ink">Tên:</span> {w.bankAccountName}</div>
                     </td>
                     <td className="px-6 py-4 text-[14px] font-medium text-right text-mint-ink">{formatCurrency(w.amount)}</td>
                     <td className="px-6 py-4">{renderStatus(w.status, 'withdrawal')}</td>
@@ -249,30 +249,30 @@ export default function AdminFinancePage() {
                             onClick={() => openProcessModal('withdrawal', w.id, true)}
                             className="px-3 py-1.5 bg-mint-brand-green text-white text-[13px] font-medium rounded-md hover:bg-mint-brand-green/90 transition-colors"
                           >
-                            Mark Paid
+                            Đã Thanh Toán
                           </button>
                           <button 
                             onClick={() => openProcessModal('withdrawal', w.id, false)}
                             className="px-3 py-1.5 bg-red-50 text-red-600 text-[13px] font-medium rounded-md hover:bg-red-100 transition-colors"
                           >
-                            Reject
+                            Từ chối
                           </button>
                         </div>
                       )}
-                      {(w.status !== 0 && w.status !== 1) && <span className="text-[12px] text-mint-stone">{w.adminNote ? `Note: ${w.adminNote}` : '-'}</span>}
+                      {(w.status !== 0 && w.status !== 1) && <span className="text-[12px] text-mint-stone">{w.adminNote ? `Ghi chú: ${w.adminNote}` : '-'}</span>}
                     </td>
                   </tr>
                 ))}
 
                 {activeTab === 'refunds' && refunds.length === 0 && (
-                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">No refund requests found</td></tr>
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu hoàn tiền nào</td></tr>
                 )}
                 {activeTab === 'refunds' && refunds.map(r => (
                   <tr key={r.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(r.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{r.customerName}</td>
                     <td className="px-6 py-4 text-[13px] text-mint-stone">
-                      <div className="mb-1"><span className="font-medium text-mint-ink">Reason:</span> {r.reason}</div>
+                      <div className="mb-1"><span className="font-medium text-mint-ink">Lý do:</span> {r.reason}</div>
                       <div className="p-2 bg-mint-canvas rounded border border-mint-hairline text-[12px]">
                         {r.customerBankName ? (
                           <>
@@ -281,7 +281,7 @@ export default function AdminFinancePage() {
                             <div>{r.customerBankAccountName}</div>
                           </>
                         ) : (
-                          <span className="italic text-amber-600">Pending Bank Info</span>
+                          <span className="italic text-amber-600">Đang chờ thông tin ngân hàng</span>
                         )}
                       </div>
                     </td>
@@ -294,19 +294,19 @@ export default function AdminFinancePage() {
                             onClick={() => openProcessModal('refund', r.id, true)}
                             disabled={!r.customerBankName}
                             className="px-3 py-1.5 bg-mint-brand-green text-white text-[13px] font-medium rounded-md hover:bg-mint-brand-green/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={!r.customerBankName ? "Waiting for customer to provide bank info" : ""}
+                            title={!r.customerBankName ? "Đang đợi khách hàng cung cấp thông tin ngân hàng" : ""}
                           >
-                            Mark Refunded
+                            Đã Hoàn Tiền
                           </button>
                           <button 
                             onClick={() => openProcessModal('refund', r.id, false)}
                             className="px-3 py-1.5 bg-red-50 text-red-600 text-[13px] font-medium rounded-md hover:bg-red-100 transition-colors"
                           >
-                            Reject
+                            Từ chối
                           </button>
                         </div>
                       )}
-                      {(r.status !== 0 && r.status !== 1) && <span className="text-[12px] text-mint-stone">{r.adminNote ? `Note: ${r.adminNote}` : '-'}</span>}
+                      {(r.status !== 0 && r.status !== 1) && <span className="text-[12px] text-mint-stone">{r.adminNote ? `Ghi chú: ${r.adminNote}` : '-'}</span>}
                     </td>
                   </tr>
                 ))}
@@ -316,25 +316,39 @@ export default function AdminFinancePage() {
         )}
         
         {/* Pagination Controls */}
-        {!loading && totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-mint-hairline flex items-center justify-between">
+        {!loading && totalPages > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50">
             <span className="text-[13px] text-mint-stone">
-              Page {page} of {totalPages}
+              Trang {page} trên tổng số {totalPages}
             </span>
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <button 
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 text-[13px] border border-mint-hairline rounded hover:bg-mint-canvas disabled:opacity-50"
+                className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
               >
-                Previous
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
               </button>
+              <div className="flex gap-1">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={clsx(
+                      "w-7 h-7 rounded-[6px] text-[13px] font-medium transition-colors flex items-center justify-center",
+                      page === p ? "bg-mint-canvas border border-mint-hairline text-mint-ink shadow-sm" : "text-mint-stone hover:bg-mint-surface hover:text-mint-ink border border-transparent"
+                    )}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
               <button 
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 text-[13px] border border-mint-hairline rounded hover:bg-mint-canvas disabled:opacity-50"
+                className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
               >
-                Next
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
               </button>
             </div>
           </div>
@@ -348,24 +362,24 @@ export default function AdminFinancePage() {
             <div className="p-6">
               <h2 className="text-[18px] font-semibold text-mint-ink mb-2">
                 {isApprove 
-                  ? (processType === 'withdrawal' ? 'Confirm Payout' : 'Confirm Refund') 
-                  : 'Reject Request'}
+                  ? (processType === 'withdrawal' ? 'Xác nhận Thanh toán' : 'Xác nhận Hoàn tiền') 
+                  : 'Từ chối Yêu cầu'}
               </h2>
               <p className="text-[14px] text-mint-stone mb-6">
                 {isApprove 
-                  ? "Are you sure you have manually transferred the money via the bank? This action will mark the request as completed in the system."
-                  : "Please provide a reason for rejecting this request. The funds will not be transferred."}
+                  ? "Bạn có chắc chắn đã chuyển tiền thủ công qua ngân hàng chưa? Hành động này sẽ đánh dấu yêu cầu là đã hoàn thành trong hệ thống."
+                  : "Vui lòng cung cấp lý do từ chối yêu cầu này. Tiền sẽ không được chuyển."}
               </p>
 
               <div className="mb-6">
                 <label className="block text-[13px] font-medium text-mint-ink mb-1">
-                  Admin Note {isApprove ? '(Optional)' : '(Required)'}
+                  Ghi chú của Admin {isApprove ? '(Tùy chọn)' : '(Bắt buộc)'}
                 </label>
                 <textarea
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   className="w-full h-24 px-3 py-2 text-[14px] border border-mint-hairline rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-brand-green/20 focus:border-mint-brand-green resize-none"
-                  placeholder="Enter details..."
+                  placeholder="Nhập thông tin chi tiết..."
                 />
               </div>
 
@@ -375,7 +389,7 @@ export default function AdminFinancePage() {
                   disabled={processing}
                   className="px-4 py-2 text-[14px] font-medium text-mint-stone hover:text-mint-ink transition-colors"
                 >
-                  Cancel
+                  Hủy
                 </button>
                 <button
                   onClick={handleProcess}
@@ -387,7 +401,7 @@ export default function AdminFinancePage() {
                   )}
                 >
                   {processing && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                  {isApprove ? 'Confirm' : 'Reject'}
+                  {isApprove ? 'Xác nhận' : 'Từ chối'}
                 </button>
               </div>
             </div>
