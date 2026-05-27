@@ -64,6 +64,7 @@ export const ROUTES = {
 
   // Store Dashboard
   DASHBOARD:              '/dashboard',
+  DASHBOARD_PRODUCTS:     '/dashboard/products',
   DASHBOARD_LISTINGS:     '/dashboard/listings',
   DASHBOARD_ORDERS:       '/dashboard/orders',
   DASHBOARD_ANALYTICS:    '/dashboard/analytics',

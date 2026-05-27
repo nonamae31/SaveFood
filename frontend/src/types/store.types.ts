@@ -68,3 +68,87 @@ export interface CreateStorePayload {
 }
 
 export type UpdateStorePayload = Partial<CreateStorePayload>
+
+// ─── PRODUCTS (Owner-facing) ────────────────────────────────────────────────
+
+export interface ProductResponseDTO {
+  id: string
+  storeId: string
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isHidden: boolean
+  isSurpriseBag: boolean
+  createdAt: string
+}
+
+export interface CreateProductDTO {
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isSurpriseBag: boolean
+}
+
+export interface UpdateProductDTO {
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isSurpriseBag: boolean
+  isHidden: boolean
+}
+
+// ─── LISTINGS (Owner-facing) ────────────────────────────────────────────────
+
+export interface DiscountRuleDTO {
+  discountPercent?: number
+  targetPrice?: number
+  triggerValue: number
+  triggerType: number // 0 = TimeBeforeExpiry, 1 = StockRemaining
+  ruleOrder: number
+}
+
+export interface DiscountRuleResponseDTO {
+  id: string
+  ruleOrder: number
+  discountPercent?: number
+  targetPrice?: number
+  triggerValue: number
+  triggerType: number
+  isActive: boolean
+}
+
+export interface ListingResponseDTO {
+  id: string
+  productId: string
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  status: number // 0 = Draft, 1 = Active, 2 = Expired, 3 = SoldOut, 4 = Cancelled
+  isAutoRenew: boolean
+  createdAt: string
+  discountRules: DiscountRuleResponseDTO[]
+}
+
+export interface CreateListingDTO {
+  productId: string
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  isAutoRenew: boolean
+  discountRules: DiscountRuleDTO[]
+}
+
+export interface UpdateListingDTO {
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  status: number
+  isAutoRenew: boolean
+  discountRules: DiscountRuleDTO[]
+}

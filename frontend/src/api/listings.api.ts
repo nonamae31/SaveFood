@@ -1,0 +1,29 @@
+// ─── API: Customer-facing Clearance Listings ────────────────────────────────
+// Gọi các endpoint từ CustomerListingsController:
+//   GET /api/listings              — danh sách có filter
+//   GET /api/listings/recommendations — gợi ý cá nhân hóa (cần auth)
+
+import { apiClient } from './client'
+import type { CustomerListingDTO, ListingFilter } from '@/types/listing.types'
+
+/** Chuyển object filter thành URLSearchParams (bỏ qua các giá trị undefined) */
+function toQueryString(filter: ListingFilter): string {
+  const params = new URLSearchParams()
+  if (filter.categoryId !== undefined)  params.set('categoryId',   filter.categoryId)
+  if (filter.minPrice   !== undefined)  params.set('minPrice',     String(filter.minPrice))
+  if (filter.maxPrice   !== undefined)  params.set('maxPrice',     String(filter.maxPrice))
+  if (filter.isSurpriseBag !== undefined) params.set('isSurpriseBag', String(filter.isSurpriseBag))
+  if (filter.sortBy     !== undefined)  params.set('sortBy',       filter.sortBy)
+  const qs = params.toString()
+  return qs ? `?${qs}` : ''
+}
+
+/** GET /api/listings — danh sách Clearance Listings (có filter) */
+export function getListings(filter: ListingFilter = {}): Promise<CustomerListingDTO[]> {
+  return apiClient<CustomerListingDTO[]>(`/listings${toQueryString(filter)}`)
+}
+
+/** GET /api/listings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
+export function getRecommendations(): Promise<CustomerListingDTO[]> {
+  return apiClient<CustomerListingDTO[]>('/listings/recommendations')
+}

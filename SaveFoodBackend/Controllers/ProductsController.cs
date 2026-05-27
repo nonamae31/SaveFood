@@ -41,8 +41,16 @@ public class ProductsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var product = await _productService.CreateProductAsync(storeId, dto, ct);
-        return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
+        try
+        {
+            var product = await _productService.CreateProductAsync(storeId, dto, ct);
+            return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException != null ? ex.InnerException.Message : "";
+            return BadRequest(new { Message = $"{ex.Message} {inner}" });
+        }
     }
 
     [HttpPut("{productId}")]
