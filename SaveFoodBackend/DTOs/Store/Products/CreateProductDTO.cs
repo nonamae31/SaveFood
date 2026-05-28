@@ -19,6 +19,4 @@ public class CreateProductDTO
     public decimal OriginalPrice { get; set; }
 
     public bool IsSurpriseBag { get; set; } = false;
-
-    public System.Collections.Generic.List<Microsoft.AspNetCore.Http.IFormFile>? Images { get; set; }
 }

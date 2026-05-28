@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Plus, Edit2, Trash2, PackageSearch } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { useStoreProducts, useCreateStoreProduct, useUpdateStoreProduct, useDeleteStoreProduct } from '@/hooks/useStoreProducts'
+import { useStoreProducts, useCreateStoreProduct, useUpdateStoreProduct, useDeleteStoreProduct, useUploadStoreProductImage, useDeleteStoreProductImage } from '@/hooks/useStoreProducts'
 import { ProductModal } from '@/components/dashboard/ProductModal'
-import type { ProductResponseDTO } from '@/types/store.types'
+import type { ProductResponseDTO, CreateProductDTO, UpdateProductDTO } from '@/types/store.types'
 
 export default function DashboardProductsPage() {
   const { user } = useAuthContext()
@@ -13,6 +13,8 @@ export default function DashboardProductsPage() {
   const createMutation = useCreateStoreProduct()
   const updateMutation = useUpdateStoreProduct()
   const deleteMutation = useDeleteStoreProduct()
+  const uploadImageMutation = useUploadStoreProductImage()
+  const deleteImageMutation = useDeleteStoreProductImage()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<ProductResponseDTO | null>(null)
@@ -42,13 +44,31 @@ export default function DashboardProductsPage() {
     }
   }
 
-  const handleSubmit = async (payload: any) => {
+  const handleSubmit = async (payload: CreateProductDTO | UpdateProductDTO, newImages: File[], removedImageIds: string[]) => {
     try {
+      let currentProductId = editingProduct?.id
+      
       if (editingProduct) {
-        await updateMutation.mutateAsync({ storeId, productId: editingProduct.id, payload })
+        await updateMutation.mutateAsync({ storeId, productId: editingProduct.id, payload: payload as UpdateProductDTO })
       } else {
-        await createMutation.mutateAsync({ storeId, payload })
+        const result = await createMutation.mutateAsync({ storeId, payload: payload as CreateProductDTO })
+        currentProductId = result.id
       }
+      
+      // Upload new images
+      if (newImages.length > 0 && currentProductId) {
+        const formData = new FormData()
+        newImages.forEach(file => formData.append('images', file))
+        await uploadImageMutation.mutateAsync({ storeId, productId: currentProductId, formData })
+      }
+      
+      // Delete removed images
+      if (removedImageIds.length > 0 && currentProductId) {
+        for (const imageId of removedImageIds) {
+          await deleteImageMutation.mutateAsync({ storeId, productId: currentProductId, imageId })
+        }
+      }
+      
       setIsModalOpen(false)
     } catch (error) {
       console.error('Failed to save product', error)
@@ -162,7 +182,7 @@ export default function DashboardProductsPage() {
         onClose={() => setIsModalOpen(false)}
         onSubmit={handleSubmit}
         initialData={editingProduct}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending || deleteImageMutation.isPending}
       />
     </div>
   )

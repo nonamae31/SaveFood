@@ -6,13 +6,15 @@ import { useCategories } from '@/api/category.api'
 interface ProductModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (payload: any) => void
+  onSubmit: (payload: any, newImages: File[], removedImageIds: string[]) => void
   initialData?: ProductResponseDTO | null
   isLoading?: boolean
 }
 
 export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading }: ProductModalProps) {
   const { data: categories } = useCategories()
+  const [newImages, setNewImages] = useState<File[]>([])
+  const [removedImageIds, setRemovedImageIds] = useState<string[]>([])
 
   const [formData, setFormData] = useState<CreateProductDTO | UpdateProductDTO>({
     categoryId: 'ca700000-0000-0000-0000-000000000001', // Default category ID
@@ -24,6 +26,10 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
   })
 
   useEffect(() => {
+    // Luôn reset ảnh khi modal mở hoặc chuyển sang sản phẩm khác
+    setNewImages([])
+    setRemovedImageIds([])
+
     if (initialData) {
       setFormData({
         categoryId: initialData.categoryId,
@@ -48,7 +54,13 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSubmit(formData)
+    onSubmit(formData, newImages, removedImageIds)
+  }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setNewImages(prev => [...prev, ...Array.from(e.target.files!)])
+    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -164,6 +176,65 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
                 </label>
               </div>
             )}
+
+          {/* Section: Hình ảnh */}
+          <div className="border-t border-gray-200 pt-6 mb-6 mt-6">
+            <h3 className="font-bold text-gray-900 mb-4">Hình ảnh sản phẩm</h3>
+
+            {/* 1. Ảnh đang có (khi edit) */}
+            {initialData?.images && initialData.images.filter(img => !removedImageIds.includes(img.id)).length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh hiện tại của sản phẩm</label>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {initialData.images.filter(img => !removedImageIds.includes(img.id)).map(img => (
+                    <div key={img.id} className="relative min-w-[80px] w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                      <img 
+                        src={img.imageUrl} 
+                        alt="Product" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=No+Image' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setRemovedImageIds(prev => [...prev, img.id])}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Upload ảnh mới */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tải lên ảnh mới</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+              />
+              {newImages.length > 0 && (
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                  {newImages.map((file, idx) => (
+                    <div key={`new-${idx}`} className="relative min-w-[80px] w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                      <img src={URL.createObjectURL(file)} alt="New upload" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setNewImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
           </div>
           
           <div className="mt-8 flex gap-3 pt-4 border-t border-gray-100 sticky bottom-0 bg-white">

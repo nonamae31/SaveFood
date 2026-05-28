@@ -54,21 +54,6 @@ public class ProductService : IProductService
             ProductImages = new List<ProductImage>()
         };
 
-        if (dto.Images != null && dto.Images.Any())
-        {
-            var uploadResults = await _cloudinaryService.UploadImagesAsync(dto.Images);
-            foreach (var result in uploadResults)
-            {
-                product.ProductImages.Add(new ProductImage
-                {
-                    Id = Guid.NewGuid(),
-                    ImageUrl = result.SecureUrl,
-                    CloudinaryPublicId = result.PublicId,
-                    ImageFlags = 0
-                });
-            }
-        }
-
         await _repo.AddAsync(product, ct);
         await _repo.SaveChangesAsync(ct);
 
@@ -90,34 +75,6 @@ public class ProductService : IProductService
         product.IsHidden = dto.IsHidden;
         product.IsSurpriseBag = dto.IsSurpriseBag;
 
-        if (dto.ImageIdsToRemove != null && dto.ImageIdsToRemove.Any())
-        {
-            var imagesToRemove = product.ProductImages.Where(i => dto.ImageIdsToRemove.Contains(i.Id)).ToList();
-            foreach (var img in imagesToRemove)
-            {
-                if (!string.IsNullOrEmpty(img.CloudinaryPublicId))
-                {
-                    await _cloudinaryService.DeleteImageAsync(img.CloudinaryPublicId);
-                }
-                product.ProductImages.Remove(img);
-            }
-        }
-
-        if (dto.NewImages != null && dto.NewImages.Any())
-        {
-            var uploadResults = await _cloudinaryService.UploadImagesAsync(dto.NewImages);
-            foreach (var result in uploadResults)
-            {
-                product.ProductImages.Add(new ProductImage
-                {
-                    Id = Guid.NewGuid(),
-                    ImageUrl = result.SecureUrl,
-                    CloudinaryPublicId = result.PublicId,
-                    ImageFlags = 0
-                });
-            }
-        }
-
         _repo.Update(product);
         await _repo.SaveChangesAsync(ct);
 
@@ -134,6 +91,54 @@ public class ProductService : IProductService
 
         _repo.Delete(product);
         await _repo.SaveChangesAsync(ct);
+    }
+
+    public async Task<ProductResponseDTO> UploadProductImagesAsync(Guid storeId, Guid productId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken ct = default)
+    {
+        var product = await _repo.GetByIdAsync(productId, ct);
+        if (product == null || product.StoreId != storeId)
+        {
+            throw new Exception("Product not found or access denied");
+        }
+
+        if (files != null && files.Any())
+        {
+            var uploadResults = await _cloudinaryService.UploadImagesAsync(files);
+            foreach (var result in uploadResults)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    ImageUrl = result.SecureUrl,
+                    CloudinaryPublicId = result.PublicId,
+                    ImageFlags = 0
+                });
+            }
+            await _repo.SaveChangesAsync(ct);
+        }
+        
+        return MapToDTO(product);
+    }
+
+    public async Task<ProductResponseDTO> DeleteProductImageAsync(Guid storeId, Guid productId, Guid imageId, CancellationToken ct = default)
+    {
+        var product = await _repo.GetByIdAsync(productId, ct);
+        if (product == null || product.StoreId != storeId)
+        {
+            throw new Exception("Product not found or access denied");
+        }
+
+        var image = product.ProductImages.FirstOrDefault(i => i.Id == imageId);
+        if (image != null)
+        {
+            if (!string.IsNullOrEmpty(image.CloudinaryPublicId))
+            {
+                await _cloudinaryService.DeleteImageAsync(image.CloudinaryPublicId);
+            }
+            _repo.RemoveImage(image);
+            await _repo.SaveChangesAsync(ct);
+        }
+
+        return MapToDTO(product);
     }
 
     private static ProductResponseDTO MapToDTO(Product product)

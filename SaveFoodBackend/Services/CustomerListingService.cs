@@ -55,7 +55,10 @@ public class CustomerListingService : ICustomerListingService
         // Lấy các tin đăng thuộc danh mục yêu thích
         var recommendedListings = await _ctx.ClearanceListings
             .Include(l => l.Product)
-            .ThenInclude(p => p.Store)
+                .ThenInclude(p => p.Store)
+            .Include(l => l.Product)
+                .ThenInclude(p => p.ProductImages)
+            .Include(l => l.ListingImages)
             .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow) // Status 1 = Published
             .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
             .OrderBy(l => l.ExpiryDate)
@@ -80,7 +83,11 @@ public class CustomerListingService : ICustomerListingService
             SalePrice = l.SalePrice,
             QuantityAvailable = l.QuantityAvailable,
             ExpiryDate = l.ExpiryDate,
-            IsSurpriseBag = (l.Product.ProductFlags & 4) == 4
+            IsSurpriseBag = (l.Product.ProductFlags & 4) == 4,
+            ImageUrl = l.ListingImages?.FirstOrDefault()?.ImageUrl ?? l.Product.ProductImages?.FirstOrDefault()?.ImageUrl,
+            Images = (l.ListingImages != null && l.ListingImages.Any())
+                     ? l.ListingImages.Select(i => i.ImageUrl).ToList()
+                     : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>()
         };
     }
 }

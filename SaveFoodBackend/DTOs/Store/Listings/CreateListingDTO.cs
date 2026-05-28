@@ -25,6 +25,8 @@ public class CreateListingDTO
     public DateTime ExpiryDate { get; set; }
 
     public List<DiscountRuleDTO> DiscountRules { get; set; } = new List<DiscountRuleDTO>();
+
+    public List<Guid>? ReusedProductImageIds { get; set; }
 }
 
 public class DiscountRuleDTO

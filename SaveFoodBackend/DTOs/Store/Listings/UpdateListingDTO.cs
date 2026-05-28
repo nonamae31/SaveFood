@@ -24,4 +24,6 @@ public class UpdateListingDTO
     public byte Status { get; set; }
 
     public List<DiscountRuleDTO> DiscountRules { get; set; } = new List<DiscountRuleDTO>();
+
+    public List<Guid>? ReusedProductImageIds { get; set; }
 }

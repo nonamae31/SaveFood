@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGetWishlist, useRemoveWishlistItem } from '@/hooks/useWishlist';
 import { Button } from '@/components/ui/Button';
-import { HeartCrack, Store, Tag } from 'lucide-react';
+import { HeartCrack, Store } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
 export function WishlistPage() {

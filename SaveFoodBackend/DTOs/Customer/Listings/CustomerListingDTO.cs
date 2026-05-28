@@ -15,6 +15,8 @@ public class CustomerListingDTO
     public int QuantityAvailable { get; set; }
     public DateTime ExpiryDate { get; set; }
     public bool IsSurpriseBag { get; set; }
+    public string? ImageUrl { get; set; }
+    public List<string> Images { get; set; } = new();
 }
 
 public class CustomerListingFilterDTO

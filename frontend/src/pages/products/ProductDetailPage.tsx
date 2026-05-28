@@ -7,10 +7,11 @@
 // 2. Nếu không có cache → fetch toàn bộ list và tìm theo id
 // 3. Nếu vẫn không tìm thấy → hiển thị Not Found
 
+import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronRight, Store, ShoppingCart, ShoppingBag,
+  ChevronRight, ChevronLeft, Store, ShoppingCart, ShoppingBag,
   Package, Hash, AlertTriangle, Leaf,
 } from 'lucide-react'
 import { Navbar } from '@/components/layout/Navbar'
@@ -27,6 +28,7 @@ import type { CustomerListingDTO } from '@/types/listing.types'
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
+  const [currentImageIndex, setCurrentImageIndex] = useState(0)
 
   // ── Bước 1: Thử tìm trong cache React Query ──
   // Duyệt tất cả các query có key bắt đầu với ['listings', 'list']
@@ -137,36 +139,92 @@ export function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
             {/* ── Ảnh sản phẩm ── */}
-            <div className="relative rounded-[--radius-card] overflow-hidden
-                            bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100]
-                            flex items-center justify-center min-h-64 lg:min-h-80">
-              {listing!.isSurpriseBag ? (
-                <div className="flex flex-col items-center gap-3 text-[--color-brand-600] py-12">
-                  <ShoppingBag size={80} strokeWidth={1} />
-                  <p className="text-[--text-heading-sm] font-bold">Túi Bất Ngờ</p>
-                  <p className="text-[--text-body-sm] text-[--color-ink-secondary] text-center max-w-xs px-4">
-                    Nội dung sẽ được tiết lộ khi bạn nhận hàng!
-                  </p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center gap-3 text-[--color-brand-500] py-12">
-                  <Package size={80} strokeWidth={1} />
-                  <p className="text-[--text-body-sm] text-[--color-ink-tertiary]">Hình ảnh sản phẩm</p>
-                </div>
-              )}
+            <div className="flex flex-col gap-3">
+              <div className="relative rounded-[--radius-card] overflow-hidden
+                              bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100]
+                              flex items-center justify-center min-h-64 lg:min-h-80 group">
+                {listing!.images && listing!.images.length > 0 ? (
+                  <>
+                    <img 
+                      src={listing!.images[currentImageIndex]} 
+                      alt={listing!.title} 
+                      className="w-full h-full object-cover" 
+                    />
+                    {listing!.images.length > 1 && (
+                      <>
+                        <button 
+                          onClick={() => setCurrentImageIndex(prev => (prev === 0 ? listing!.images!.length - 1 : prev - 1))}
+                          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        <button 
+                          onClick={() => setCurrentImageIndex(prev => (prev === listing!.images!.length - 1 ? 0 : prev + 1))}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/80 hover:bg-white text-gray-800 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                          {listing!.images.map((_, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setCurrentImageIndex(idx)}
+                              className={`w-2 h-2 rounded-full transition-all ${
+                                idx === currentImageIndex ? 'bg-white w-4' : 'bg-white/50 hover:bg-white/80'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : listing!.imageUrl ? (
+                  <img src={listing!.imageUrl} alt={listing!.title} className="w-full h-full object-cover" />
+                ) : listing!.isSurpriseBag ? (
+                  <div className="flex flex-col items-center gap-3 text-[--color-brand-600] py-12">
+                    <ShoppingBag size={80} strokeWidth={1} />
+                    <p className="text-[--text-heading-sm] font-bold">Túi Bất Ngờ</p>
+                    <p className="text-[--text-body-sm] text-[--color-ink-secondary] text-center max-w-xs px-4">
+                      Nội dung sẽ được tiết lộ khi bạn nhận hàng!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-3 text-[--color-brand-500] py-12">
+                    <Package size={80} strokeWidth={1} />
+                    <p className="text-[--text-body-sm] text-[--color-ink-tertiary]">Hình ảnh sản phẩm</p>
+                  </div>
+                )}
 
-              {/* Discount badge */}
-              {discount > 0 && (
-                <div className="absolute top-4 left-4">
-                  <DiscountTag percent={discount} size="lg" />
-                </div>
-              )}
+                {/* Discount badge */}
+                {discount > 0 && (
+                  <div className="absolute top-4 left-4">
+                    <DiscountTag percent={discount} size="lg" />
+                  </div>
+                )}
 
-              {isSoldOut && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                  <span className="text-[--text-heading-sm] font-bold text-[--color-ink-tertiary]">
-                    Đã hết hàng
-                  </span>
+                {isSoldOut && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <span className="text-[--text-heading-sm] font-bold text-[--color-ink-tertiary]">
+                      Đã hết hàng
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Thumbnails */}
+              {listing!.images && listing!.images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1 hide-scrollbar">
+                  {listing!.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`relative flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                        idx === currentImageIndex ? 'border-[--color-brand-600]' : 'border-transparent hover:border-gray-300'
+                      }`}
+                    >
+                      <img src={img} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
                 </div>
               )}
             </div>

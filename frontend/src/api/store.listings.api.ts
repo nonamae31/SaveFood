@@ -32,3 +32,20 @@ export function deleteStoreListing(storeId: string, listingId: string): Promise<
     method: 'DELETE',
   })
 }
+
+export function uploadStoreListingImages(storeId: string, listingId: string, formData: FormData): Promise<ListingResponseDTO> {
+  return apiClient<ListingResponseDTO>(`/stores/${storeId}/listings/${listingId}/images`, {
+    method: 'POST',
+    body: formData,
+    // Do NOT set Content-Type header to let browser set it with boundary
+    headers: {
+      'Accept': 'application/json'
+    }
+  })
+}
+
+export function deleteStoreListingImage(storeId: string, listingId: string, imageId: string): Promise<ListingResponseDTO> {
+  return apiClient<ListingResponseDTO>(`/stores/${storeId}/listings/${listingId}/images/${imageId}`, {
+    method: 'DELETE',
+  })
+}

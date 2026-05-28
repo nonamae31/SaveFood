@@ -68,6 +68,25 @@ public class ListingService : IListingService
         else if (listing.QuantityAvailable <= 0)
             listing.Status = (byte)ListingStatus.SoldOut;
 
+        // Tái sử dụng ảnh từ Product
+        if (dto.ReusedProductImageIds != null && dto.ReusedProductImageIds.Any())
+        {
+            foreach (var imgId in dto.ReusedProductImageIds)
+            {
+                var productImg = product.ProductImages?.FirstOrDefault(i => i.Id == imgId);
+                if (productImg != null)
+                {
+                    listing.ListingImages.Add(new ListingImage
+                    {
+                        ListingId = listing.Id,
+                        ImageUrl = productImg.ImageUrl,
+                        CloudinaryPublicId = null,
+                        ImageFlags = 0
+                    });
+                }
+            }
+        }
+
         foreach (var ruleDto in dto.DiscountRules)
         {
             var rule = new ListingDiscountRule
@@ -145,6 +164,29 @@ public class ListingService : IListingService
             });
         }
 
+        // Tái sử dụng ảnh từ Product khi Update
+        if (dto.ReusedProductImageIds != null && dto.ReusedProductImageIds.Any())
+        {
+            var product = await _productRepo.GetByIdAsync(listing.ProductId, ct);
+            if (product != null)
+            {
+                foreach (var imgId in dto.ReusedProductImageIds)
+                {
+                    var productImg = product.ProductImages?.FirstOrDefault(i => i.Id == imgId);
+                    if (productImg != null)
+                    {
+                        listing.ListingImages.Add(new ListingImage
+                        {
+                            ListingId = listing.Id,
+                            ImageUrl = productImg.ImageUrl,
+                            CloudinaryPublicId = null,
+                            ImageFlags = 0
+                        });
+                    }
+                }
+            }
+        }
+
         await _listingRepo.SaveChangesAsync(ct);
 
         // Fetch again to get updated rules correctly mapped
@@ -179,7 +221,6 @@ public class ListingService : IListingService
             {
                 listing.ListingImages.Add(new ListingImage
                 {
-                    Id = Guid.NewGuid(),
                     ListingId = listing.Id,
                     ImageUrl = result.SecureUrl,
                     CloudinaryPublicId = result.PublicId,
@@ -187,7 +228,16 @@ public class ListingService : IListingService
                 });
             }
 
-            await _listingRepo.SaveChangesAsync(ct);
+            try
+            {
+                await _listingRepo.SaveChangesAsync(ct);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                var entry = ex.Entries.FirstOrDefault();
+                var entityName = entry?.Metadata.Name ?? "Unknown";
+                throw new Exception($"DbUpdateConcurrencyException during UploadListingImagesAsync on entity {entityName}. State: {entry?.State}");
+            }
         }
 
         return MapToDTO(listing);
@@ -212,7 +262,7 @@ public class ListingService : IListingService
             await _cloudinaryService.DeleteImageAsync(image.CloudinaryPublicId);
         }
 
-        listing.ListingImages.Remove(image);
+        _listingRepo.RemoveImage(image);
         await _listingRepo.SaveChangesAsync(ct);
 
         return MapToDTO(listing);

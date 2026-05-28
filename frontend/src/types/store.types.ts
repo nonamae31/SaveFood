@@ -81,6 +81,7 @@ export interface ProductResponseDTO {
   isHidden: boolean
   isSurpriseBag: boolean
   createdAt: string
+  images: { id: string; imageUrl: string }[]
 }
 
 export interface CreateProductDTO {
@@ -130,6 +131,7 @@ export interface ListingResponseDTO {
   status: number // 0 = Draft, 1 = Published, 2 = SoldOut, 3 = Expired
   createdAt: string
   discountRules: DiscountRuleResponseDTO[]
+  images: { id: string; imageUrl: string }[]
 }
 
 export interface CreateListingDTO {
@@ -139,6 +141,7 @@ export interface CreateListingDTO {
   quantityAvailable: number
   expiryDate: string
   discountRules: DiscountRuleDTO[]
+  reusedProductImageIds?: string[]
 }
 
 export interface UpdateListingDTO {
@@ -148,4 +151,5 @@ export interface UpdateListingDTO {
   expiryDate: string
   status: number
   discountRules: DiscountRuleDTO[]
+  reusedProductImageIds?: string[]
 }

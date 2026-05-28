@@ -20,8 +20,5 @@ public class UpdateProductDTO
 
     public bool IsHidden { get; set; } = false;
 
-    public System.Collections.Generic.List<Microsoft.AspNetCore.Http.IFormFile>? NewImages { get; set; }
-
-    public System.Collections.Generic.List<System.Guid>? ImageIdsToRemove { get; set; }
     public bool IsSurpriseBag { get; set; } = false;
 }

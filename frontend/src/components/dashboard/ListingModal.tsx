@@ -5,7 +5,7 @@ import type { CreateListingDTO, UpdateListingDTO, ListingResponseDTO, DiscountRu
 interface ListingModalProps {
   isOpen: boolean
   onClose: () => void
-  onSubmit: (payload: any) => void
+  onSubmit: (payload: CreateListingDTO | UpdateListingDTO, newImages: File[], deletedImageIds: string[]) => void
   initialData?: ListingResponseDTO | null
   products: ProductResponseDTO[]
   isLoading?: boolean
@@ -35,6 +35,10 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
     ...(initialData && { status: initialData.status })
   })
 
+  const [reusedProductImageIds, setReusedProductImageIds] = useState<string[]>([])
+  const [newImages, setNewImages] = useState<File[]>([])
+  const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
+
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -62,6 +66,9 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
         discountRules: [],
       })
     }
+    setReusedProductImageIds([])
+    setNewImages([])
+    setDeletedImageIds([])
   }, [initialData, isOpen, products])
 
   if (!isOpen) return null
@@ -70,8 +77,12 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
     e.preventDefault()
     // formData.expiryDate is "YYYY-MM-DDTHH:mm" in LOCAL time (from datetime-local input)
     // new Date() treats strings without timezone as LOCAL time, so .toISOString() gives correct UTC
-    const payload = { ...formData, expiryDate: new Date(formData.expiryDate).toISOString() }
-    onSubmit(payload)
+    const payload = { 
+      ...formData, 
+      expiryDate: new Date(formData.expiryDate).toISOString(),
+      reusedProductImageIds 
+    }
+    onSubmit(payload, newImages, deletedImageIds)
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -136,6 +147,16 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
       return { ...prev, discountRules: newRules }
     })
   }
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setNewImages(prev => [...prev, ...Array.from(e.target.files!)])
+    }
+  }
+
+  const selectedProduct = products.find(p => p.id === (formData as CreateListingDTO).productId)
+  const productImages = selectedProduct?.images || []
+  const existingImages = initialData?.images?.filter(img => !deletedImageIds.includes(img.id)) || []
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -233,6 +254,99 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
                 </select>
               </div>
             )}
+          </div>
+
+          {/* Section: Hình ảnh */}
+          <div className="border-t border-gray-200 pt-6 mb-6">
+            <h3 className="font-bold text-gray-900 mb-4">Hình ảnh thực tế</h3>
+            
+            {/* 1. Tái sử dụng ảnh Product */}
+            {productImages.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh từ sản phẩm gốc (Chọn để sử dụng lại)</label>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {productImages.map(img => {
+                    const isSelected = reusedProductImageIds.includes(img.id)
+                    return (
+                      <div 
+                        key={img.id} 
+                        onClick={() => {
+                          if (isSelected) setReusedProductImageIds(prev => prev.filter(id => id !== img.id))
+                          else setReusedProductImageIds(prev => [...prev, img.id])
+                        }}
+                        className={`relative min-w-[80px] w-20 h-20 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${isSelected ? 'border-green-500' : 'border-transparent'}`}
+                      >
+                        <img 
+                          src={img.imageUrl} 
+                          alt="Product" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=No+Image' }}
+                        />
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
+                            <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white">✓</div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 2. Ảnh đang có (khi edit) */}
+            {existingImages.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Ảnh hiện tại của tin đăng</label>
+                <div className="flex gap-2 overflow-x-auto pb-2">
+                  {existingImages.map(img => (
+                    <div key={img.id} className="relative min-w-[80px] w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                      <img 
+                        src={img.imageUrl} 
+                        alt="Listing" 
+                        className="w-full h-full object-cover" 
+                        onError={(e) => { e.currentTarget.src = 'https://placehold.co/100x100?text=No+Image' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDeletedImageIds(prev => [...prev, img.id])}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Upload ảnh mới */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Tải lên ảnh thực tế mới</label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleImageUpload}
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+              />
+              {newImages.length > 0 && (
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+                  {newImages.map((file, idx) => (
+                    <div key={idx} className="relative min-w-[80px] w-20 h-20 rounded-lg overflow-hidden border border-gray-200">
+                      <img src={URL.createObjectURL(file)} alt="New upload" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setNewImages(prev => prev.filter((_, i) => i !== idx))}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-6">

@@ -13,4 +13,6 @@ public interface IProductService
     Task<ProductResponseDTO> CreateProductAsync(Guid storeId, CreateProductDTO dto, CancellationToken ct = default);
     Task<ProductResponseDTO> UpdateProductAsync(Guid storeId, Guid productId, UpdateProductDTO dto, CancellationToken ct = default);
     Task DeleteProductAsync(Guid storeId, Guid productId, CancellationToken ct = default);
+    Task<ProductResponseDTO> UploadProductImagesAsync(Guid storeId, Guid productId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken ct = default);
+    Task<ProductResponseDTO> DeleteProductImageAsync(Guid storeId, Guid productId, Guid imageId, CancellationToken ct = default);
 }

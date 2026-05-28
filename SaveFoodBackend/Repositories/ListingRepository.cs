@@ -66,7 +66,9 @@ public class ListingRepository : IListingRepository
     {
         var query = _set
             .Include(l => l.Product)
-            .ThenInclude(p => p.Store)
+                .ThenInclude(p => p.Store)
+            .Include(l => l.Product)
+                .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
             .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow);
 
@@ -123,6 +125,11 @@ public class ListingRepository : IListingRepository
     {
         listing.IsDeleted = true;
         _set.Update(listing);
+    }
+
+    public void RemoveImage(ListingImage image)
+    {
+        _ctx.Set<ListingImage>().Remove(image);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)

@@ -16,5 +16,6 @@ public interface IListingRepository
     Task AddAsync(ClearanceListing listing, CancellationToken ct = default);
     void Update(ClearanceListing listing);
     void Delete(ClearanceListing listing);
+    void RemoveImage(ListingImage image);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

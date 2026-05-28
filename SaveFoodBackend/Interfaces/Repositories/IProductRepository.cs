@@ -13,6 +13,7 @@ public interface IProductRepository
     Task AddAsync(Product product, CancellationToken ct = default);
     void Update(Product product);
     void Delete(Product product);
+    void RemoveImage(ProductImage image);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
     Task<bool> ExistsAsync(Guid id, CancellationToken ct = default);
 }

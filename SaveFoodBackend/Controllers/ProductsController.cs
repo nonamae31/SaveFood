@@ -36,7 +36,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateProduct(Guid storeId, [FromForm] CreateProductDTO dto, CancellationToken ct)
+    public async Task<IActionResult> CreateProduct(Guid storeId, [FromBody] CreateProductDTO dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -54,7 +54,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{productId}")]
-    public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromForm] UpdateProductDTO dto, CancellationToken ct)
+    public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromBody] UpdateProductDTO dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -77,6 +77,33 @@ public class ProductsController : ControllerBase
         {
             await _productService.DeleteProductAsync(storeId, productId, ct);
             return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+    [HttpPost("{productId}/images")]
+    public async Task<IActionResult> UploadProductImages(Guid storeId, Guid productId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> images, CancellationToken ct)
+    {
+        try
+        {
+            var product = await _productService.UploadProductImagesAsync(storeId, productId, images, ct);
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{productId}/images/{imageId}")]
+    public async Task<IActionResult> DeleteProductImage(Guid storeId, Guid productId, Guid imageId, CancellationToken ct)
+    {
+        try
+        {
+            var product = await _productService.DeleteProductImageAsync(storeId, productId, imageId, ct);
+            return Ok(product);
         }
         catch (Exception ex)
         {

@@ -30,7 +30,9 @@ export function ListingCard({ listing }: ListingCardProps) {
     >
       {/* ── Ảnh / Placeholder ── */}
       <div className="relative h-44 bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100] flex items-center justify-center overflow-hidden">
-        {listing.isSurpriseBag ? (
+        {listing.imageUrl ? (
+          <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
+        ) : listing.isSurpriseBag ? (
           <div className="flex flex-col items-center gap-2 text-[--color-brand-600]">
             <ShoppingBag size={48} strokeWidth={1.5} />
             <span className="text-[--text-body-sm] font-medium">Túi Bất Ngờ</span>

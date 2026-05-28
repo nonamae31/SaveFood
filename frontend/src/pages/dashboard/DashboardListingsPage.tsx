@@ -1,10 +1,17 @@
 import { useState } from 'react'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
-import { useStoreListings, useCreateStoreListing, useUpdateStoreListing, useDeleteStoreListing } from '@/hooks/useStoreListings'
+import { 
+  useStoreListings, 
+  useCreateStoreListing, 
+  useUpdateStoreListing, 
+  useDeleteStoreListing,
+  useUploadStoreListingImages,
+  useDeleteStoreListingImage
+} from '@/hooks/useStoreListings'
 import { useStoreProducts } from '@/hooks/useStoreProducts'
 import { ListingModal } from '@/components/dashboard/ListingModal'
-import type { ListingResponseDTO } from '@/types/store.types'
+import type { ListingResponseDTO, CreateListingDTO, UpdateListingDTO } from '@/types/store.types'
 
 export default function DashboardListingsPage() {
   const { user } = useAuthContext()
@@ -16,6 +23,8 @@ export default function DashboardListingsPage() {
   const createMutation = useCreateStoreListing()
   const updateMutation = useUpdateStoreListing()
   const deleteMutation = useDeleteStoreListing()
+  const uploadImageMutation = useUploadStoreListingImages()
+  const deleteImageMutation = useDeleteStoreListingImage()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingListing, setEditingListing] = useState<ListingResponseDTO | null>(null)
@@ -45,13 +54,31 @@ export default function DashboardListingsPage() {
     }
   }
 
-  const handleSubmit = async (payload: any) => {
+  const handleSubmit = async (payload: CreateListingDTO | UpdateListingDTO, newImages: File[], deletedImageIds: string[]) => {
     try {
+      let currentListingId = editingListing?.id
+
       if (editingListing) {
-        await updateMutation.mutateAsync({ storeId, listingId: editingListing.id, payload })
+        await updateMutation.mutateAsync({ storeId, listingId: editingListing.id, payload: payload as UpdateListingDTO })
       } else {
-        await createMutation.mutateAsync({ storeId, payload })
+        const result = await createMutation.mutateAsync({ storeId, payload: payload as CreateListingDTO })
+        currentListingId = result.id
       }
+
+      // Delete removed images
+      if (deletedImageIds.length > 0 && currentListingId) {
+        for (const imgId of deletedImageIds) {
+          await deleteImageMutation.mutateAsync({ storeId, listingId: currentListingId, imageId: imgId })
+        }
+      }
+
+      // Upload new images
+      if (newImages.length > 0 && currentListingId) {
+        const formData = new FormData()
+        newImages.forEach(file => formData.append('images', file))
+        await uploadImageMutation.mutateAsync({ storeId, listingId: currentListingId, formData })
+      }
+
       setIsModalOpen(false)
     } catch (error) {
       console.error('Failed to save listing', error)
@@ -182,7 +209,7 @@ export default function DashboardListingsPage() {
         onSubmit={handleSubmit}
         initialData={editingListing}
         products={products || []}
-        isLoading={createMutation.isPending || updateMutation.isPending}
+        isLoading={createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending || deleteImageMutation.isPending}
       />
     </div>
   )

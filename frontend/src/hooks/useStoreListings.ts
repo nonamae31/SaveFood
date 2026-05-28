@@ -4,6 +4,8 @@ import {
   createStoreListing,
   updateStoreListing,
   deleteStoreListing,
+  uploadStoreListingImages,
+  deleteStoreListingImage,
 } from '@/api/store.listings.api'
 import type { CreateListingDTO, UpdateListingDTO } from '@/types/store.types'
 
@@ -44,6 +46,28 @@ export function useDeleteStoreListing() {
   return useMutation({
     mutationFn: ({ storeId, listingId }: { storeId: string; listingId: string }) =>
       deleteStoreListing(storeId, listingId),
+    onSuccess: (_, { storeId }) => {
+      queryClient.invalidateQueries({ queryKey: STORE_LISTINGS_QUERY_KEY(storeId) })
+    },
+  })
+}
+
+export function useUploadStoreListingImages() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ storeId, listingId, formData }: { storeId: string; listingId: string; formData: FormData }) =>
+      uploadStoreListingImages(storeId, listingId, formData),
+    onSuccess: (_, { storeId }) => {
+      queryClient.invalidateQueries({ queryKey: STORE_LISTINGS_QUERY_KEY(storeId) })
+    },
+  })
+}
+
+export function useDeleteStoreListingImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ storeId, listingId, imageId }: { storeId: string; listingId: string; imageId: string }) =>
+      deleteStoreListingImage(storeId, listingId, imageId),
     onSuccess: (_, { storeId }) => {
       queryClient.invalidateQueries({ queryKey: STORE_LISTINGS_QUERY_KEY(storeId) })
     },

@@ -15,6 +15,8 @@ export interface CustomerListingDTO {
   quantityAvailable: number
   expiryDate: string       // ISO 8601
   isSurpriseBag: boolean
+  imageUrl?: string
+  images?: string[]
 }
 
 /** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */

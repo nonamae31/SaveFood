@@ -58,6 +58,11 @@ public class ProductRepository : IProductRepository
         _set.Update(product);
     }
 
+    public void RemoveImage(ProductImage image)
+    {
+        _ctx.Set<ProductImage>().Remove(image);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

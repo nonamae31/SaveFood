@@ -4,6 +4,8 @@ import {
   createStoreProduct,
   updateStoreProduct,
   deleteStoreProduct,
+  uploadStoreProductImages,
+  deleteStoreProductImage
 } from '@/api/store.products.api'
 import type { CreateProductDTO, UpdateProductDTO } from '@/types/store.types'
 
@@ -44,6 +46,28 @@ export function useDeleteStoreProduct() {
   return useMutation({
     mutationFn: ({ storeId, productId }: { storeId: string; productId: string }) =>
       deleteStoreProduct(storeId, productId),
+    onSuccess: (_, { storeId }) => {
+      queryClient.invalidateQueries({ queryKey: STORE_PRODUCTS_QUERY_KEY(storeId) })
+    },
+  })
+}
+
+export function useUploadStoreProductImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ storeId, productId, formData }: { storeId: string; productId: string; formData: FormData }) =>
+      uploadStoreProductImages(storeId, productId, formData),
+    onSuccess: (_, { storeId }) => {
+      queryClient.invalidateQueries({ queryKey: STORE_PRODUCTS_QUERY_KEY(storeId) })
+    },
+  })
+}
+
+export function useDeleteStoreProductImage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ storeId, productId, imageId }: { storeId: string; productId: string; imageId: string }) =>
+      deleteStoreProductImage(storeId, productId, imageId),
     onSuccess: (_, { storeId }) => {
       queryClient.invalidateQueries({ queryKey: STORE_PRODUCTS_QUERY_KEY(storeId) })
     },
