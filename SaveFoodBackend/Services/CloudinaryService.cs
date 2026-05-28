@@ -48,5 +48,48 @@ namespace SaveFoodBackend.Services
 
             return (uploadResult.SecureUrl.ToString(), uploadResult.PublicId);
         }
+
+        public async Task<List<(string SecureUrl, string PublicId)>> UploadImagesAsync(IEnumerable<IFormFile> files)
+        {
+            var results = new System.Collections.Generic.List<(string SecureUrl, string PublicId)>();
+
+            if (files == null) return results;
+
+            foreach (var file in files)
+            {
+                if (file.Length == 0) continue;
+
+                using var stream = file.OpenReadStream();
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(file.FileName, stream)
+                    // No gravity or transformation for product images to preserve ratio
+                };
+
+                var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+                
+                if (uploadResult.Error != null)
+                {
+                    throw new Exception(uploadResult.Error.Message);
+                }
+
+                results.Add((uploadResult.SecureUrl.ToString(), uploadResult.PublicId));
+            }
+
+            return results;
+        }
+
+        public async Task DeleteImageAsync(string publicId)
+        {
+            if (string.IsNullOrEmpty(publicId)) return;
+
+            var deletionParams = new DeletionParams(publicId);
+            var result = await _cloudinary.DestroyAsync(deletionParams);
+
+            if (result.Error != null)
+            {
+                throw new Exception(result.Error.Message);
+            }
+        }
     }
 }

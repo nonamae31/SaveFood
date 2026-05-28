@@ -13,4 +13,5 @@ public class ProductResponseDTO
     public bool IsHidden { get; set; }
     public bool IsSurpriseBag { get; set; }
     public DateTime CreatedAt { get; set; }
+    public System.Collections.Generic.List<ProductImageResponseDTO> Images { get; set; } = new();
 }

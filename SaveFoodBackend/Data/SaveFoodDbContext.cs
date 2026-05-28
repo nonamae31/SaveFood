@@ -151,6 +151,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
 
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingImages)
                 .HasForeignKey(d => d.ListingId)
@@ -245,6 +246,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductImages)
                 .HasForeignKey(d => d.ProductId)

@@ -36,7 +36,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateProduct(Guid storeId, [FromBody] CreateProductDTO dto, CancellationToken ct)
+    public async Task<IActionResult> CreateProduct(Guid storeId, [FromForm] CreateProductDTO dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
@@ -54,7 +54,7 @@ public class ProductsController : ControllerBase
     }
 
     [HttpPut("{productId}")]
-    public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromBody] UpdateProductDTO dto, CancellationToken ct)
+    public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromForm] UpdateProductDTO dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);

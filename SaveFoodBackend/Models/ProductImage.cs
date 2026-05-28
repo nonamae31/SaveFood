@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -10,6 +10,8 @@ public partial class ProductImage
     public Guid ProductId { get; set; }
 
     public string ImageUrl { get; set; } = null!;
+
+    public string? CloudinaryPublicId { get; set; }
 
     public byte ImageFlags { get; set; }
 

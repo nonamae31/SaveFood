@@ -19,4 +19,8 @@ public class UpdateProductDTO
     public decimal OriginalPrice { get; set; }
 
     public bool IsHidden { get; set; } = false;
+
+    public System.Collections.Generic.List<Microsoft.AspNetCore.Http.IFormFile>? NewImages { get; set; }
+
+    public System.Collections.Generic.List<System.Guid>? ImageIdsToRemove { get; set; }
 }

@@ -28,6 +28,7 @@ public class ProductRepository : IProductRepository
         // OR better, we use bitwise operation on ProductFlags in DB.
         // IsDeleted is 1.
         return await _set
+            .Include(p => p.ProductImages)
             .Where(p => (p.ProductFlags & 1) == 0) // Not deleted
             .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
@@ -35,6 +36,7 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetByStoreIdAsync(Guid storeId, CancellationToken ct = default)
     {
         return await _set
+            .Include(p => p.ProductImages)
             .Where(p => p.StoreId == storeId && (p.ProductFlags & 1) == 0)
             .AsNoTracking()
             .ToListAsync(ct);

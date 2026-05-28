@@ -16,6 +16,7 @@ public class ListingResponseDTO
     public DateTime CreatedAt { get; set; }
     
     public List<DiscountRuleResponseDTO> DiscountRules { get; set; } = new List<DiscountRuleResponseDTO>();
+    public List<ListingImageResponseDTO> Images { get; set; } = new List<ListingImageResponseDTO>();
 }
 
 public class DiscountRuleResponseDTO

@@ -15,11 +15,13 @@ public class ListingService : IListingService
 {
     private readonly IListingRepository _listingRepo;
     private readonly IProductRepository _productRepo;
+    private readonly ICloudinaryService _cloudinaryService;
 
-    public ListingService(IListingRepository listingRepo, IProductRepository productRepo)
+    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService)
     {
         _listingRepo = listingRepo;
         _productRepo = productRepo;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<IEnumerable<ListingResponseDTO>> GetListingsByStoreAsync(Guid storeId, CancellationToken ct = default)
@@ -140,6 +142,60 @@ public class ListingService : IListingService
         await _listingRepo.SaveChangesAsync(ct);
     }
 
+    public async Task<ListingResponseDTO> UploadListingImagesAsync(Guid storeId, Guid listingId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken ct = default)
+    {
+        var listing = await _listingRepo.GetByIdWithRulesAsync(listingId, ct);
+        if (listing == null || listing.Product?.StoreId != storeId)
+        {
+            throw new Exception("Listing not found or access denied");
+        }
+
+        if (files != null && files.Any())
+        {
+            var uploadResults = await _cloudinaryService.UploadImagesAsync(files);
+            foreach (var result in uploadResults)
+            {
+                listing.ListingImages.Add(new ListingImage
+                {
+                    Id = Guid.NewGuid(),
+                    ListingId = listing.Id,
+                    ImageUrl = result.SecureUrl,
+                    CloudinaryPublicId = result.PublicId,
+                    ImageFlags = 0
+                });
+            }
+
+            await _listingRepo.SaveChangesAsync(ct);
+        }
+
+        return MapToDTO(listing);
+    }
+
+    public async Task<ListingResponseDTO> DeleteListingImageAsync(Guid storeId, Guid listingId, Guid imageId, CancellationToken ct = default)
+    {
+        var listing = await _listingRepo.GetByIdWithRulesAsync(listingId, ct);
+        if (listing == null || listing.Product?.StoreId != storeId)
+        {
+            throw new Exception("Listing not found or access denied");
+        }
+
+        var image = listing.ListingImages.FirstOrDefault(i => i.Id == imageId);
+        if (image == null)
+        {
+            throw new Exception("Image not found");
+        }
+
+        if (!string.IsNullOrEmpty(image.CloudinaryPublicId))
+        {
+            await _cloudinaryService.DeleteImageAsync(image.CloudinaryPublicId);
+        }
+
+        listing.ListingImages.Remove(image);
+        await _listingRepo.SaveChangesAsync(ct);
+
+        return MapToDTO(listing);
+    }
+
     private static ListingResponseDTO MapToDTO(ClearanceListing listing)
     {
         return new ListingResponseDTO
@@ -164,7 +220,12 @@ public class ListingService : IListingService
                     TriggerValue = r.TriggerValue,
                     TriggerType = r.TriggerType,
                     IsActive = r.IsActive
-                }).ToList()
+                }).ToList(),
+            Images = listing.ListingImages?.Select(img => new ListingImageResponseDTO
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl
+            }).ToList() ?? new List<ListingImageResponseDTO>()
         };
     }
 }

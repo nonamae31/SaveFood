@@ -14,10 +14,12 @@ namespace SaveFoodBackend.Services;
 public class ProductService : IProductService
 {
     private readonly IProductRepository _repo;
+    private readonly ICloudinaryService _cloudinaryService;
 
-    public ProductService(IProductRepository repo)
+    public ProductService(IProductRepository repo, ICloudinaryService cloudinaryService)
     {
         _repo = repo;
+        _cloudinaryService = cloudinaryService;
     }
 
     public async Task<ProductResponseDTO?> GetProductByIdAsync(Guid storeId, Guid productId, CancellationToken ct = default)
@@ -48,8 +50,24 @@ public class ProductService : IProductService
             Description = dto.Description,
             OriginalPrice = dto.OriginalPrice,
             CreatedAt = DateTime.UtcNow,
-            IsSurpriseBag = dto.IsSurpriseBag
+            IsSurpriseBag = dto.IsSurpriseBag,
+            ProductImages = new List<ProductImage>()
         };
+
+        if (dto.Images != null && dto.Images.Any())
+        {
+            var uploadResults = await _cloudinaryService.UploadImagesAsync(dto.Images);
+            foreach (var result in uploadResults)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    Id = Guid.NewGuid(),
+                    ImageUrl = result.SecureUrl,
+                    CloudinaryPublicId = result.PublicId,
+                    ImageFlags = 0
+                });
+            }
+        }
 
         await _repo.AddAsync(product, ct);
         await _repo.SaveChangesAsync(ct);
@@ -70,6 +88,34 @@ public class ProductService : IProductService
         product.Description = dto.Description;
         product.OriginalPrice = dto.OriginalPrice;
         product.IsHidden = dto.IsHidden;
+
+        if (dto.ImageIdsToRemove != null && dto.ImageIdsToRemove.Any())
+        {
+            var imagesToRemove = product.ProductImages.Where(i => dto.ImageIdsToRemove.Contains(i.Id)).ToList();
+            foreach (var img in imagesToRemove)
+            {
+                if (!string.IsNullOrEmpty(img.CloudinaryPublicId))
+                {
+                    await _cloudinaryService.DeleteImageAsync(img.CloudinaryPublicId);
+                }
+                product.ProductImages.Remove(img);
+            }
+        }
+
+        if (dto.NewImages != null && dto.NewImages.Any())
+        {
+            var uploadResults = await _cloudinaryService.UploadImagesAsync(dto.NewImages);
+            foreach (var result in uploadResults)
+            {
+                product.ProductImages.Add(new ProductImage
+                {
+                    Id = Guid.NewGuid(),
+                    ImageUrl = result.SecureUrl,
+                    CloudinaryPublicId = result.PublicId,
+                    ImageFlags = 0
+                });
+            }
+        }
 
         _repo.Update(product);
         await _repo.SaveChangesAsync(ct);
@@ -101,7 +147,12 @@ public class ProductService : IProductService
             OriginalPrice = product.OriginalPrice,
             IsHidden = product.IsHidden,
             IsSurpriseBag = product.IsSurpriseBag,
-            CreatedAt = product.CreatedAt
+            CreatedAt = product.CreatedAt,
+            Images = product.ProductImages?.Select(img => new ProductImageResponseDTO
+            {
+                Id = img.Id,
+                ImageUrl = img.ImageUrl
+            }).ToList() ?? new List<ProductImageResponseDTO>()
         };
     }
 }
