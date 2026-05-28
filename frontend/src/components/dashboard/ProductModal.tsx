@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
 import type { CreateProductDTO, UpdateProductDTO, ProductResponseDTO } from '@/types/store.types'
-import { CATEGORY_LABELS } from '@/lib/constants'
+import { useCategories } from '@/api/category.api'
 
 interface ProductModalProps {
   isOpen: boolean
@@ -12,6 +12,8 @@ interface ProductModalProps {
 }
 
 export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading }: ProductModalProps) {
+  const { data: categories } = useCategories()
+
   const [formData, setFormData] = useState<CreateProductDTO | UpdateProductDTO>({
     categoryId: 'ca700000-0000-0000-0000-000000000001', // Default category ID
     name: '',
@@ -33,14 +35,14 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
       } as UpdateProductDTO)
     } else {
       setFormData({
-        categoryId: 'ca700000-0000-0000-0000-000000000001',
+        categoryId: categories?.[0]?.id || 'ca700000-0000-0000-0000-000000000001',
         name: '',
         description: '',
         originalPrice: 0,
         isSurpriseBag: false,
       })
     }
-  }, [initialData, isOpen])
+  }, [initialData, isOpen, categories])
 
   if (!isOpen) return null
 
@@ -96,8 +98,15 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
               >
-                <option value="ca700000-0000-0000-0000-000000000001">Bánh mì & Bánh ngọt (Mặc định)</option>
-                {/* We would fetch these from an API normally */}
+                {categories ? (
+                  categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))
+                ) : (
+                  <option value="ca700000-0000-0000-0000-000000000001">Bánh mì & Bánh ngọt (Mặc định)</option>
+                )}
               </select>
             </div>
 
@@ -133,8 +142,7 @@ export function ProductModal({ isOpen, onClose, onSubmit, initialData, isLoading
                 name="isSurpriseBag"
                 checked={!!(formData as any).isSurpriseBag}
                 onChange={handleChange}
-                disabled={!!initialData}
-                className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500 disabled:opacity-50"
+                className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
               />
               <label htmlFor="isSurpriseBag" className="text-sm font-medium text-green-900">
                 Đây là Túi Bất Ngờ (Surprise Bag)?

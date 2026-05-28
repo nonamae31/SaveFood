@@ -101,6 +101,11 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE Users ADD Username nvarchar(50) NULL;
             ALTER TABLE Users ADD NormalizedEmail nvarchar(255) NULL;
         END
+        
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'IsDeleted')
+        BEGIN
+            ALTER TABLE Categories ADD IsDeleted bit NOT NULL DEFAULT 0;
+        END
     ";
     db.Database.ExecuteSqlRaw(sql);
     

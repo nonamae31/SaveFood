@@ -11,14 +11,26 @@ interface ListingModalProps {
   isLoading?: boolean
 }
 
+// Helper: format a Date object to "YYYY-MM-DDTHH:mm" in LOCAL time (for datetime-local input)
+const toLocalInputFormat = (d: Date): string => {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// Helper: parse a UTC date string from backend (no 'Z') and convert to local input format
+const utcStringToLocalInput = (utcStr: string): string => {
+  // Backend returns without 'Z', so we append it to force UTC interpretation
+  const normalized = utcStr.endsWith('Z') || utcStr.includes('+') ? utcStr : utcStr + 'Z'
+  return toLocalInputFormat(new Date(normalized))
+}
+
 export function ListingModal({ isOpen, onClose, onSubmit, initialData, products, isLoading }: ListingModalProps) {
   const [formData, setFormData] = useState<CreateListingDTO | UpdateListingDTO>({
     productId: '',
     title: '',
     salePrice: 0,
     quantityAvailable: 1,
-    expiryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16), // Tomorrow
-    isAutoRenew: false,
+    expiryDate: toLocalInputFormat(new Date(Date.now() + 86400000)), // Tomorrow in local time
     discountRules: [],
     ...(initialData && { status: initialData.status })
   })
@@ -30,9 +42,8 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
         title: initialData.title,
         salePrice: initialData.salePrice,
         quantityAvailable: initialData.quantityAvailable,
-        expiryDate: new Date(initialData.expiryDate).toISOString().slice(0, 16),
+        expiryDate: utcStringToLocalInput(initialData.expiryDate),
         status: initialData.status,
-        isAutoRenew: initialData.isAutoRenew,
         discountRules: initialData.discountRules.map(r => ({
           discountPercent: r.discountPercent,
           targetPrice: r.targetPrice,
@@ -47,8 +58,7 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
         title: '',
         salePrice: 0,
         quantityAvailable: 1,
-        expiryDate: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
-        isAutoRenew: false,
+        expiryDate: toLocalInputFormat(new Date(Date.now() + 86400000)),
         discountRules: [],
       })
     }
@@ -58,7 +68,8 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Parse expiry date back to full ISO string before submitting
+    // formData.expiryDate is "YYYY-MM-DDTHH:mm" in LOCAL time (from datetime-local input)
+    // new Date() treats strings without timezone as LOCAL time, so .toISOString() gives correct UTC
     const payload = { ...formData, expiryDate: new Date(formData.expiryDate).toISOString() }
     onSubmit(payload)
   }
@@ -114,6 +125,18 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
     })
   }
 
+  const handleRuleDiscountTypeChange = (index: number, type: 'percent' | 'price') => {
+    setFormData(prev => {
+      const newRules = [...prev.discountRules]
+      if (type === 'percent') {
+        newRules[index] = { ...newRules[index], targetPrice: undefined, discountPercent: newRules[index].discountPercent || 50 }
+      } else {
+        newRules[index] = { ...newRules[index], discountPercent: undefined, targetPrice: newRules[index].targetPrice || 0 }
+      }
+      return { ...prev, discountRules: newRules }
+    })
+  }
+
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-xl flex flex-col max-h-[90vh]">
@@ -126,7 +149,7 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
           </button>
         </div>
         
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
+        <form id="listing-form" onSubmit={handleSubmit} className="p-6 overflow-y-auto flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Sản phẩm gốc *</label>
@@ -176,7 +199,7 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
                 required
                 type="number"
                 name="quantityAvailable"
-                min="1"
+                min="0"
                 value={formData.quantityAvailable}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
@@ -205,29 +228,11 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
                   className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-green-500 outline-none"
                 >
                   <option value={0}>Nháp (Draft)</option>
-                  <option value={1}>Đang bán (Active)</option>
-                  <option value={2}>Hết hạn (Expired)</option>
-                  <option value={3}>Đã bán hết (SoldOut)</option>
-                  <option value={4}>Đã hủy (Cancelled)</option>
+                  <option value={1}>Đang bán (Published)</option>
+                  <option value={2}>Đã bán hết (SoldOut)</option>
                 </select>
               </div>
             )}
-            
-            <div className="md:col-span-2 mt-2">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                <input
-                  type="checkbox"
-                  id="isAutoRenew"
-                  name="isAutoRenew"
-                  checked={formData.isAutoRenew}
-                  onChange={handleChange}
-                  className="w-5 h-5 rounded border-gray-300 text-green-600 focus:ring-green-500"
-                />
-                <label htmlFor="isAutoRenew" className="text-sm font-medium text-gray-900">
-                  Tự động làm mới khi hết hạn (Auto Renew)
-                </label>
-              </div>
-            </div>
           </div>
 
           <div className="border-t border-gray-200 pt-6">
@@ -270,29 +275,62 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
                           className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white"
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Phần trăm giảm (%)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={rule.discountPercent || ''}
-                          onChange={(e) => handleRuleChange(idx, 'discountPercent', e.target.value)}
-                          placeholder="Hoặc nhập TargetPrice"
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white"
-                        />
+                      {/* Discount type toggle: mutually exclusive */}
+                      <div className="col-span-2">
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Kiểu giảm giá</label>
+                        <div className="flex gap-3">
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`discountType-${idx}`}
+                              checked={rule.discountPercent != null}
+                              onChange={() => handleRuleDiscountTypeChange(idx, 'percent')}
+                              className="text-green-600"
+                            />
+                            <span className="text-sm text-gray-700">% giảm giá</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="radio"
+                              name={`discountType-${idx}`}
+                              checked={rule.targetPrice != null}
+                              onChange={() => handleRuleDiscountTypeChange(idx, 'price')}
+                              className="text-green-600"
+                            />
+                            <span className="text-sm text-gray-700">Giá đích (VNĐ)</span>
+                          </label>
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Giá đích (VNĐ)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={rule.targetPrice || ''}
-                          onChange={(e) => handleRuleChange(idx, 'targetPrice', e.target.value)}
-                          placeholder="Thay cho % giảm"
-                          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg outline-none bg-white"
-                        />
-                      </div>
+
+                      {/* Show only the relevant input */}
+                      {rule.discountPercent != null ? (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Phần trăm giảm (%)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="100"
+                            value={rule.discountPercent || ''}
+                            onChange={(e) => handleRuleChange(idx, 'discountPercent', e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-green-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-green-400"
+                            placeholder="Ví dụ: 50"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">Giảm {rule.discountPercent || 0}% so với giá bán hiện tại</p>
+                        </div>
+                      ) : (
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Giá đích (VNĐ)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={rule.targetPrice ?? ''}
+                            onChange={(e) => handleRuleChange(idx, 'targetPrice', e.target.value)}
+                            className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg outline-none bg-white focus:ring-2 focus:ring-blue-400"
+                            placeholder="Ví dụ: 50000"
+                          />
+                          <p className="text-xs text-gray-400 mt-1">Khi kích hoạt, giá sẽ xuống còn {(rule.targetPrice || 0).toLocaleString('vi-VN')}đ</p>
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"
@@ -318,7 +356,8 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
           </button>
           <button
             type="submit"
-            disabled={isLoading || products.length === 0}
+            form="listing-form"
+            disabled={isLoading || (!initialData && products.length === 0)}
             className="flex-1 px-4 py-2 text-white bg-green-600 hover:bg-green-700 rounded-xl font-medium transition-colors disabled:opacity-50"
           >
             {isLoading ? 'Đang lưu...' : 'Lưu lại'}

@@ -12,7 +12,6 @@ public class ListingResponseDTO
     public int QuantityAvailable { get; set; }
     public DateTime ExpiryDate { get; set; }
     public byte Status { get; set; }
-    public bool IsAutoRenew { get; set; }
     public DateTime CreatedAt { get; set; }
     
     public List<DiscountRuleResponseDTO> DiscountRules { get; set; } = new List<DiscountRuleResponseDTO>();

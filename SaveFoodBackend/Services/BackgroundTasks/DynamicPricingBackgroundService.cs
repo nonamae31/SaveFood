@@ -121,5 +121,42 @@ public class DynamicPricingBackgroundService : BackgroundService
             await ctx.SaveChangesAsync(ct);
             _logger.LogInformation("Updated pricing for {count} listings.", updatedCount);
         }
+
+        // ─── Tự động chuyển sang Đã Bán Hết khi số lượng về 0 ─────────────────
+        var soldOutListings = await ctx.ClearanceListings
+            .Where(l => (l.ListingFlags & 1) == 0                         // Not deleted
+                     && l.Status == (byte)ListingStatus.Published          // Đang bán
+                     && l.QuantityAvailable <= 0                           // Hết hàng
+                     && l.ExpiryDate > currentTime)                        // Chưa hết hạn (nếu hết hạn thì Expired ưu tiên hơn)
+            .ToListAsync(ct);
+
+        if (soldOutListings.Count > 0)
+        {
+            foreach (var listing in soldOutListings)
+            {
+                listing.Status = (byte)ListingStatus.SoldOut;
+            }
+            await ctx.SaveChangesAsync(ct);
+            _logger.LogInformation("Auto sold-out {count} listings.", soldOutListings.Count);
+        }
+
+        // ─── Tự động chuyển sang Hết Hạn khi quá hạn sử dụng ─────────────────
+        // Expired ưu tiên cao nhất: kể cả SoldOut cũng được Expired nếu đã quá ngày
+        var expiredListings = await ctx.ClearanceListings
+            .Where(l => (l.ListingFlags & 1) == 0                         // Not deleted
+                     && (l.Status == (byte)ListingStatus.Published         // Đang bán
+                      || l.Status == (byte)ListingStatus.SoldOut)          // Hoặc đã bán hết
+                     && l.ExpiryDate <= currentTime)                       // Đã quá hạn
+            .ToListAsync(ct);
+
+        if (expiredListings.Count > 0)
+        {
+            foreach (var listing in expiredListings)
+            {
+                listing.Status = (byte)ListingStatus.Expired;
+            }
+            await ctx.SaveChangesAsync(ct);
+            _logger.LogInformation("Auto-expired {count} listings.", expiredListings.Count);
+        }
     }
 }

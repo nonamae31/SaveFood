@@ -22,8 +22,6 @@ public class UpdateListingDTO
     public DateTime ExpiryDate { get; set; }
 
     public byte Status { get; set; }
-    
-    public bool IsAutoRenew { get; set; } = false;
 
     public List<DiscountRuleDTO> DiscountRules { get; set; } = new List<DiscountRuleDTO>();
 }

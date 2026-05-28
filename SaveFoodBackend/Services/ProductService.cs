@@ -70,6 +70,7 @@ public class ProductService : IProductService
         product.Description = dto.Description;
         product.OriginalPrice = dto.OriginalPrice;
         product.IsHidden = dto.IsHidden;
+        product.IsSurpriseBag = dto.IsSurpriseBag;
 
         _repo.Update(product);
         await _repo.SaveChangesAsync(ct);

@@ -56,10 +56,15 @@ public class ListingService : IListingService
             QuantityAvailable = dto.QuantityAvailable,
             ExpiryDate = dto.ExpiryDate.ToUniversalTime(),
             Status = (byte)ListingStatus.Published,
-            IsAutoRenew = dto.IsAutoRenew,
             CreatedAt = DateTime.UtcNow,
             Product = product // For mapping
         };
+
+        // Tự động xác định trạng thái ngị dựa trên số lượng và ngày hết hạn
+        if (listing.ExpiryDate <= DateTime.UtcNow)
+            listing.Status = (byte)ListingStatus.Expired;
+        else if (listing.QuantityAvailable <= 0)
+            listing.Status = (byte)ListingStatus.SoldOut;
 
         foreach (var ruleDto in dto.DiscountRules)
         {
@@ -96,8 +101,25 @@ public class ListingService : IListingService
         listing.SalePrice = dto.SalePrice;
         listing.QuantityAvailable = dto.QuantityAvailable;
         listing.ExpiryDate = dto.ExpiryDate.ToUniversalTime();
-        listing.Status = dto.Status;
-        listing.IsAutoRenew = dto.IsAutoRenew;
+
+        // Tự động xác định trạng thái: Expired ưu tiên > SoldOut > giữ nguyên status do user chọn
+        if (listing.ExpiryDate <= DateTime.UtcNow)
+        {
+            listing.Status = (byte)ListingStatus.Expired;
+        }
+        else if (listing.QuantityAvailable <= 0)
+        {
+            listing.Status = (byte)ListingStatus.SoldOut;
+        }
+        else
+        {
+            // Số lượng > 0 và chưa hết hạn: Không cho phép trạng thái SoldOut hoặc Expired
+            listing.Status = dto.Status;
+            if (listing.Status == (byte)ListingStatus.SoldOut || listing.Status == (byte)ListingStatus.Expired)
+            {
+                listing.Status = (byte)ListingStatus.Published;
+            }
+        }
 
         // Xóa rules cũ (đánh dấu IsDeleted = 2)
         foreach (var oldRule in listing.ListingDiscountRules)
@@ -151,7 +173,6 @@ public class ListingService : IListingService
             QuantityAvailable = listing.QuantityAvailable,
             ExpiryDate = listing.ExpiryDate,
             Status = listing.Status,
-            IsAutoRenew = listing.IsAutoRenew,
             CreatedAt = listing.CreatedAt,
             DiscountRules = listing.ListingDiscountRules
                 .Where(r => !r.IsDeleted)
