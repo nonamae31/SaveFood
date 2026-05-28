@@ -13,9 +13,11 @@ const queryClient = new QueryClient({
   },
 })
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <GoogleOAuthProvider clientId="288830450489-rnm771e78hh0mppbhe1i1n9peu2fr4mv.apps.googleusercontent.com">
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <App />
       </QueryClientProvider>
