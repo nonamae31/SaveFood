@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
 
@@ -13,45 +13,41 @@ namespace SaveFoodBackend.Services
 {
     public class SubscriptionPlanService : ISubscriptionPlanService
     {
-        private readonly SaveFoodDbContext _context;
+        private readonly ISubscriptionRepository _subscriptionRepo;
 
-        public SubscriptionPlanService(SaveFoodDbContext context)
+        public SubscriptionPlanService(ISubscriptionRepository subscriptionRepo)
         {
-            _context = context;
+            _subscriptionRepo = subscriptionRepo;
         }
 
         public async Task<IEnumerable<SubscriptionPlanDTO>> GetAllPlansAsync()
         {
-            var plans = await _context.SubscriptionPlans
-                .Where(p => (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-                .Select(p => new SubscriptionPlanDTO
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    MonthlyPrice = p.MonthlyPrice,
-                    IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
-                })
-                .ToListAsync();
-
-            return plans;
+            var plans = await _subscriptionRepo.GetAllActivePlansAsync();
+            
+            return plans.Select(p => new SubscriptionPlanDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                MonthlyPrice = p.MonthlyPrice,
+                IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+            }).ToList();
         }
 
         public async Task<SubscriptionPlanDTO?> GetPlanByIdAsync(Guid id)
         {
-            var plan = await _context.SubscriptionPlans
-                .Where(p => p.Id == id && (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-                .Select(p => new SubscriptionPlanDTO
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    MonthlyPrice = p.MonthlyPrice,
-                    IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
-                })
-                .FirstOrDefaultAsync();
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            return plan;
+            if (plan == null) return null;
+
+            return new SubscriptionPlanDTO
+            {
+                Id = plan.Id,
+                Name = plan.Name,
+                Description = plan.Description,
+                MonthlyPrice = plan.MonthlyPrice,
+                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+            };
         }
 
         public async Task<SubscriptionPlanDTO> CreatePlanAsync(CreateSubscriptionPlanRequest request)
@@ -65,8 +61,8 @@ namespace SaveFoodBackend.Services
                 PlanFlags = (byte)PlanFlagsEnum.IsActive
             };
 
-            _context.SubscriptionPlans.Add(newPlan);
-            await _context.SaveChangesAsync();
+            _subscriptionRepo.AddPlan(newPlan);
+            await _subscriptionRepo.SaveChangesAsync();
 
             return new SubscriptionPlanDTO
             {
@@ -80,9 +76,9 @@ namespace SaveFoodBackend.Services
 
         public async Task<SubscriptionPlanDTO> UpdatePlanAsync(Guid id, UpdateSubscriptionPlanRequest request)
         {
-            var plan = await _context.SubscriptionPlans.FindAsync(id);
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            if (plan == null || (plan.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) != 0)
+            if (plan == null)
             {
                 throw new InvalidOperationException("Subscription Plan not found.");
             }
@@ -91,7 +87,7 @@ namespace SaveFoodBackend.Services
             plan.Description = request.Description;
             plan.MonthlyPrice = request.MonthlyPrice;
 
-            await _context.SaveChangesAsync();
+            await _subscriptionRepo.SaveChangesAsync();
 
             return new SubscriptionPlanDTO
             {
@@ -105,15 +101,15 @@ namespace SaveFoodBackend.Services
 
         public async Task DeletePlanAsync(Guid id)
         {
-            var plan = await _context.SubscriptionPlans.FindAsync(id);
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            if (plan == null || (plan.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) != 0)
+            if (plan == null)
             {
                 throw new InvalidOperationException("Subscription Plan not found.");
             }
 
             plan.PlanFlags |= (byte)PlanFlagsEnum.IsDeleted;
-            await _context.SaveChangesAsync();
+            await _subscriptionRepo.SaveChangesAsync();
         }
     }
 }

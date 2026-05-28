@@ -47,8 +47,19 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
+
+// Admin Repositories
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreRepository, SaveFoodBackend.Repositories.StoreRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IFinanceRepository, SaveFoodBackend.Repositories.FinanceRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.ISubscriptionRepository, SaveFoodBackend.Repositories.SubscriptionRepository>();
+
+// Admin Services
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminService, SaveFoodBackend.Services.AdminService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ISubscriptionPlanService, SaveFoodBackend.Services.SubscriptionPlanService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminFinanceService, SaveFoodBackend.Services.AdminFinanceService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminStatsService, SaveFoodBackend.Services.AdminStatsService>();
+
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICloudinaryService, SaveFoodBackend.Services.CloudinaryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IProductRepository, SaveFoodBackend.Repositories.ProductRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IProductService, SaveFoodBackend.Services.ProductService>();
