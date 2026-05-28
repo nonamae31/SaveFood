@@ -31,8 +31,7 @@ public enum ListingStatus : byte
 public enum ListingFlagsEnum : byte
 {
     None = 0,
-    IsDeleted = 1,
-    IsAutoRenew = 2
+    IsDeleted = 1
 }
 
 public enum TriggerType : byte

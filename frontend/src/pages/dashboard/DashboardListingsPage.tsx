@@ -63,9 +63,8 @@ export default function DashboardListingsPage() {
     switch (status) {
       case 0: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">Nháp</span>
       case 1: return <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">Đang bán</span>
-      case 2: return <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Hết hạn</span>
-      case 3: return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">Hết hàng</span>
-      case 4: return <span className="px-2 py-1 bg-gray-100 text-gray-500 rounded-full text-xs font-medium">Đã hủy</span>
+      case 2: return <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">Đã bán hết</span>
+      case 3: return <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-medium">Hết hạn</span>
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">Unknown</span>
     }
   }
@@ -120,7 +119,10 @@ export default function DashboardListingsPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {listings?.map((listing) => {
-                  const expiryDate = new Date(listing.expiryDate)
+                  // Backend returns dates without 'Z', must append it to force UTC interpretation
+                  const rawExpiry = listing.expiryDate
+                  const normalized = rawExpiry.endsWith('Z') || rawExpiry.includes('+') ? rawExpiry : rawExpiry + 'Z'
+                  const expiryDate = new Date(normalized)
                   const isExpired = expiryDate < new Date()
 
                   return (

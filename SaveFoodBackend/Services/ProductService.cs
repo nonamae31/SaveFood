@@ -88,6 +88,7 @@ public class ProductService : IProductService
         product.Description = dto.Description;
         product.OriginalPrice = dto.OriginalPrice;
         product.IsHidden = dto.IsHidden;
+        product.IsSurpriseBag = dto.IsSurpriseBag;
 
         if (dto.ImageIdsToRemove != null && dto.ImageIdsToRemove.Any())
         {

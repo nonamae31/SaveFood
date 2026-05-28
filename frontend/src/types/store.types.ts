@@ -127,8 +127,7 @@ export interface ListingResponseDTO {
   salePrice: number
   quantityAvailable: number
   expiryDate: string
-  status: number // 0 = Draft, 1 = Active, 2 = Expired, 3 = SoldOut, 4 = Cancelled
-  isAutoRenew: boolean
+  status: number // 0 = Draft, 1 = Published, 2 = SoldOut, 3 = Expired
   createdAt: string
   discountRules: DiscountRuleResponseDTO[]
 }
@@ -139,7 +138,6 @@ export interface CreateListingDTO {
   salePrice: number
   quantityAvailable: number
   expiryDate: string
-  isAutoRenew: boolean
   discountRules: DiscountRuleDTO[]
 }
 
@@ -149,6 +147,5 @@ export interface UpdateListingDTO {
   quantityAvailable: number
   expiryDate: string
   status: number
-  isAutoRenew: boolean
   discountRules: DiscountRuleDTO[]
 }

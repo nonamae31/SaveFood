@@ -19,12 +19,5 @@ public partial class ClearanceListing
         set => ListingFlags = (byte)(value ? (ListingFlags | (byte)ListingFlagsEnum.IsDeleted) : (ListingFlags & ~(byte)ListingFlagsEnum.IsDeleted));
     }
 
-    [NotMapped]
-    public bool IsAutoRenew
-    {
-        get => (ListingFlags & (byte)ListingFlagsEnum.IsAutoRenew) == (byte)ListingFlagsEnum.IsAutoRenew;
-        set => ListingFlags = (byte)(value ? (ListingFlags | (byte)ListingFlagsEnum.IsAutoRenew) : (ListingFlags & ~(byte)ListingFlagsEnum.IsAutoRenew));
-    }
-
-
 }
+
