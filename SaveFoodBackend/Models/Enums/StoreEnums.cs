@@ -6,7 +6,9 @@ public enum StoreStatus : byte
 {
     Active = 0,
     Suspended = 1,
-    Closed = 2
+    Closed = 2,
+    Pending = 3,
+    Rejected = 4
 }
 
 [Flags]

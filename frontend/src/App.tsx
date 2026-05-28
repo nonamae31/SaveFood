@@ -11,6 +11,19 @@ import { ForgotPasswordPage } from '@/pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { WishlistPage } from '@/pages/profile/WishlistPage'
+import AccountManagementPage from '@/pages/admin/AccountManagementPage'
+import StoreApprovalPage from '@/pages/admin/StoreApprovalPage'
+import SubscriptionManagementPage from '@/pages/admin/SubscriptionManagementPage'
+import AdminFinancePage from '@/pages/admin/AdminFinancePage'
+import { AdminLayout } from '@/components/layout/AdminLayout'
+import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
+import CategoryManagementPage from '@/pages/admin/CategoryManagementPage'
+import { ProductListPage } from '@/pages/products/ProductListPage'
+import { ProductDetailPage } from '@/pages/products/ProductDetailPage'
+import { DashboardLayout } from '@/components/layout/DashboardLayout'
+import DashboardProductsPage from '@/pages/dashboard/DashboardProductsPage'
+import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -54,8 +67,8 @@ function App() {
           <Routes>
             {/* ── Public Pages ── */}
             <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ — SaveFood" />} />
-            <Route path={ROUTES.PRODUCTS}        element={<PlaceholderPage title="Đồ ăn cận date" />} />
-            <Route path="/products/:id"          element={<PlaceholderPage title="Chi tiết sản phẩm" />} />
+            <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
+            <Route path="/products/:id"          element={<ProductDetailPage />} />
             <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
             <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
 
@@ -75,14 +88,27 @@ function App() {
             <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
 
             {/* ── Store Dashboard (Người 2 & 3) ── */}
-            <Route path={ROUTES.DASHBOARD}           element={<PlaceholderPage title="Dashboard" />} />
-            <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<PlaceholderPage title="Quản lý tin đăng" />} />
-            <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Đơn hàng" />} />
-            <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<PlaceholderPage title="Thống kê" />} />
-            <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
+            <Route element={<DashboardLayout />}>
+              <Route path={ROUTES.DASHBOARD}           element={<PlaceholderPage title="Dashboard" />} />
+              <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
+              <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
+              <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Đơn hàng" />} />
+              <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<PlaceholderPage title="Thống kê" />} />
+              <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
+            </Route>
 
             {/* ── Admin (Người 5) ── */}
-            <Route path={ROUTES.ADMIN}           element={<PlaceholderPage title="Admin Portal" />} />
+            <Route element={<AdminProtectedRoute />}>
+              <Route element={<AdminLayout />}>
+                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+                <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
+                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
+                <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+              </Route>
+            </Route>
 
             {/* ── Payment Return (Người 5) ── */}
             <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />

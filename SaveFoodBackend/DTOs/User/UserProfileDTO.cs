@@ -17,5 +17,8 @@ namespace SaveFoodBackend.DTOs.User
 
         // Trạng thái mật khẩu
         public bool HasPassword { get; set; }
+
+        // Mảng cho Cửa hàng
+        public Guid? StoreId { get; set; }
     }
 }

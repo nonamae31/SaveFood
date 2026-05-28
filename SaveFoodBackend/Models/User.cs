@@ -25,6 +25,12 @@ public partial class User
 
     public DateTime CreatedAt { get; set; }
 
+    public string? Username { get; set; }
+
+    public string? NormalizedEmail { get; set; }
+
+    public string? ImgCloudinaryId { get; set; }
+
     public virtual Cart? Cart { get; set; }
 
     public virtual ICollection<EmailVerification> EmailVerifications { get; set; } = new List<EmailVerification>();

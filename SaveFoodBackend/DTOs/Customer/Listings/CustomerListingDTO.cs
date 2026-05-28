@@ -1,0 +1,27 @@
+using System;
+
+namespace SaveFoodBackend.DTOs.Customer.Listings;
+
+public class CustomerListingDTO
+{
+    public Guid Id { get; set; }
+    public Guid ProductId { get; set; }
+    public Guid StoreId { get; set; }
+    public string StoreName { get; set; } = null!;
+    public string ProductName { get; set; } = null!;
+    public string Title { get; set; } = null!;
+    public decimal OriginalPrice { get; set; }
+    public decimal SalePrice { get; set; }
+    public int QuantityAvailable { get; set; }
+    public DateTime ExpiryDate { get; set; }
+    public bool IsSurpriseBag { get; set; }
+}
+
+public class CustomerListingFilterDTO
+{
+    public Guid? CategoryId { get; set; }
+    public decimal? MinPrice { get; set; }
+    public decimal? MaxPrice { get; set; }
+    public bool? IsSurpriseBag { get; set; }
+    public string? SortBy { get; set; } // "price_asc", "price_desc", "expiry_asc"
+}

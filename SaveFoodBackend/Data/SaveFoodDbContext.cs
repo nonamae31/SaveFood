@@ -104,6 +104,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.Name).HasMaxLength(100);
         });
 
@@ -263,6 +264,9 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.AdminNote).HasMaxLength(500);
             entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.CustomerBankAccount).HasMaxLength(50);
+            entity.Property(e => e.CustomerBankAccountName).HasMaxLength(100);
+            entity.Property(e => e.CustomerBankName).HasMaxLength(100);
             entity.Property(e => e.Reason).HasMaxLength(500);
 
             entity.HasOne(d => d.Order).WithMany(p => p.RefundRequests)
@@ -383,19 +387,17 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasIndex(e => e.Email, "UQ_Users_Email").IsUnique();
-            entity.HasIndex(e => e.Username, "UQ_Users_Username").IsUnique();
-            entity.HasIndex(e => e.NormalizedEmail, "UQ_Users_NormalizedEmail").IsUnique();
 
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.Username).HasMaxLength(50);
-            entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.Address).HasMaxLength(300);
             entity.Property(e => e.AvatarUrl).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(150);
+            entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
+            entity.Property(e => e.Username).HasMaxLength(50);
         });
 
         modelBuilder.Entity<UserRole>(entity =>

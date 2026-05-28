@@ -79,4 +79,5 @@ export interface UserProfileDTO {
   createdAt: string;
   roles: string[];
   hasPassword: boolean;
+  storeId?: string | null;
 }

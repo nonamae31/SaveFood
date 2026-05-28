@@ -22,8 +22,15 @@ export function LoginPage() {
       googleLoginMutation.mutate(
         { token: codeResponse.access_token },
         {
-          onSuccess: () => {
-            navigate(ROUTES.HOME);
+          onSuccess: (response: any) => {
+            const role = response?.role?.toLowerCase() || '';
+            if (role === 'admin') {
+              navigate(ROUTES.ADMIN_ACCOUNTS);
+            } else if (role === 'store') {
+              navigate(ROUTES.DASHBOARD);
+            } else {
+              navigate(ROUTES.HOME);
+            }
           },
           onError: (err: any) => {
             setError(err.message || 'Đăng nhập Google thất bại.');
@@ -47,9 +54,16 @@ export function LoginPage() {
     }
 
     loginMutation.mutate({ email, password }, {
-      onSuccess: () => {
+      onSuccess: (response: any) => {
         // Đăng nhập thành công, context sẽ tự động fetch lại profile
-        navigate(ROUTES.HOME);
+        const role = response?.role?.toLowerCase() || '';
+        if (role === 'admin') {
+          navigate(ROUTES.ADMIN_ACCOUNTS);
+        } else if (role === 'store') {
+          navigate(ROUTES.DASHBOARD);
+        } else {
+          navigate(ROUTES.HOME);
+        }
       },
       onError: (err: any) => {
         if (err.code === 'UNVERIFIED_ACCOUNT') {

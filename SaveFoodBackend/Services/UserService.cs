@@ -31,6 +31,8 @@ namespace SaveFoodBackend.Services
                 throw new InvalidOperationException("User not found.");
             }
 
+            var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == userId);
+
             return new UserProfileDTO
             {
                 Id = user.Id,
@@ -41,9 +43,10 @@ namespace SaveFoodBackend.Services
                 AvatarUrl = user.AvatarUrl,
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
-                            .Select(ur => ur.Role.Name)
+                            .Select(ur => ur.Role.Code)
                             .ToList(),
-                HasPassword = user.PasswordHash != null && !Guid.TryParse(user.PasswordHash, out _)
+                HasPassword = user.PasswordHash != null && !Guid.TryParse(user.PasswordHash, out _),
+                StoreId = storeStaff?.StoreId
             };
         }
 

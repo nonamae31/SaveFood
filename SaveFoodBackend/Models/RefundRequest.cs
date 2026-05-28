@@ -23,6 +23,12 @@ public partial class RefundRequest
 
     public DateTime? ProcessedAt { get; set; }
 
+    public string? CustomerBankName { get; set; }
+
+    public string? CustomerBankAccount { get; set; }
+
+    public string? CustomerBankAccountName { get; set; }
+
     public virtual Order Order { get; set; } = null!;
 
     public virtual User RequestedByNavigation { get; set; } = null!;
