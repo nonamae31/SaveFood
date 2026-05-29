@@ -149,18 +149,23 @@ export function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4 sm:px-6 lg:px-8 space-y-8">
-      {/* Nút quay lại */}
+      {/* Page Header */}
       <div>
         <button 
           onClick={() => navigate(-1)} 
-          className="flex items-center gap-2 text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors font-medium text-[--text-body-sm]"
+          className="flex items-center gap-2 text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors font-medium text-sm mb-6"
         >
-          <ArrowLeft size={20} /> Quay lại
+          <ArrowLeft size={18} /> Quay lại
         </button>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+          <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Hồ sơ</span>
+        </div>
+        <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Quản lý <span className="font-serif italic font-normal text-[--color-brand-600]">tài khoản</span></h1>
       </div>
 
       {/* SECTION: THÔNG TIN CÁ NHÂN */}
-      <div className="bg-surface-base shadow-card rounded-2xl overflow-hidden">
+      <div className="bg-[--color-surface-base] shadow-[--shadow-card] rounded-[1.5rem] overflow-hidden">
         <div className="bg-brand-50 px-8 py-6 border-b border-brand-100 flex items-center gap-6">
           <div className="relative group w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm flex-shrink-0 cursor-pointer">
             {avatarUrl ? (
@@ -249,7 +254,7 @@ export function ProfilePage() {
       </div>
 
       {/* SECTION: ĐỔI MẬT KHẨU */}
-      <div className="bg-surface-base shadow-card rounded-2xl overflow-hidden">
+      <div className="bg-[--color-surface-base] shadow-[--shadow-card] rounded-[1.5rem] overflow-hidden">
         <div className="p-8">
           <h2 className="text-heading-md font-bold mb-6">Bảo mật tài khoản</h2>
           

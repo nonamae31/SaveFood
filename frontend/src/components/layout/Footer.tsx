@@ -28,17 +28,20 @@ export function Footer() {
   const currentYear = new Date().getFullYear()
 
   return (
-    <footer className="bg-[--color-surface-strong] text-[--color-ink-inverse]">
-      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <footer className="bg-[--color-surface-strong] text-[--color-ink-inverse] relative overflow-hidden">
+      {/* Subtle top accent line */}
+      <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[--color-brand-500] to-transparent"></div>
+
+      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-14">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
           {/* ── Brand Column ── */}
           <div className="lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-[--radius-button] bg-[--color-brand-500] flex items-center justify-center">
-                <Leaf width={18} height={18} className="text-white" aria-hidden="true" />
+              <div className="w-8 h-8 rounded-full bg-transparent flex items-center justify-center">
+                <Leaf width={20} height={20} className="text-[#8ced7f]" aria-hidden="true" />
               </div>
-              <span className="font-bold text-[--text-heading-sm] font-[--font-display]">
+              <span className="font-bold text-lg font-[--font-display]">
                 SaveFood
               </span>
             </div>
@@ -113,7 +116,7 @@ export function Footer() {
         </div>
 
         {/* ── Bottom Bar ── */}
-        <div className="mt-12 pt-6 border-t border-gray-700 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div className="mt-14 pt-6 border-t border-gray-700/50 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[--text-caption] text-gray-500">
             © {currentYear} SaveFood. Góp phần giảm lãng phí thực phẩm. 🌿
           </p>
@@ -128,7 +131,7 @@ export function Footer() {
                 key={label}
                 href={href}
                 aria-label={label}
-                className="w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-400 hover:bg-[--color-brand-500] hover:text-white transition-all duration-200"
+                className="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center text-gray-400 hover:bg-[#8ced7f] hover:text-[#0f2913] transition-all duration-300"
               >
                 <Icon width={16} height={16} aria-hidden="true" />
               </a>

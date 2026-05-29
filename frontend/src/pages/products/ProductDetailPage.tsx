@@ -14,8 +14,6 @@ import {
   ChevronRight, ChevronLeft, Store, ShoppingCart, ShoppingBag,
   Package, Hash, AlertTriangle, Leaf,
 } from 'lucide-react'
-import { Navbar } from '@/components/layout/Navbar'
-import { Footer } from '@/components/layout/Footer'
 import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
 import { ListingCard } from '@/components/listings/ListingCard'
@@ -60,9 +58,7 @@ export function ProductDetailPage() {
   // ── Loading state ──
   if (isLoading && !cachedListing) {
     return (
-      <div className="min-h-screen bg-[--color-surface-subtle] flex flex-col">
-        <Navbar />
-        <main className="flex-1 max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="animate-pulse space-y-6">
             <div className="h-4 bg-[--color-surface-muted] rounded-full w-48" />
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -75,8 +71,6 @@ export function ProductDetailPage() {
               </div>
             </div>
           </div>
-        </main>
-        <Footer />
       </div>
     )
   }
@@ -84,9 +78,7 @@ export function ProductDetailPage() {
   // ── Not Found state ──
   if (!isLoading && !listing) {
     return (
-      <div className="min-h-screen bg-[--color-surface-subtle] flex flex-col">
-        <Navbar />
-        <main className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center">
           <div className="text-center py-20 px-4">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[--color-surface-muted] mb-4">
               <Package size={28} className="text-[--color-ink-tertiary]" />
@@ -106,18 +98,13 @@ export function ProductDetailPage() {
               Xem tất cả sản phẩm
             </Link>
           </div>
-        </main>
-        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[--color-surface-subtle] flex flex-col">
-      <Navbar />
-
-      <main className="flex-1">
-        <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
+    <>
+      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
 
           {/* ── Breadcrumb ── */}
           <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]">
@@ -316,9 +303,10 @@ export function ProductDetailPage() {
               {/* CTA Button */}
               <button
                 disabled={isSoldOut}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-[--radius-button]
-                           text-[--text-body-md] font-bold transition-all
-                           bg-[--color-brand-600] text-white hover:bg-[--color-brand-700]
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full
+                           text-[--text-body-md] font-bold transition-all duration-300
+                           bg-[--color-brand-500] text-white hover:bg-[--color-brand-600]
+                           hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
                            disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[--color-ink-tertiary]"
                 aria-disabled={isSoldOut}
               >
@@ -357,10 +345,7 @@ export function ProductDetailPage() {
             </section>
           )}
 
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </>
   )
 }

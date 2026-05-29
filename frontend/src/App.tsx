@@ -2,8 +2,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClient } from '@/lib/queryClient'
 import { ROUTES } from '@/lib/constants'
-import { Navbar } from '@/components/layout/Navbar'
-import { Footer } from '@/components/layout/Footer'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { AuthLayout } from '@/components/layout/AuthLayout'
+import { HomePage } from '@/pages/home/HomePage'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
 import { VerifyOtpPage } from '@/pages/auth/VerifyOtpPage'
@@ -21,6 +22,8 @@ import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
 import CategoryManagementPage from '@/pages/admin/CategoryManagementPage'
 import { ProductListPage } from '@/pages/products/ProductListPage'
 import { ProductDetailPage } from '@/pages/products/ProductDetailPage'
+import { StoreListPage } from '@/pages/stores/StoreListPage'
+import { StoreDetailPage } from '@/pages/stores/StoreDetailPage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import DashboardProductsPage from '@/pages/dashboard/DashboardProductsPage'
 import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
@@ -35,48 +38,52 @@ import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
-    <main className="min-h-screen bg-[--color-surface-subtle]">
-      <Navbar />
-      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-[--spacing-section-y]">
-        <div className="text-center py-20">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[--color-brand-100] mb-4">
-            <span className="text-2xl" aria-hidden="true">🚧</span>
-          </div>
-          <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] mb-2">
-            {title}
-          </h1>
-          <p className="text-[--text-body-md] text-[--color-ink-secondary]">
-            Trang này đang được phát triển. Sprint 0 hoàn thành — sẵn sàng nhận code từ nhóm!
-          </p>
+    <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-[--spacing-section-y]">
+      <div className="text-center py-20">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[--color-brand-100] mb-4">
+          <span className="text-2xl" aria-hidden="true">🚧</span>
         </div>
+        <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] mb-2">
+          {title}
+        </h1>
+        <p className="text-[--text-body-md] text-[--color-ink-secondary]">
+          Trang này đang được phát triển. Sprint 0 hoàn thành — sẵn sàng nhận code từ nhóm!
+        </p>
       </div>
-      <Footer />
-    </main>
+    </div>
   )
 }
 
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { ScrollToTop } from '@/components/layout/ScrollToTop'
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Routes>
             {/* ── Public Pages ── */}
-            <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ — SaveFood" />} />
-            <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
-            <Route path="/products/:id"          element={<ProductDetailPage />} />
-            <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
-            <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
+            <Route element={<MainLayout />}>
+              <Route path={ROUTES.HOME}            element={<HomePage />} />
+              <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
+              <Route path="/products/:id"          element={<ProductDetailPage />} />
+              <Route path={ROUTES.STORES}          element={<StoreListPage />} />
+              <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
-            {/* ── Cart & Orders (Người 4) ── */}
-            <Route path={ROUTES.CART}            element={<PlaceholderPage title="Giỏ hàng" />} />
-            <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
-            <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
-            <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
+              {/* ── Cart & Orders (Người 4) ── */}
+              <Route path={ROUTES.CART}            element={<PlaceholderPage title="Giỏ hàng" />} />
+              <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
+              <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
+              <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
+
+              {/* Profile nested in MainLayout for now */}
+              <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
+              <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
+            </Route>
 
             {/* ── Auth (Người 1) ── */}
             <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
@@ -84,8 +91,6 @@ function App() {
             <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
             <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
             <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
-            <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
-            <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
 
             {/* ── Store Dashboard (Người 2 & 3) ── */}
             <Route element={<DashboardLayout />}>

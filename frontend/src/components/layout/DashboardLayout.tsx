@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
@@ -15,6 +15,7 @@ export function DashboardLayout() {
   const { user } = useAuthContext()
   const logoutMutation = useLogout()
   const navigate = useNavigate()
+  const location = useLocation()
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
@@ -147,7 +148,7 @@ export function DashboardLayout() {
         </header>
 
         {/* Outlet Content */}
-        <div className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8">
+        <div key={location.pathname} className="flex-1 overflow-auto p-4 sm:p-6 lg:p-8 animate-[--animate-fade-in] duration-300">
           <Outlet />
         </div>
       </main>

@@ -23,13 +23,13 @@ export function ListingCard({ listing }: ListingCardProps) {
     <Link
       to={ROUTES.PRODUCT_DETAIL(listing.id)}
       id={`listing-card-${listing.id}`}
-      className="group block rounded-[--radius-card] bg-[--color-surface-base] shadow-[--shadow-card]
-                 hover:shadow-[--shadow-card-hover] transition-all duration-200 overflow-hidden
-                 hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-[--color-brand-500]"
+      className="group block rounded-[1.5rem] bg-[--color-surface-base] shadow-[--shadow-card]
+                 hover:shadow-[--shadow-card-hover] transition-all duration-300 overflow-hidden
+                 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(34,197,94,0.08)] focus-visible:outline-2 focus-visible:outline-[--color-brand-500]"
       aria-label={`${listing.title} — ${formatVND(listing.salePrice)}`}
     >
       {/* ── Ảnh / Placeholder ── */}
-      <div className="relative h-44 bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100] flex items-center justify-center overflow-hidden">
+      <div className="relative h-48 bg-[--color-surface-muted] flex items-center justify-center overflow-hidden">
         {listing.imageUrl ? (
           <img src={listing.imageUrl} alt={listing.title} className="w-full h-full object-cover" />
         ) : listing.isSurpriseBag ? (
@@ -118,8 +118,8 @@ export function ListingCard({ listing }: ListingCardProps) {
 
           {/* Nút xem nhanh */}
           <span
-            className="text-[--text-caption] font-semibold text-[--color-brand-600]
-                       group-hover:underline transition-colors"
+            className="text-[--text-caption] font-bold text-[--color-brand-600] bg-[--color-brand-50] px-3 py-1 rounded-full
+                       group-hover:bg-[--color-brand-500] group-hover:text-white transition-all duration-300"
           >
             Xem chi tiết →
           </span>

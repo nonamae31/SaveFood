@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -16,6 +16,7 @@ export function AdminLayout() {
   const { user } = useAuthContext();
   const logoutMutation = useLogout();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -152,7 +153,7 @@ export function AdminLayout() {
         </header>
 
         {/* Outlet Content */}
-        <div className="flex-1 overflow-auto">
+        <div key={location.pathname} className="flex-1 overflow-auto animate-[--animate-fade-in] duration-300">
           <Outlet />
         </div>
       </main>

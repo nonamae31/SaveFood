@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
 @import "tailwindcss";
 
 /* ─── SaveFood Design System Tokens ────────────────────────────────────────── */
@@ -23,6 +23,10 @@
   --color-expiry-urgent: #ef4444;
   --color-expiry-expired: #9ca3af;
 
+  /* ── Brand Orange ── */
+  --color-brand-orange: #f97316;
+  --color-brand-orange-soft: #ffedd5;
+
   /* ── Surface Colors (nền & border) ── */
   --color-surface-base: #ffffff;
   --color-surface-subtle: #f9fafb;
@@ -37,8 +41,8 @@
   --color-ink-inverse: #ffffff;
 
   /* ── Typography ── */
-  --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-display: 'Fraunces', serif;
+  --font-sans: 'Be Vietnam Pro', 'Inter', sans-serif;
+  --font-display: 'Playfair Display', serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   /* ── Mintlify Design System (Admin Area) ── */
@@ -86,7 +90,7 @@
   /* ── Border Radius ── */
   --radius-card: 1rem;
   --radius-badge: 9999px;
-  --radius-button: 0.625rem;
+  --radius-button: 9999px; /* Pill shape for Eco-SaaS mix */
   --radius-input: 0.5rem;
 
   /* ── Box Shadow ── */
@@ -98,6 +102,9 @@
   --animate-fade-in: fadeIn 0.2s ease-out;
   --animate-slide-up: slideUp 0.3s ease-out;
   --animate-pulse-expiry: pulseExpiry 2s cubic-bezier(0.4,0,0.6,1) infinite;
+  --animate-fade-rise: fadeRise 1s ease-out forwards;
+  --animate-fade-rise-delay: fadeRise 1s ease-out 0.3s forwards;
+  --animate-fade-rise-delay-2: fadeRise 1s ease-out 0.6s forwards;
 }
 
 /* ─── Keyframes ─────────────────────────────────────────────────────────────── */
@@ -114,6 +121,11 @@
 @keyframes pulseExpiry {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.6; }
+}
+
+@keyframes fadeRise {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* ─── Base Styles ────────────────────────────────────────────────────────────── */
