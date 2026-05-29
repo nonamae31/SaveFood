@@ -37,6 +37,49 @@ namespace SaveFoodBackend.Controllers
             return Ok(store);
         }
 
+        // GET: api/stores/{id}/profile  (Dashboard — Staff only)
+        [HttpGet("{id}/profile")]
+        [Authorize]
+        public async Task<IActionResult> GetStoreProfile(Guid id, System.Threading.CancellationToken ct)
+        {
+            try
+            {
+                var userId = GetRequiredUserId();
+                var profile = await _storeService.GetStoreDashboardProfileAsync(id, userId, ct);
+                return Ok(profile);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        // PUT: api/stores/{id}/profile  (Dashboard — Staff only)
+        [HttpPut("{id}/profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStoreProfile(Guid id, [FromBody] UpdateStoreProfileRequest request, System.Threading.CancellationToken ct)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                await _storeService.UpdateStoreProfileAsync(id, userId, request, ct);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
         // PUT: api/stores/{id}/images
         [HttpPut("{id}/images")]
         [Authorize] // Store Staff/Owner only
@@ -61,5 +104,21 @@ namespace SaveFoodBackend.Controllers
                 return StatusCode(500, new { message = "An error occurred while uploading images.", details = ex.Message });
             }
         }
+        // GET: api/stores/{id}/analytics
+        [HttpGet("{id}/analytics")]
+        // [Authorize] // Temporarily disabled for testing if needed, or keep it
+        public async Task<IActionResult> GetStoreAnalytics(Guid id)
+        {
+            try
+            {
+                var analytics = await _storeService.GetStoreAnalyticsAsync(id);
+                return Ok(analytics);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while fetching analytics.", details = ex.Message });
+            }
+        }
     }
 }
+

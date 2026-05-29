@@ -80,9 +80,10 @@ export default function DashboardListingsPage() {
       }
 
       setIsModalOpen(false)
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save listing', error)
-      alert(error.message || 'Có lỗi xảy ra khi lưu tin đăng')
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra khi lưu tin đăng'
+      alert(msg)
     }
   }
 

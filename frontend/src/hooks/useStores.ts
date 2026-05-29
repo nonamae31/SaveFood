@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
+import { storeApi, type StoreProfileDTO } from '@/api/store.api'
 
 export interface CustomerStoreDTO {
   id: string
@@ -37,5 +38,27 @@ export function useStoreDetail(id?: string) {
       return await apiClient<CustomerStoreDetailDTO>(`/stores/${id}`)
     },
     enabled: !!id,
+  })
+}
+
+export function useStoreProfile(storeId?: string) {
+  return useQuery({
+    queryKey: ['store-profile', storeId],
+    queryFn: async () => {
+      if (!storeId) throw new Error('Store ID is required')
+      return await storeApi.getStoreProfile(storeId)
+    },
+    enabled: !!storeId,
+  })
+}
+
+export function useStoreAnalytics(storeId?: string) {
+  return useQuery({
+    queryKey: ['store-analytics', storeId],
+    queryFn: async () => {
+      if (!storeId) throw new Error('Store ID is required')
+      return await storeApi.getStoreAnalytics(storeId)
+    },
+    enabled: !!storeId,
   })
 }

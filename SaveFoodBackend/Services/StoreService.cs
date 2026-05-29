@@ -13,14 +13,63 @@ namespace SaveFoodBackend.Services
     {
         private readonly IStoreRepository _storeRepo;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IOrderRepository _orderRepo;
 
-        public StoreService(IStoreRepository storeRepo, ICloudinaryService cloudinaryService)
+        public StoreService(IStoreRepository storeRepo, ICloudinaryService cloudinaryService, IOrderRepository orderRepo)
         {
             _storeRepo = storeRepo;
             _cloudinaryService = cloudinaryService;
+            _orderRepo = orderRepo;
+        }
+
+        public async Task<StoreProfileDTO?> GetStoreDashboardProfileAsync(Guid storeId, Guid userId, CancellationToken ct = default)
+        {
+            var store = await _storeRepo.GetStoreWithStaffsAsync(storeId, ct);
+            if (store == null)
+                throw new InvalidOperationException("Cửa hàng không tồn tại.");
+
+            var isStaff = store.StoreStaffs.Any(s => s.UserId == userId);
+            if (!isStaff)
+                throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin cửa hàng này.");
+
+            return new StoreProfileDTO
+            {
+                Name = store.Name,
+                Description = store.Description,
+                AddressLine = store.AddressLine,
+                Ward = store.Ward,
+                District = store.District,
+                City = store.City,
+                PhoneNumber = store.PhoneNumber,
+                LogoUrl = store.LogoUrl,
+                CoverUrl = store.CoverUrl
+            };
+        }
+
+        public async Task UpdateStoreProfileAsync(Guid storeId, Guid userId, UpdateStoreProfileRequest request, CancellationToken ct = default)
+        {
+            var store = await _storeRepo.GetStoreWithStaffsAsync(storeId, ct);
+            if (store == null)
+                throw new InvalidOperationException("Cửa hàng không tồn tại.");
+
+            var isStaff = store.StoreStaffs.Any(s => s.UserId == userId);
+            if (!isStaff)
+                throw new UnauthorizedAccessException("Bạn không có quyền thực hiện thao tác này.");
+
+            store.Name = request.Name;
+            store.Description = request.Description;
+            store.AddressLine = request.AddressLine;
+            store.Ward = request.Ward;
+            store.District = request.District;
+            store.City = request.City;
+            store.PhoneNumber = request.PhoneNumber;
+
+            _storeRepo.Update(store);
+            await _storeRepo.SaveChangesAsync(ct);
         }
 
         public async Task UpdateStoreImagesAsync(Guid storeId, Guid userId, UpdateStoreImagesRequest request)
+
         {
             var store = await _storeRepo.GetStoreWithStaffsAsync(storeId);
             if (store == null)
@@ -121,6 +170,47 @@ namespace SaveFoodBackend.Services
                 OpeningHours = "07:00 - 22:00", // Not in DB yet
                 CoverImage = store.CoverUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                 Description = store.Description ?? string.Empty
+            };
+        }
+
+        public async Task<StoreAnalyticsDTO> GetStoreAnalyticsAsync(Guid storeId, CancellationToken ct = default)
+        {
+            var now = DateTime.UtcNow;
+            
+            var currentStart = now.AddDays(-30);
+            var currentEnd = now;
+            var (currentCount, currentRevenue) = await _orderRepo.GetStoreAnalyticsByDateRangeAsync(storeId, currentStart, currentEnd, ct);
+            
+            var previousStart = now.AddDays(-60);
+            var previousEnd = currentStart;
+            var (previousCount, previousRevenue) = await _orderRepo.GetStoreAnalyticsByDateRangeAsync(storeId, previousStart, previousEnd, ct);
+            
+            decimal revenueChange = 0;
+            if (previousRevenue > 0)
+            {
+                revenueChange = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+            }
+            else if (currentRevenue > 0)
+            {
+                revenueChange = 100;
+            }
+            
+            decimal orderChange = 0;
+            if (previousCount > 0)
+            {
+                orderChange = ((decimal)(currentCount - previousCount) / previousCount) * 100;
+            }
+            else if (currentCount > 0)
+            {
+                orderChange = 100;
+            }
+            
+            return new StoreAnalyticsDTO
+            {
+                TotalRevenue = currentRevenue,
+                RevenuePercentageChange = Math.Round(revenueChange, 1),
+                CompletedOrders = currentCount,
+                OrdersPercentageChange = Math.Round(orderChange, 1)
             };
         }
     }

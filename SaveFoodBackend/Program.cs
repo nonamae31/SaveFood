@@ -72,6 +72,8 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFood
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBackend.Services.OrderService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFoodBackend.Services.StoreOrderService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
@@ -122,6 +124,21 @@ using (var scope = app.Services.CreateScope())
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'IsDeleted')
         BEGIN
             ALTER TABLE Categories ADD IsDeleted bit NOT NULL DEFAULT 0;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'LogoCloudinaryId')
+        BEGIN
+            ALTER TABLE Stores ADD LogoCloudinaryId nvarchar(max) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverUrl')
+        BEGIN
+            ALTER TABLE Stores ADD CoverUrl nvarchar(max) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverCloudinaryId')
+        BEGIN
+            ALTER TABLE Stores ADD CoverCloudinaryId nvarchar(max) NULL;
         END
     ";
     db.Database.ExecuteSqlRaw(sql);

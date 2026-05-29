@@ -4,6 +4,7 @@ import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDas
 import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
+import { useStoreProfile } from '@/hooks/useStores'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -13,6 +14,7 @@ function cn(...inputs: ClassValue[]) {
 
 export function DashboardLayout() {
   const { user } = useAuthContext()
+  const { data: storeProfile } = useStoreProfile(user?.storeId || undefined)
   const logoutMutation = useLogout()
   const navigate = useNavigate()
   const location = useLocation()
@@ -31,7 +33,7 @@ export function DashboardLayout() {
 
   // Define nav items for Store Owner
   const navItems = [
-    { name: 'Tổng quan', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+    { name: 'Tổng quan', href: ROUTES.DASHBOARD_ANALYTICS, icon: LayoutDashboard },
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
     { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
@@ -101,23 +103,25 @@ export function DashboardLayout() {
           })}
         </nav>
 
-        {/* User Profile Area */}
+        {/* User & Store Profile Area */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors mb-2 group">
             <div className="w-10 h-10 rounded-full bg-[--color-brand-100] flex items-center justify-center overflow-hidden shrink-0 border border-[--color-brand-200]">
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt={user.fullName} className="w-full h-full object-cover" />
+              {storeProfile?.logoUrl ? (
+                <img src={storeProfile.logoUrl} alt={storeProfile.name} className="w-full h-full object-cover" />
               ) : (
                 <span className="text-sm font-bold text-[--color-brand-700]">
-                  {user?.fullName?.charAt(0).toUpperCase() || 'S'}
+                  {storeProfile?.name?.charAt(0).toUpperCase() || user?.fullName?.charAt(0).toUpperCase() || 'S'}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate group-hover:text-[--color-brand-600] transition-colors">
-                {user?.fullName || 'Chủ Cửa Hàng'}
+              <p className="text-sm font-bold text-gray-900 truncate group-hover:text-[--color-brand-600] transition-colors" title={storeProfile?.name || 'Cửa hàng'}>
+                {storeProfile?.name || 'Cửa hàng'}
               </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <p className="text-xs text-gray-500 truncate" title={user?.fullName || user?.email}>
+                {user?.fullName || user?.email}
+              </p>
             </div>
           </div>
           
