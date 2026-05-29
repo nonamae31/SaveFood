@@ -69,6 +69,7 @@ export const ROUTES = {
   DASHBOARD_ORDERS:       '/dashboard/orders',
   DASHBOARD_ANALYTICS:    '/dashboard/analytics',
   DASHBOARD_SETTINGS:     '/dashboard/settings',
+  DASHBOARD_SUBSCRIPTION: '/dashboard/subscription',
 
   // Admin
   ADMIN:               '/admin',

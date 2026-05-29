@@ -40,6 +40,9 @@ public class GlobalExceptionMiddleware(
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        // Ghi log ra file để debug nhanh
+        System.IO.File.WriteAllText("error_log.txt", exception.ToString());
+
         // Log lỗi — luôn ghi log đầy đủ cho debugging
         if (exception is BusinessException)
             logger.LogWarning(exception, "Business exception: {Message}", exception.Message);
