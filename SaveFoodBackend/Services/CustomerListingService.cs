@@ -25,7 +25,8 @@ public class CustomerListingService : ICustomerListingService
     public async Task<IEnumerable<CustomerListingDTO>> GetListingsAsync(CustomerListingFilterDTO filter, CancellationToken ct = default)
     {
         var listings = await _listingRepo.GetCustomerListingsAsync(
-            filter.CategoryId, 
+            filter.StoreId,
+            filter.CategoryIds, 
             filter.MinPrice, 
             filter.MaxPrice, 
             filter.IsSurpriseBag, 
@@ -48,7 +49,7 @@ public class CustomerListingService : ICustomerListingService
         if (!favoriteCategoryIds.Any())
         {
             // Nếu người dùng chưa từng mua gì, trả về các tin đăng mới nhất (fallback)
-            var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, "expiry_asc", ct);
+            var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", ct);
             return recentListings.Take(10).Select(MapToDTO);
         }
 

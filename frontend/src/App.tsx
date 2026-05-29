@@ -38,6 +38,7 @@ import DashboardAnalyticsPage from '@/pages/dashboard/DashboardAnalyticsPage'
 // Người 3: ProductListPage, ProductDetailPage
 // Người 4: CartPage, CheckoutPage, OrderDetailPage
 // Người 5: PaymentReturnPage, AdminPage
+import { CartPage } from '@/pages/cart/CartPage'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -78,7 +79,7 @@ function App() {
               <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
               {/* ── Cart & Orders (Người 4) ── */}
-              <Route path={ROUTES.CART}            element={<PlaceholderPage title="Giỏ hàng" />} />
+              <Route path={ROUTES.CART}            element={<CartPage />} />
               <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
               <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
               <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />

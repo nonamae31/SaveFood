@@ -70,7 +70,7 @@ public class ListingRepository : IListingRepository
             .ToListAsync(ct);
     }
 
-    public async Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? categoryId, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default)
+    public async Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? storeId, List<Guid>? categoryIds, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default)
     {
         var query = _set
             .Include(l => l.Product)
@@ -82,9 +82,14 @@ public class ListingRepository : IListingRepository
             .Include(l => l.ListingImages)
             .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow);
 
-        if (categoryId.HasValue)
+        if (storeId.HasValue)
         {
-            query = query.Where(l => l.Product.CategoryId == categoryId.Value);
+            query = query.Where(l => l.Product.StoreId == storeId.Value);
+        }
+
+        if (categoryIds != null && categoryIds.Any())
+        {
+            query = query.Where(l => categoryIds.Contains(l.Product.CategoryId));
         }
 
         if (minPrice.HasValue)

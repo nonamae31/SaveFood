@@ -2,7 +2,8 @@
 // Route: /products
 // Trang duyệt Clearance Listings cho Customer (Người 3).
 
-import { useState } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -14,8 +15,28 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import type { ListingFilter } from '@/types/listing.types'
 
 export function ProductListPage() {
-  const [filter, setFilter] = useState<ListingFilter>({})
+  const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated } = useAuthContext()
+
+  const filter: ListingFilter = useMemo(() => {
+    return {
+      categoryIds: searchParams.getAll('categoryIds').length > 0 ? searchParams.getAll('categoryIds') : undefined,
+      minPrice: searchParams.has('minPrice') ? Number(searchParams.get('minPrice')) : undefined,
+      maxPrice: searchParams.has('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
+      isSurpriseBag: searchParams.has('isSurpriseBag') ? searchParams.get('isSurpriseBag') === 'true' : undefined,
+      sortBy: (searchParams.get('sortBy') as ListingFilter['sortBy']) || undefined,
+    }
+  }, [searchParams])
+
+  const setFilter = (next: ListingFilter) => {
+    const params = new URLSearchParams()
+    if (next.categoryIds?.length) next.categoryIds.forEach(id => params.append('categoryIds', id))
+    if (next.minPrice !== undefined) params.set('minPrice', String(next.minPrice))
+    if (next.maxPrice !== undefined) params.set('maxPrice', String(next.maxPrice))
+    if (next.isSurpriseBag !== undefined) params.set('isSurpriseBag', String(next.isSurpriseBag))
+    if (next.sortBy) params.set('sortBy', next.sortBy)
+    setSearchParams(params)
+  }
 
   const {
     data: listings,

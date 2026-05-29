@@ -1,60 +1,44 @@
 import { useParams, Link } from 'react-router-dom'
-import { MapPin, Star, Clock, Phone, ArrowLeft } from 'lucide-react'
+import { MapPin, Star, Clock, Phone, ArrowLeft, Info } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { ListingCard } from '@/components/listings/ListingCard'
+import { useStoreDetail } from '@/hooks/useStores'
+import { useListings } from '@/hooks/useListings'
+import { SkeletonCard } from '@/components/ui/SkeletonCard'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { ErrorState } from '@/components/ui/ErrorState'
 
 export function StoreDetailPage() {
   const { id } = useParams()
 
-  // Mock data for the specific store
-  const store = {
-    id: id || 'store-1',
-    name: 'Highlands Coffee - Vincom Center',
-    category: 'Cà phê & Bánh ngọt',
-    rating: 4.8,
-    reviews: 124,
-    address: '72 Lê Thánh Tôn, Quận 1, TP.HCM',
-    phone: '028 3822 0000',
-    openingHours: '07:00 - 22:00',
-    coverImage: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80',
-    description: 'Thưởng thức hương vị cà phê đậm đà và các loại bánh ngọt tươi mới mỗi ngày. Chúng tôi tham gia SaveFood để giảm thiểu lãng phí thực phẩm trong ngày.',
+  const { data: store, isLoading: isStoreLoading, isError: isStoreError } = useStoreDetail(id)
+  
+  const { 
+    data: listings, 
+    isLoading: isListingsLoading, 
+    isError: isListingsError 
+  } = useListings({ storeId: id })
+
+  if (isStoreLoading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[--color-brand-500] border-t-transparent"></div>
+      </div>
+    )
   }
 
-  // Mock listings from this store
-  const listings = [
-    {
-      id: 'listing-1',
-      productId: 'p1',
-      storeId: store.id,
-      storeName: store.name,
-      productName: 'Bánh mì thịt nướng',
-      title: 'Bánh mì thịt nướng',
-      originalPrice: 45000,
-      salePrice: 20000,
-      discountPercent: 55,
-      quantityAvailable: 3,
-      expiryTime: '2026-05-30T18:00:00Z',
-      expiryDate: '2026-05-30T18:00:00Z',
-      imageUrl: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80',
-      isSurpriseBag: false
-    },
-    {
-      id: 'listing-2',
-      productId: 'p2',
-      storeId: store.id,
-      storeName: store.name,
-      productName: 'Túi bất ngờ Bánh ngọt',
-      title: 'Túi bất ngờ Bánh ngọt',
-      originalPrice: 100000,
-      salePrice: 35000,
-      discountPercent: 65,
-      quantityAvailable: 2,
-      expiryTime: '2026-05-30T21:00:00Z',
-      expiryDate: '2026-05-30T21:00:00Z',
-      imageUrl: '',
-      isSurpriseBag: true
-    }
-  ]
+  if (isStoreError || !store) {
+    return (
+      <div className="max-w-3xl mx-auto py-20 px-4">
+        <ErrorState title="Không tìm thấy cửa hàng" error={new Error("Cửa hàng không tồn tại hoặc đã ngừng hoạt động.")} />
+        <div className="mt-8 flex justify-center">
+          <Link to={ROUTES.STORES} className="bg-[--color-brand-500] text-white px-6 py-2 rounded-full font-bold">
+            Quay lại danh sách
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="pb-20">
@@ -81,8 +65,7 @@ export function StoreDetailPage() {
               <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
                 <div className="flex items-center gap-1.5">
                   <Star size={16} className="text-[#f59e0b] fill-[#f59e0b]" />
-                  <span className="font-bold text-white">{store.rating}</span>
-                  <span>({store.reviews} đánh giá)</span>
+                  <span className="font-bold text-white">{store.rating} / 5</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin size={16} />
@@ -109,11 +92,32 @@ export function StoreDetailPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {listings.map(listing => (
-              <ListingCard key={listing.id} listing={listing} />
-            ))}
-          </div>
+          {/* Listings State */}
+          {isListingsLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <SkeletonCard count={4} />
+            </div>
+          )}
+
+          {isListingsError && !isListingsLoading && (
+            <ErrorState title="Không thể tải sản phẩm" error={new Error("Đã có lỗi xảy ra khi tải danh sách sản phẩm.")} />
+          )}
+
+          {!isListingsLoading && !isListingsError && listings && listings.length === 0 && (
+            <EmptyState 
+              title="Chưa có sản phẩm nào" 
+              description="Cửa hàng này hiện chưa có sản phẩm cận date nào đang bán." 
+              icon={Info}
+            />
+          )}
+
+          {!isListingsLoading && !isListingsError && listings && listings.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {listings.map(listing => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Sidebar (Info) ── */}

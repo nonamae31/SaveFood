@@ -3,12 +3,14 @@
 // Dùng trong ProductListPage (lưới) và trang gợi ý.
 
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Package, Store, Hash } from 'lucide-react'
+import { ShoppingBag, Package, Store, Hash, ShoppingCart } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
 import type { CustomerListingDTO } from '@/types/listing.types'
+import { useAddToCart } from '@/hooks/useCart'
+import { toast } from 'react-hot-toast'
 
 interface ListingCardProps {
   listing: CustomerListingDTO
@@ -18,6 +20,24 @@ export function ListingCard({ listing }: ListingCardProps) {
   const discount = calcDiscountPercent(listing.originalPrice, listing.salePrice)
   const isLowStock = listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut  = listing.quantityAvailable === 0
+  
+  const addToCartMutation = useAddToCart()
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (isSoldOut || addToCartMutation.isPending) return
+    
+    addToCartMutation.mutate({ listingId: listing.id, quantity: 1 }, {
+      onSuccess: () => {
+        toast.success('Đã thêm vào giỏ hàng')
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+      }
+    })
+  }
 
   return (
     <Link
@@ -53,12 +73,27 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         {/* Surprise Bag badge — góc trên phải */}
         {listing.isSurpriseBag && (
-          <div className="absolute top-2.5 right-2.5">
+          <div className="absolute top-2.5 left-2.5 mt-8">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
                              bg-amber-400 text-white text-[--text-caption] font-bold shadow-sm">
               🎁 Surprise
             </span>
           </div>
+        )}
+
+        {/* Nút thêm vào giỏ hàng nhanh */}
+        {!isSoldOut && (
+          <button
+            onClick={handleAddToCart}
+            disabled={addToCartMutation.isPending}
+            className="absolute top-2.5 right-2.5 z-10 w-10 h-10 rounded-full bg-white/95 text-brand-500 
+                       flex items-center justify-center shadow-md backdrop-blur-sm
+                       transition-all duration-300 hover:bg-brand-500 hover:text-white 
+                       hover:scale-110 active:scale-95 disabled:opacity-50"
+            title="Thêm vào giỏ hàng"
+          >
+            <ShoppingCart size={18} strokeWidth={2.5} />
+          </button>
         )}
 
         {/* Featured Badge — góc dưới phải (hoặc góc trên phải nếu không phải Surprise) */}

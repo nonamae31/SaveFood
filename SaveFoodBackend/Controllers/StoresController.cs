@@ -18,6 +18,25 @@ namespace SaveFoodBackend.Controllers
             _storeService = storeService;
         }
 
+        // GET: api/stores
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetStores(System.Threading.CancellationToken ct)
+        {
+            var stores = await _storeService.GetCustomerStoresAsync(ct);
+            return Ok(stores);
+        }
+
+        // GET: api/stores/{id}
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetStoreById(Guid id, System.Threading.CancellationToken ct)
+        {
+            var store = await _storeService.GetCustomerStoreByIdAsync(id, ct);
+            if (store == null) return NotFound();
+            return Ok(store);
+        }
+
         // PUT: api/stores/{id}/images
         [HttpPut("{id}/images")]
         [Authorize] // Store Staff/Owner only
@@ -25,7 +44,7 @@ namespace SaveFoodBackend.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = GetRequiredUserId();
                 await _storeService.UpdateStoreImagesAsync(id, userId, request);
                 return NoContent();
             }

@@ -56,6 +56,17 @@ public class StoreRepository : IStoreRepository
         return await _set.FindAsync(new object[] { storeId }, ct);
     }
 
+    public async Task<IEnumerable<Store>> GetActiveStoresAsync(CancellationToken ct = default)
+    {
+        return await _set
+            .Include(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                .ThenInclude(sub => sub.Plan)
+            .Include(s => s.Products)
+            .Where(s => s.Status == (byte)StoreStatus.Active)
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
+
     public void Update(Store store)
     {
         _set.Update(store);

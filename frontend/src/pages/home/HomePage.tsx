@@ -1,8 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
+import { useListings } from '@/hooks/useListings';
+import { ListingCard } from '@/components/listings/ListingCard';
+import { SkeletonCard } from '@/components/ui/SkeletonCard';
 
 export function HomePage() {
+  const { data: listings, isLoading, isError } = useListings();
+  
   return (
     <div className="bg-[--color-surface-base] min-h-screen">
       {/* 1. Cinematic Hero Section (Light Theme) */}
@@ -94,7 +99,7 @@ export function HomePage() {
       </section>
 
       {/* 2. Featured Deals */}
-      <section className="py-24 bg-[--color-surface-subtle]">
+      <section className="py-24 bg-[--color-brand-50]">
         <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
             <div>
@@ -116,86 +121,17 @@ export function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Mock Card 1 */}
-            <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] transition-all duration-300 hover:-translate-y-1 group">
-              <div className="h-52 bg-[--color-surface-muted] relative overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80" alt="Bánh mì Sourdough" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-3 left-3 bg-[--color-brand-orange] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">-50%</div>
+            {isLoading ? (
+              <SkeletonCard count={4} />
+            ) : isError || !listings || listings.length === 0 ? (
+              <div className="col-span-full text-center py-12 text-[--color-ink-secondary]">
+                Hiện tại chưa có ưu đãi nào. Hãy quay lại sau nhé!
               </div>
-              <div className="p-5">
-                <h3 className="font-bold text-[--color-ink-primary] text-lg mb-0.5 font-[--font-display] line-clamp-1">Sourdough Hữu Cơ</h3>
-                <p className="text-[--color-ink-secondary] text-sm mb-4">The Artisan Bakery</p>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-[--color-brand-700] text-xl">45.000đ</span>
-                    <span className="text-[--color-ink-tertiary] line-through text-sm ml-2">90.000đ</span>
-                  </div>
-                  <button className="bg-[--color-brand-500] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-[--color-brand-600] hover:shadow-md transition-all duration-300">
-                    Chọn
-                  </button>
-                </div>
-              </div>
-            </div>
-            {/* Mock Card 2 */}
-            <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] transition-all duration-300 hover:-translate-y-1 group">
-              <div className="h-52 bg-[--color-surface-muted] relative overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1555507036-ab1d4075c6f1?auto=format&fit=crop&q=80" alt="Croissant Hạnh Nhân" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-3 left-3 bg-[--color-brand-orange] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">-40%</div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-[--color-ink-primary] text-lg mb-0.5 font-[--font-display] line-clamp-1">Croissant Hạnh Nhân</h3>
-                <p className="text-[--color-ink-secondary] text-sm mb-4">Paris Baguette</p>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-[--color-brand-700] text-xl">30.000đ</span>
-                    <span className="text-[--color-ink-tertiary] line-through text-sm ml-2">50.000đ</span>
-                  </div>
-                  <button className="bg-[--color-brand-500] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-[--color-brand-600] hover:shadow-md transition-all duration-300">
-                    Chọn
-                  </button>
-                </div>
-              </div>
-            </div>
-            {/* Mock Card 3 */}
-            <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] transition-all duration-300 hover:-translate-y-1 group">
-              <div className="h-52 bg-[--color-surface-muted] relative overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1565958011703-44f9829ba187?auto=format&fit=crop&q=80" alt="Pasta Ý" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-3 left-3 bg-[--color-brand-orange] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">-60%</div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-[--color-ink-primary] text-lg mb-0.5 font-[--font-display] line-clamp-1">Pasta Carbonara</h3>
-                <p className="text-[--color-ink-secondary] text-sm mb-4">Little Italy</p>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-[--color-brand-700] text-xl">35.000đ</span>
-                    <span className="text-[--color-ink-tertiary] line-through text-sm ml-2">89.000đ</span>
-                  </div>
-                  <button className="bg-[--color-brand-500] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-[--color-brand-600] hover:shadow-md transition-all duration-300">
-                    Chọn
-                  </button>
-                </div>
-              </div>
-            </div>
-            {/* Mock Card 4 */}
-            <div className="bg-white rounded-[1.5rem] overflow-hidden shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] transition-all duration-300 hover:-translate-y-1 group">
-              <div className="h-52 bg-[--color-surface-muted] relative overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1563729784474-d77dbb933a9e?auto=format&fit=crop&q=80" alt="Bánh ngọt" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute top-3 left-3 bg-[--color-brand-orange] text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">-45%</div>
-              </div>
-              <div className="p-5">
-                <h3 className="font-bold text-[--color-ink-primary] text-lg mb-0.5 font-[--font-display] line-clamp-1">Tiramisu Tươi</h3>
-                <p className="text-[--color-ink-secondary] text-sm mb-4">Sweet Corner</p>
-                <div className="flex justify-between items-center">
-                  <div>
-                    <span className="font-bold text-[--color-brand-700] text-xl">55.000đ</span>
-                    <span className="text-[--color-ink-tertiary] line-through text-sm ml-2">100.000đ</span>
-                  </div>
-                  <button className="bg-[--color-brand-500] text-white px-4 py-2 rounded-full text-sm font-bold hover:bg-[--color-brand-600] hover:shadow-md transition-all duration-300">
-                    Chọn
-                  </button>
-                </div>
-              </div>
-            </div>
+            ) : (
+              listings.slice(0, 4).map(listing => (
+                <ListingCard key={listing.id} listing={listing} />
+              ))
+            )}
           </div>
         </div>
       </section>

@@ -26,8 +26,8 @@ public abstract class ApiControllerBase : ControllerBase
     {
         get
         {
-            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (claim != null) return Guid.Parse(claim);
+            var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+            if (claim != null && Guid.TryParse(claim, out var userId)) return userId;
 
             // Mock User ID mặc định cho môi trường Dev (Khi chưa có Auth)
             return Guid.Parse("00000000-0000-0000-0000-000000000001");

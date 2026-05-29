@@ -5,6 +5,18 @@ import { ROUTES } from '@/lib/constants'
 import { Button } from '@/components/ui/Button'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
+import { useCart } from '@/hooks/useCart'
+
+function CartBadge() {
+  const { data: cartItems } = useCart()
+  if (!cartItems || cartItems.length === 0) return null
+
+  return (
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none">
+      {cartItems.length > 9 ? '9+' : cartItems.length}
+    </span>
+  )
+}
 
 // ─── Navbar Component ─────────────────────────────────────────────────────────
 // Thanh điều hướng dùng chung cho toàn bộ ứng dụng.
@@ -147,10 +159,11 @@ export function Navbar() {
             {!isSearchOpen && (
               <Link
                 to={ROUTES.CART}
-                className={`p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
                 aria-label="Giỏ hàng"
               >
                 <ShoppingCart width={18} height={18} />
+                {isAuthenticated && <CartBadge />}
               </Link>
             )}
 

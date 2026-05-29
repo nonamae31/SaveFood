@@ -23,7 +23,8 @@ public class CustomerListingDTO
 
 public class CustomerListingFilterDTO
 {
-    public Guid? CategoryId { get; set; }
+    public Guid? StoreId { get; set; }
+    public List<Guid>? CategoryIds { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public bool? IsSurpriseBag { get; set; }

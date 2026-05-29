@@ -9,7 +9,10 @@ import type { CustomerListingDTO, ListingFilter } from '@/types/listing.types'
 /** Chuyển object filter thành URLSearchParams (bỏ qua các giá trị undefined) */
 function toQueryString(filter: ListingFilter): string {
   const params = new URLSearchParams()
-  if (filter.categoryId !== undefined)  params.set('categoryId',   filter.categoryId)
+  if (filter.storeId !== undefined)     params.set('storeId',      filter.storeId)
+  if (filter.categoryIds !== undefined && filter.categoryIds.length > 0) {
+    filter.categoryIds.forEach(id => params.append('categoryIds', id))
+  }
   if (filter.minPrice   !== undefined)  params.set('minPrice',     String(filter.minPrice))
   if (filter.maxPrice   !== undefined)  params.set('maxPrice',     String(filter.maxPrice))
   if (filter.isSurpriseBag !== undefined) params.set('isSurpriseBag', String(filter.isSurpriseBag))

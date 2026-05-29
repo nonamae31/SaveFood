@@ -2,8 +2,9 @@
 // Filter bar cho trang danh sách Clearance Listings.
 
 import { useState, useRef, useEffect } from 'react'
-import { SlidersHorizontal, X, ChevronDown, SortDesc, PackageSearch } from 'lucide-react'
+import { SlidersHorizontal, X, ChevronDown, SortDesc, PackageSearch, Tag } from 'lucide-react'
 import type { ListingFilter } from '@/types/listing.types'
+import { useCategories } from '@/api/category.api'
 
 interface ListingFiltersProps {
   filter: ListingFilter
@@ -85,14 +86,47 @@ function CustomSelect({
 }
 
 export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersProps) {
+  const { data: categories } = useCategories()
+  const [isCategoriesOpen, setIsCategoriesOpen] = useState(false)
+  
+  // Local state for filters
+  const [localFilter, setLocalFilter] = useState<ListingFilter>(filter)
+
+  // Sync local state when external filter changes (e.g. reset from parent)
+  useEffect(() => {
+    setLocalFilter(filter)
+  }, [filter])
+
+  const selectedCategoryIds = localFilter.categoryIds || []
+
+  function toggleCategory(id: string) {
+    let nextIds = [...selectedCategoryIds]
+    if (nextIds.includes(id)) {
+      nextIds = nextIds.filter(x => x !== id)
+    } else {
+      nextIds.push(id)
+    }
+    setLocalFilter({ ...localFilter, categoryIds: nextIds.length > 0 ? nextIds : undefined })
+  }
+
   const hasActiveFilters =
+    (filter.categoryIds && filter.categoryIds.length > 0) ||
     filter.minPrice !== undefined ||
     filter.maxPrice !== undefined ||
     filter.isSurpriseBag !== undefined ||
     filter.sortBy !== undefined
 
-  function reset() {
-    onChange({})
+  // Compare localFilter with props.filter
+  const hasChanges = JSON.stringify(localFilter) !== JSON.stringify(filter)
+  const isClearMode = hasActiveFilters && !hasChanges
+
+  function handleAction() {
+    if (isClearMode) {
+      setLocalFilter({})
+      onChange({})
+    } else {
+      onChange(localFilter)
+    }
   }
 
   // Dual Range Slider logic
@@ -100,36 +134,37 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
   const MAX_PRICE = 500000
   const STEP = 10000
 
-  const currentMin = filter.minPrice ?? MIN_PRICE
-  const currentMax = filter.maxPrice ?? MAX_PRICE
+  const currentMin = localFilter.minPrice ?? MIN_PRICE
+  const currentMax = localFilter.maxPrice ?? MAX_PRICE
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Math.min(Number(e.target.value), currentMax - STEP)
-    onChange({ ...filter, minPrice: val === MIN_PRICE ? undefined : val })
+    setLocalFilter({ ...localFilter, minPrice: val === MIN_PRICE ? undefined : val })
   }
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = Math.max(Number(e.target.value), currentMin + STEP)
-    onChange({ ...filter, maxPrice: val >= MAX_PRICE ? undefined : val })
+    setLocalFilter({ ...localFilter, maxPrice: val >= MAX_PRICE ? undefined : val })
   }
 
   const formatPrice = (p: number) => p >= MAX_PRICE ? 'Mọi mức' : `${p.toLocaleString()}đ`
 
   // Type selection logic
-  const typeValue = filter.isSurpriseBag === true ? 'surprise' : filter.isSurpriseBag === false ? 'normal' : ''
+  const typeValue = localFilter.isSurpriseBag === true ? 'surprise' : localFilter.isSurpriseBag === false ? 'normal' : ''
   const handleTypeChange = (val: string) => {
-    onChange({
-      ...filter,
+    setLocalFilter({
+      ...localFilter,
       isSurpriseBag: val === 'surprise' ? true : val === 'normal' ? false : undefined
     })
   }
 
   return (
-    <div
-      className="bg-white border border-gray-100 shadow-[--shadow-card] rounded-[1.5rem] sm:rounded-full p-3 flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full transition-all duration-300 hover:shadow-[--shadow-card-hover]"
-      role="search"
-      aria-label="Bộ lọc sản phẩm"
-    >
+    <div className="flex flex-col gap-3">
+      <div
+        className="bg-white border border-gray-100 shadow-[--shadow-card] rounded-[1.5rem] sm:rounded-full p-3 flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full transition-all duration-300 hover:shadow-[--shadow-card-hover]"
+        role="search"
+        aria-label="Bộ lọc sản phẩm"
+      >
       {/* Icon (removed text as requested) */}
       <div className="w-10 h-10 rounded-full bg-[--color-brand-50] flex items-center justify-center shrink-0 ml-1">
         <SlidersHorizontal size={18} className="text-[--color-brand-600]" strokeWidth={2.5} aria-hidden="true" />
@@ -141,17 +176,29 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
       <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
         <CustomSelect
           options={SORT_OPTIONS}
-          value={filter.sortBy ?? ''}
-          onChange={val => onChange({ ...filter, sortBy: (val as ListingFilter['sortBy']) || undefined })}
+          value={localFilter.sortBy ?? ''}
+          onChange={val => setLocalFilter({ ...localFilter, sortBy: (val as ListingFilter['sortBy']) || undefined })}
           icon={SortDesc}
-          className="w-[170px]"
+          className="w-[150px]"
         />
         <CustomSelect
           options={TYPE_OPTIONS}
           value={typeValue}
           onChange={handleTypeChange}
-          className="w-[150px]"
+          className="w-[130px]"
         />
+        <button
+          onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+            isCategoriesOpen || selectedCategoryIds.length > 0
+              ? 'bg-[--color-brand-50] text-[--color-brand-600]'
+              : 'hover:bg-gray-50 text-[--color-ink-secondary] hover:text-[--color-brand-600]'
+          }`}
+        >
+          <Tag size={16} className={isCategoriesOpen || selectedCategoryIds.length > 0 ? 'text-[--color-brand-500]' : 'text-gray-400'} />
+          <span className="whitespace-nowrap">Danh mục {selectedCategoryIds.length > 0 && `(${selectedCategoryIds.length})`}</span>
+          <ChevronDown size={14} className={`transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
+        </button>
       </div>
 
       <div className="h-6 w-px bg-gray-200 hidden sm:block mx-2" aria-hidden="true" />
@@ -224,18 +271,64 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
             {totalCount} món
           </span>
         )}
-        {hasActiveFilters && (
-          <button
-            onClick={reset}
-            className="flex items-center gap-1.5 text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-full
-                       hover:bg-red-100 hover:text-red-600 transition-all shrink-0"
-            aria-label="Xóa tất cả bộ lọc"
-          >
-            <X size={14} strokeWidth={2.5} aria-hidden="true" />
-            Xóa lọc
-          </button>
-        )}
+        
+        <button
+          onClick={handleAction}
+          className={`flex items-center gap-1.5 text-xs font-bold px-5 py-2 rounded-full transition-all shrink-0 min-w-[110px] justify-center
+                     ${isClearMode
+                       ? 'text-red-500 bg-red-50 hover:bg-red-100 hover:text-red-600'
+                       : 'text-white bg-[#22c55e] hover:bg-[#16a34a] shadow-md shadow-[#22c55e]/20 hover:shadow-[#22c55e]/30'}`}
+          aria-label={isClearMode ? "Xóa lọc" : "Lọc"}
+        >
+          {isClearMode ? (
+            <>
+              <X size={14} strokeWidth={2.5} aria-hidden="true" />
+              Xóa lọc
+            </>
+          ) : (
+            <>
+              <SlidersHorizontal size={14} strokeWidth={2.5} aria-hidden="true" />
+              Lọc
+            </>
+          )}
+        </button>
       </div>
+    </div>
+
+    {/* ── Bảng chọn danh mục (Pills) ── */}
+      {isCategoriesOpen && categories && (
+        <div className="bg-white border border-gray-100 shadow-[--shadow-card] rounded-3xl p-5 animate-[fadeIn_0.2s_ease-out]">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[--text-body-lg] font-bold text-[--color-ink-primary]">Danh mục sản phẩm</h3>
+            {selectedCategoryIds.length > 0 && (
+              <button
+                onClick={() => setLocalFilter({ ...localFilter, categoryIds: undefined })}
+                className="text-xs font-bold text-[--color-ink-tertiary] hover:text-red-500 transition-colors"
+              >
+                Bỏ chọn tất cả
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2.5">
+            {categories.map(c => {
+              const isSelected = selectedCategoryIds.includes(c.id)
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => toggleCategory(c.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all border ${
+                    isSelected
+                      ? 'bg-[#22c55e] text-white border-[#22c55e] shadow-md shadow-[#22c55e]/20'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-[#4ade80] hover:text-[#16a34a] hover:bg-[#f0fdf4]'
+                  }`}
+                >
+                  {c.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

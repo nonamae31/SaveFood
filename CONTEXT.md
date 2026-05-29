@@ -47,8 +47,12 @@ The catalog template or generic description of an item (e.g., "Bánh m? ng?t", c
 _Avoid_: S?n ph?m (in code), Item Template.
 
 **Clearance Listing**:
-A specific physical batch of a Product that is nearing its expiration date, offered for sale with a specific sale price, available quantity, and expiry date. A single Product can have multiple active Clearance Listings simultaneously.
-_Avoid_: Tin ðãng (in code), Sale Event, Batch.
+A specific physical batch of a Product that is nearing its expiration date, offered for sale with a specific sale price, available quantity, and expiry date. A single Product can have multiple active Clearance Listings simultaneously. In the user interface, it may dynamically display urgency (e.g., increasing discount percentages and color shifts) as it approaches its expiry date.
+_Avoid_: Tin đăng (in code), Sale Event, Batch.
 
 **Surprise Bag**:
 A special type of Product (IsSurpriseBag flag) that guarantees a certain original total value (OriginalPrice) without detailing its exact contents. It is sold as a "blind box" via a Clearance Listing.
+
+**Cart**:
+A persistent, server-side collection of `Clearance Listing`s that a Customer intends to purchase. A Cart can contain items from multiple Stores. However, upon Checkout, the Cart is split into multiple separate `Order`s (one per Store). Items in the Cart do not reserve `QuantityAvailable` until the moment of successful checkout.
+_Avoid_: Basket.

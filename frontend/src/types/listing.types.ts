@@ -23,7 +23,8 @@ export interface CustomerListingDTO {
 
 /** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */
 export interface ListingFilter {
-  categoryId?: string
+  storeId?: string
+  categoryIds?: string[]
   minPrice?: number
   maxPrice?: number
   isSurpriseBag?: boolean

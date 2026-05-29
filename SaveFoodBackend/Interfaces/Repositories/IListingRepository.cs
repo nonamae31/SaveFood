@@ -13,7 +13,7 @@ public interface IListingRepository
     Task<IEnumerable<ClearanceListing>> GetByStoreIdAsync(Guid storeId, CancellationToken ct = default);
     Task<int> GetActiveListingsCountByStoreAsync(Guid storeId, CancellationToken ct = default);
     Task<IEnumerable<ClearanceListing>> GetAllActiveListingsAsync(CancellationToken ct = default);
-    Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? categoryId, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default);
+    Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? storeId, List<Guid>? categoryIds, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default);
     Task AddAsync(ClearanceListing listing, CancellationToken ct = default);
     void Update(ClearanceListing listing);
     void Delete(ClearanceListing listing);

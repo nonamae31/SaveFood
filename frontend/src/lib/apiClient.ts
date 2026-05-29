@@ -115,7 +115,11 @@ export async function apiClient<T>(
     ...options?.headers,
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, { ...options, headers })
+  const response = await fetch(`${BASE_URL}${path}`, { 
+    ...options, 
+    headers,
+    credentials: 'include' // <-- Thêm dòng này để trình duyệt gửi kèm HttpOnly Cookie (jwt)
+  })
 
   // ── 401: Thử refresh token một lần ──────────────────────────────────────
   if (response.status === 401 && !retrying) {

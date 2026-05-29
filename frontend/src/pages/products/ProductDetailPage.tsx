@@ -22,11 +22,14 @@ import { LISTING_QUERY_KEYS } from '@/hooks/useListings'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import type { CustomerListingDTO } from '@/types/listing.types'
+import { useAddToCart } from '@/hooks/useCart'
+import { toast } from 'react-hot-toast'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
   const queryClient = useQueryClient()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const addToCartMutation = useAddToCart()
 
   // ── Bước 1: Thử tìm trong cache React Query ──
   // Duyệt tất cả các query có key bắt đầu với ['listings', 'list']
@@ -302,13 +305,23 @@ export function ProductDetailPage() {
 
               {/* CTA Button */}
               <button
-                disabled={isSoldOut}
+                onClick={() => {
+                  addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+                    onSuccess: () => {
+                      toast.success('Đã thêm vào giỏ hàng')
+                    },
+                    onError: (err: any) => {
+                      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+                    }
+                  })
+                }}
+                disabled={isSoldOut || addToCartMutation.isPending}
                 className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full
                            text-[--text-body-md] font-bold transition-all duration-300
-                           bg-[--color-brand-500] text-white hover:bg-[--color-brand-600]
+                           bg-brand-500 text-white hover:bg-brand-600
                            hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
-                           disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[--color-ink-tertiary]"
-                aria-disabled={isSoldOut}
+                           disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
+                aria-disabled={isSoldOut || addToCartMutation.isPending}
               >
                 <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
                 {isSoldOut ? 'Đã hết hàng' : 'Thêm vào giỏ hàng'}

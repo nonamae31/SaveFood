@@ -388,6 +388,48 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.HasFeaturedBadge).HasDefaultValue(false);
             entity.Property(e => e.PriorityLevel).HasDefaultValue(0);
             entity.Property(e => e.AnalyticsLevel).HasDefaultValue(0);
+
+            entity.HasData(
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Name = "Free",
+                    Description = "Tối đa 5 tin đăng.Thống kê cơ bản",
+                    MonthlyPrice = 0,
+                    PlanFlags = 1,
+                    MaxActiveListings = 5,
+                    HasCustomBanner = false,
+                    HasFeaturedBadge = false,
+                    PriorityLevel = 0,
+                    AnalyticsLevel = 0
+                },
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    Name = "Plus",
+                    Description = "Tối đa 15 tin đăng.Banner tùy chỉnh.Thống kê nâng cao",
+                    MonthlyPrice = 149000,
+                    PlanFlags = 1,
+                    MaxActiveListings = 15,
+                    HasCustomBanner = true,
+                    HasFeaturedBadge = false,
+                    PriorityLevel = 1,
+                    AnalyticsLevel = 1
+                },
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                    Name = "Premium",
+                    Description = "Không giới hạn tin đăng.Banner tùy chỉnh.Huy hiệu Nổi bật.Ưu tiên lên top tìm kiếm.Thống kê cao cấp",
+                    MonthlyPrice = 399000,
+                    PlanFlags = 1,
+                    MaxActiveListings = null, // Unlimited
+                    HasCustomBanner = true,
+                    HasFeaturedBadge = true,
+                    PriorityLevel = 2,
+                    AnalyticsLevel = 2
+                }
+            );
         });
 
         modelBuilder.Entity<User>(entity =>
