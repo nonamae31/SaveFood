@@ -14,6 +14,7 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // ─── 2. Swagger với JWT Support ───────────────────────────────────────────────
 builder.Services.AddSwaggerWithJwt();
@@ -69,8 +70,11 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IListingService, SaveFoodB
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, SaveFoodBackend.Services.CustomerListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
+builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBackend.Services.OrderService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -100,8 +104,8 @@ app.UseAuthorization(); // RE-ENABLED: Kiểm tra phân quyền
 app.MapControllers();
 
 // ─────────────────────────────────────────────────────────────────────────────
-// TODO: SignalR Hub (Người 4 đăng ký tại đây)
-// app.MapHub<NotificationHub>("/hubs/notifications");
+// SignalR Hubs
+app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
 // ─────────────────────────────────────────────────────────────────────────────
 
 using (var scope = app.Services.CreateScope())

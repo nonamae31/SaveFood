@@ -1,4 +1,4 @@
-import { Leaf, ShoppingCart, Menu, X, Search } from 'lucide-react'
+import { Leaf, ShoppingCart, Menu, X, Search, ClipboardList } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { ROUTES } from '@/lib/constants'
@@ -155,12 +155,23 @@ export function Navbar() {
               )}
             </div>
 
+            {/* Orders */}
+            {!isSearchOpen && isAuthenticated && (
+              <Link
+                to={ROUTES.MY_ORDERS}
+                className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                title="Đơn hàng của tôi"
+              >
+                <ClipboardList width={18} height={18} />
+              </Link>
+            )}
+
             {/* Cart */}
             {!isSearchOpen && (
               <Link
                 to={ROUTES.CART}
                 className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
-                aria-label="Giỏ hàng"
+                title="Giỏ hàng"
               >
                 <ShoppingCart width={18} height={18} />
                 {isAuthenticated && <CartBadge />}

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -18,6 +18,12 @@ public partial class Order
     public byte OrderStatus { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public string? PickupCode { get; set; }
+
+    public long? OrderCode { get; set; }
+
+    public DateTime? ReservationExpiresAt { get; set; }
 
     public virtual User? ConfirmedBy { get; set; }
 

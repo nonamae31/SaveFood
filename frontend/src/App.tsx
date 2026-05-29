@@ -39,6 +39,9 @@ import DashboardAnalyticsPage from '@/pages/dashboard/DashboardAnalyticsPage'
 // Người 4: CartPage, CheckoutPage, OrderDetailPage
 // Người 5: PaymentReturnPage, AdminPage
 import { CartPage } from '@/pages/cart/CartPage'
+import { CheckoutPage } from '@/pages/cart/CheckoutPage'
+import { OrderDetailPage } from '@/pages/cart/OrderDetailPage'
+import { MyOrdersPage } from '@/pages/cart/MyOrdersPage'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -80,9 +83,11 @@ function App() {
 
               {/* ── Cart & Orders (Người 4) ── */}
               <Route path={ROUTES.CART}            element={<CartPage />} />
-              <Route path={ROUTES.CHECKOUT}        element={<PlaceholderPage title="Thanh toán" />} />
-              <Route path={ROUTES.MY_ORDERS}       element={<PlaceholderPage title="Đơn hàng của tôi" />} />
-              <Route path="/orders/:id"            element={<PlaceholderPage title="Chi tiết đơn hàng" />} />
+              <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
+              <Route path="/checkout/success"      element={<OrderDetailPage />} />
+              <Route path="/checkout/cancel"       element={<OrderDetailPage />} />
+              <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
+              <Route path="/orders/:id"            element={<OrderDetailPage />} />
 
               {/* Profile nested in MainLayout for now */}
               <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />

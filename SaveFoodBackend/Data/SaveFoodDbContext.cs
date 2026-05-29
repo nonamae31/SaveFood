@@ -164,6 +164,9 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PickupCode).HasMaxLength(10);
+            entity.Property(e => e.OrderCode).HasColumnType("bigint");
+            entity.Property(e => e.ReservationExpiresAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.ConfirmedBy).WithMany(p => p.OrderConfirmedBies)
                 .HasForeignKey(d => d.ConfirmedById)
