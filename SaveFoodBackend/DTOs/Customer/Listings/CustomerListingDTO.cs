@@ -17,6 +17,8 @@ public class CustomerListingDTO
     public bool IsSurpriseBag { get; set; }
     public string? ImageUrl { get; set; }
     public List<string> Images { get; set; } = new();
+    public bool HasFeaturedBadge { get; set; }
+    public int PriorityLevel { get; set; }
 }
 
 public class CustomerListingFilterDTO

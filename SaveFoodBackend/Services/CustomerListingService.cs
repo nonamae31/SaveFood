@@ -56,12 +56,15 @@ public class CustomerListingService : ICustomerListingService
         var recommendedListings = await _ctx.ClearanceListings
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                        .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
             .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow) // Status 1 = Published
             .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
-            .OrderBy(l => l.ExpiryDate)
+            .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
+            .ThenBy(l => l.ExpiryDate)
             .Take(10)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -71,6 +74,8 @@ public class CustomerListingService : ICustomerListingService
 
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)
     {
+        var activeSub = l.Product.Store.StoreSubscriptions?.FirstOrDefault();
+
         return new CustomerListingDTO
         {
             Id = l.Id,
@@ -87,7 +92,9 @@ public class CustomerListingService : ICustomerListingService
             ImageUrl = l.ListingImages?.FirstOrDefault()?.ImageUrl ?? l.Product.ProductImages?.FirstOrDefault()?.ImageUrl,
             Images = (l.ListingImages != null && l.ListingImages.Any())
                      ? l.ListingImages.Select(i => i.ImageUrl).ToList()
-                     : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>()
+                     : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
+            HasFeaturedBadge = activeSub?.Plan?.HasFeaturedBadge ?? false,
+            PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0
         };
     }
 }

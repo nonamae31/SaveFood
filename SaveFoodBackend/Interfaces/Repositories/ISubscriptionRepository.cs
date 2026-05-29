@@ -15,6 +15,7 @@ public interface ISubscriptionRepository
     
     Task<int> GetTotalActiveStoreSubscriptionsAsync(DateTime currentDate, CancellationToken ct = default);
     Task<IEnumerable<StoreSubscription>> GetSubscriptionsWithPlansAsync(CancellationToken ct = default);
+    Task<StoreSubscription?> GetActiveSubscriptionForStoreAsync(Guid storeId, DateTime currentDate, CancellationToken ct = default);
     
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

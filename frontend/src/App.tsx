@@ -28,6 +28,9 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import DashboardProductsPage from '@/pages/dashboard/DashboardProductsPage'
 import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
 
+import DashboardSettingsPage from '@/pages/dashboard/DashboardSettingsPage'
+import DashboardAnalyticsPage from '@/pages/dashboard/DashboardAnalyticsPage'
+
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
 // Người 1: LoginPage, RegisterPage, ForgotPasswordPage, ResetPasswordPage
@@ -98,8 +101,8 @@ function App() {
               <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
               <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
               <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Đơn hàng" />} />
-              <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<PlaceholderPage title="Thống kê" />} />
-              <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
+              <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
+              <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
             </Route>
 
             {/* ── Admin (Người 5) ── */}

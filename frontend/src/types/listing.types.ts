@@ -17,6 +17,8 @@ export interface CustomerListingDTO {
   isSurpriseBag: boolean
   imageUrl?: string
   images?: string[]
+  hasFeaturedBadge?: boolean
+  priorityLevel?: number
 }
 
 /** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */

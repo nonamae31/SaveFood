@@ -16,12 +16,14 @@ public class ListingService : IListingService
     private readonly IListingRepository _listingRepo;
     private readonly IProductRepository _productRepo;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly ISubscriptionRepository _subscriptionRepo;
 
-    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService)
+    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService, ISubscriptionRepository subscriptionRepo)
     {
         _listingRepo = listingRepo;
         _productRepo = productRepo;
         _cloudinaryService = cloudinaryService;
+        _subscriptionRepo = subscriptionRepo;
     }
 
     public async Task<IEnumerable<ListingResponseDTO>> GetListingsByStoreAsync(Guid storeId, CancellationToken ct = default)
@@ -47,6 +49,16 @@ public class ListingService : IListingService
         if (product == null || product.StoreId != storeId)
         {
             throw new Exception("Product not found or access denied");
+        }
+
+        var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, DateTime.UtcNow, ct);
+        if (activeSubscription != null && activeSubscription.Plan.MaxActiveListings.HasValue)
+        {
+            var activeListingsCount = await _listingRepo.GetActiveListingsCountByStoreAsync(storeId, ct);
+            if (activeListingsCount >= activeSubscription.Plan.MaxActiveListings.Value)
+            {
+                throw new Exception($"You have reached the maximum number of active listings ({activeSubscription.Plan.MaxActiveListings.Value}) for your current plan.");
+            }
         }
 
         var listing = new ClearanceListing
@@ -123,6 +135,8 @@ public class ListingService : IListingService
         listing.QuantityAvailable = dto.QuantityAvailable;
         listing.ExpiryDate = dto.ExpiryDate.ToUniversalTime();
 
+        var wasPublished = listing.Status == (byte)ListingStatus.Published;
+
         // Tự động xác định trạng thái: Expired ưu tiên > SoldOut > giữ nguyên status do user chọn
         if (listing.ExpiryDate <= DateTime.UtcNow)
         {
@@ -139,6 +153,20 @@ public class ListingService : IListingService
             if (listing.Status == (byte)ListingStatus.SoldOut || listing.Status == (byte)ListingStatus.Expired)
             {
                 listing.Status = (byte)ListingStatus.Published;
+            }
+        }
+
+        var newStatus = listing.Status;
+        if (!wasPublished && newStatus == (byte)ListingStatus.Published)
+        {
+            var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, DateTime.UtcNow, ct);
+            if (activeSubscription != null && activeSubscription.Plan.MaxActiveListings.HasValue)
+            {
+                var activeListingsCount = await _listingRepo.GetActiveListingsCountByStoreAsync(storeId, ct);
+                if (activeListingsCount >= activeSubscription.Plan.MaxActiveListings.Value)
+                {
+                    throw new Exception($"You have reached the maximum number of active listings ({activeSubscription.Plan.MaxActiveListings.Value}) for your current plan. Please upgrade to publish more.");
+                }
             }
         }
 

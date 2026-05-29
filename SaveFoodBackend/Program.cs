@@ -67,6 +67,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IListingRepos
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IListingService, SaveFoodBackend.Services.ListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, SaveFoodBackend.Services.CustomerListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 // ─────────────────────────────────────────────────────────────────────────────

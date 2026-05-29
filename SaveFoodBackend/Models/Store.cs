@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -26,6 +26,12 @@ public partial class Store
     public string? PhoneNumber { get; set; }
 
     public string? LogoUrl { get; set; }
+
+    public string? LogoCloudinaryId { get; set; }
+
+    public string? CoverUrl { get; set; }
+
+    public string? CoverCloudinaryId { get; set; }
 
     public byte Status { get; set; }
 

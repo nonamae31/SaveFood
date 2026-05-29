@@ -15,6 +15,11 @@ function SubscriptionPlanModal({
 }) {
   const [name, setName] = useState(plan?.name || '');
   const [monthlyPrice, setMonthlyPrice] = useState(plan?.monthlyPrice.toString() || '0');
+  const [maxActiveListings, setMaxActiveListings] = useState(plan?.maxActiveListings?.toString() || '');
+  const [hasCustomBanner, setHasCustomBanner] = useState(plan?.hasCustomBanner || false);
+  const [hasFeaturedBadge, setHasFeaturedBadge] = useState(plan?.hasFeaturedBadge || false);
+  const [priorityLevel, setPriorityLevel] = useState(plan?.priorityLevel?.toString() || '0');
+  const [analyticsLevel, setAnalyticsLevel] = useState(plan?.analyticsLevel?.toString() || '0');
   
   const initialFeatures = (plan?.description || '')
     .split('.')
@@ -82,7 +87,12 @@ function SubscriptionPlanModal({
       await onSave({
         name,
         description: finalDescription,
-        monthlyPrice: parseFloat(monthlyPrice) || 0
+        monthlyPrice: parseFloat(monthlyPrice) || 0,
+        maxActiveListings: maxActiveListings ? parseInt(maxActiveListings, 10) : null,
+        hasCustomBanner,
+        hasFeaturedBadge,
+        priorityLevel: parseInt(priorityLevel, 10) || 0,
+        analyticsLevel: parseInt(analyticsLevel, 10) || 0,
       });
       onClose();
     } catch (error) {
@@ -131,6 +141,65 @@ function SubscriptionPlanModal({
                 placeholder="0"
                 className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
               />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-mint-stone font-medium text-[14px] mb-1">Giới Hạn Tin Đăng Hoạt Động</label>
+              <input
+                type="number"
+                min="0"
+                value={maxActiveListings}
+                onChange={e => setMaxActiveListings(e.target.value)}
+                placeholder="Để trống cho không giới hạn"
+                className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
+              />
+            </div>
+            <div>
+              <label className="block text-mint-stone font-medium text-[14px] mb-1">Cấp Độ Ưu Tiên (0=Thấp, 1=Cao)</label>
+              <input
+                type="number"
+                min="0"
+                value={priorityLevel}
+                onChange={e => setPriorityLevel(e.target.value)}
+                className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-mint-stone font-medium text-[14px] mb-1">Cấp Độ Phân Tích (0=Cơ bản, 1=Nâng cao)</label>
+              <select
+                value={analyticsLevel}
+                onChange={e => setAnalyticsLevel(e.target.value)}
+                className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
+              >
+                <option value="0">0 - Cơ bản (Doanh thu & Đơn hàng)</option>
+                <option value="1">1 - Biểu đồ (Ngày/Tuần & Top Sản phẩm)</option>
+                <option value="2">2 - Chuyên sâu (Tỉ lệ giữ chân, Xuất báo cáo)</option>
+              </select>
+            </div>
+            <div className="flex flex-col justify-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasCustomBanner}
+                  onChange={e => setHasCustomBanner(e.target.checked)}
+                  className="w-4 h-4 text-mint-brand-green rounded focus:ring-mint-brand-green border-mint-hairline bg-mint-surface"
+                />
+                <span className="text-[14px] text-mint-ink font-medium">Cho phép tùy chỉnh Banner</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={hasFeaturedBadge}
+                  onChange={e => setHasFeaturedBadge(e.target.checked)}
+                  className="w-4 h-4 text-mint-brand-green rounded focus:ring-mint-brand-green border-mint-hairline bg-mint-surface"
+                />
+                <span className="text-[14px] text-mint-ink font-medium">Hiển thị huy hiệu "Nổi bật"</span>
+              </label>
             </div>
           </div>
 

@@ -58,6 +58,15 @@ public class SubscriptionRepository : ISubscriptionRepository
             .ToListAsync(ct);
     }
 
+    public async Task<StoreSubscription?> GetActiveSubscriptionForStoreAsync(Guid storeId, DateTime currentDate, CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.StoreId == storeId && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .OrderByDescending(s => s.EndDate)
+            .FirstOrDefaultAsync(ct);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

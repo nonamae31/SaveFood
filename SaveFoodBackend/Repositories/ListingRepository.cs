@@ -51,6 +51,14 @@ public class ListingRepository : IListingRepository
             .ToListAsync(ct);
     }
 
+    public async Task<int> GetActiveListingsCountByStoreAsync(Guid storeId, CancellationToken ct = default)
+    {
+        return await _set
+            .Include(l => l.Product)
+            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+            .CountAsync(ct);
+    }
+
     public async Task<IEnumerable<ClearanceListing>> GetAllActiveListingsAsync(CancellationToken ct = default)
     {
         return await _set
@@ -67,6 +75,8 @@ public class ListingRepository : IListingRepository
         var query = _set
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                        .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
@@ -102,10 +112,10 @@ public class ListingRepository : IListingRepository
 
         query = sortBy switch
         {
-            "price_asc" => query.OrderBy(l => l.SalePrice),
-            "price_desc" => query.OrderByDescending(l => l.SalePrice),
-            "expiry_asc" => query.OrderBy(l => l.ExpiryDate),
-            _ => query.OrderBy(l => l.ExpiryDate) // default
+            "price_asc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.SalePrice),
+            "price_desc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenByDescending(l => l.SalePrice),
+            "expiry_asc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.ExpiryDate),
+            _ => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.ExpiryDate) // default
         };
 
         return await query.AsNoTracking().ToListAsync(ct);

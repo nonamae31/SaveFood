@@ -6,18 +6,33 @@ export interface SubscriptionPlanDTO {
   description: string | null;
   monthlyPrice: number;
   isActive: boolean;
+  maxActiveListings: number | null;
+  hasCustomBanner: boolean;
+  hasFeaturedBadge: boolean;
+  priorityLevel: number;
+  analyticsLevel: number;
 }
 
 export interface CreateSubscriptionPlanRequest {
   name: string;
   description: string | null;
   monthlyPrice: number;
+  maxActiveListings: number | null;
+  hasCustomBanner: boolean;
+  hasFeaturedBadge: boolean;
+  priorityLevel: number;
+  analyticsLevel: number;
 }
 
 export interface UpdateSubscriptionPlanRequest {
   name: string;
   description: string | null;
   monthlyPrice: number;
+  maxActiveListings: number | null;
+  hasCustomBanner: boolean;
+  hasFeaturedBadge: boolean;
+  priorityLevel: number;
+  analyticsLevel: number;
 }
 
 export const subscriptionPlansApi = {

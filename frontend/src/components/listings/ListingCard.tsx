@@ -55,8 +55,26 @@ export function ListingCard({ listing }: ListingCardProps) {
         {listing.isSurpriseBag && (
           <div className="absolute top-2.5 right-2.5">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
-                             bg-amber-400 text-white text-[--text-caption] font-bold">
+                             bg-amber-400 text-white text-[--text-caption] font-bold shadow-sm">
               🎁 Surprise
+            </span>
+          </div>
+        )}
+
+        {/* Featured Badge — góc dưới phải (hoặc góc trên phải nếu không phải Surprise) */}
+        {listing.hasFeaturedBadge && !listing.isSurpriseBag && (
+          <div className="absolute top-2.5 right-2.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
+                             bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
+              ✨ Nổi bật
+            </span>
+          </div>
+        )}
+        {listing.hasFeaturedBadge && listing.isSurpriseBag && (
+          <div className="absolute bottom-2.5 right-2.5">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
+                             bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
+              ✨ Nổi bật
             </span>
           </div>
         )}

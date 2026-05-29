@@ -384,6 +384,10 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.MonthlyPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.PlanFlags).HasDefaultValue((byte)1);
+            entity.Property(e => e.HasCustomBanner).HasDefaultValue(false);
+            entity.Property(e => e.HasFeaturedBadge).HasDefaultValue(false);
+            entity.Property(e => e.PriorityLevel).HasDefaultValue(0);
+            entity.Property(e => e.AnalyticsLevel).HasDefaultValue(0);
         });
 
         modelBuilder.Entity<User>(entity =>

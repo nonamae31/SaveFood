@@ -11,6 +11,7 @@ public interface IListingRepository
     Task<ClearanceListing?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<ClearanceListing?> GetByIdWithRulesAsync(Guid id, CancellationToken ct = default);
     Task<IEnumerable<ClearanceListing>> GetByStoreIdAsync(Guid storeId, CancellationToken ct = default);
+    Task<int> GetActiveListingsCountByStoreAsync(Guid storeId, CancellationToken ct = default);
     Task<IEnumerable<ClearanceListing>> GetAllActiveListingsAsync(CancellationToken ct = default);
     Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? categoryId, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default);
     Task AddAsync(ClearanceListing listing, CancellationToken ct = default);

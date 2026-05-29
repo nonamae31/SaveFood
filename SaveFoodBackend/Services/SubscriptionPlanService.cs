@@ -30,7 +30,12 @@ namespace SaveFoodBackend.Services
                 Name = p.Name,
                 Description = p.Description,
                 MonthlyPrice = p.MonthlyPrice,
-                IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+                IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = p.MaxActiveListings,
+                HasCustomBanner = p.HasCustomBanner,
+                HasFeaturedBadge = p.HasFeaturedBadge,
+                PriorityLevel = p.PriorityLevel,
+                AnalyticsLevel = p.AnalyticsLevel
             }).ToList();
         }
 
@@ -46,7 +51,12 @@ namespace SaveFoodBackend.Services
                 Name = plan.Name,
                 Description = plan.Description,
                 MonthlyPrice = plan.MonthlyPrice,
-                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = plan.MaxActiveListings,
+                HasCustomBanner = plan.HasCustomBanner,
+                HasFeaturedBadge = plan.HasFeaturedBadge,
+                PriorityLevel = plan.PriorityLevel,
+                AnalyticsLevel = plan.AnalyticsLevel
             };
         }
 
@@ -58,7 +68,12 @@ namespace SaveFoodBackend.Services
                 Name = request.Name,
                 Description = request.Description,
                 MonthlyPrice = request.MonthlyPrice,
-                PlanFlags = (byte)PlanFlagsEnum.IsActive
+                PlanFlags = (byte)PlanFlagsEnum.IsActive,
+                MaxActiveListings = request.MaxActiveListings,
+                HasCustomBanner = request.HasCustomBanner,
+                HasFeaturedBadge = request.HasFeaturedBadge,
+                PriorityLevel = request.PriorityLevel,
+                AnalyticsLevel = request.AnalyticsLevel
             };
 
             _subscriptionRepo.AddPlan(newPlan);
@@ -70,7 +85,12 @@ namespace SaveFoodBackend.Services
                 Name = newPlan.Name,
                 Description = newPlan.Description,
                 MonthlyPrice = newPlan.MonthlyPrice,
-                IsActive = true
+                IsActive = true,
+                MaxActiveListings = newPlan.MaxActiveListings,
+                HasCustomBanner = newPlan.HasCustomBanner,
+                HasFeaturedBadge = newPlan.HasFeaturedBadge,
+                PriorityLevel = newPlan.PriorityLevel,
+                AnalyticsLevel = newPlan.AnalyticsLevel
             };
         }
 
@@ -86,6 +106,11 @@ namespace SaveFoodBackend.Services
             plan.Name = request.Name;
             plan.Description = request.Description;
             plan.MonthlyPrice = request.MonthlyPrice;
+            plan.MaxActiveListings = request.MaxActiveListings;
+            plan.HasCustomBanner = request.HasCustomBanner;
+            plan.HasFeaturedBadge = request.HasFeaturedBadge;
+            plan.PriorityLevel = request.PriorityLevel;
+            plan.AnalyticsLevel = request.AnalyticsLevel;
 
             await _subscriptionRepo.SaveChangesAsync();
 
@@ -95,7 +120,12 @@ namespace SaveFoodBackend.Services
                 Name = plan.Name,
                 Description = plan.Description,
                 MonthlyPrice = plan.MonthlyPrice,
-                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = plan.MaxActiveListings,
+                HasCustomBanner = plan.HasCustomBanner,
+                HasFeaturedBadge = plan.HasFeaturedBadge,
+                PriorityLevel = plan.PriorityLevel,
+                AnalyticsLevel = plan.AnalyticsLevel
             };
         }
 
