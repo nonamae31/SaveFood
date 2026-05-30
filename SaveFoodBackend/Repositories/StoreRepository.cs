@@ -72,6 +72,11 @@ public class StoreRepository : IStoreRepository
         _set.Update(store);
     }
 
+    public async Task AddAsync(Store store, CancellationToken ct = default)
+    {
+        await _set.AddAsync(store, ct);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

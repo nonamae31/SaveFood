@@ -25,6 +25,12 @@ public partial class Order
 
     public DateTime? ReservationExpiresAt { get; set; }
 
+    public DateTime? ExpectedPickupTime { get; set; }
+
+    public DateTime? MaxPickupTime { get; set; }
+
+    public bool AgreedToNoRefundPolicy { get; set; }
+
     public virtual User? ConfirmedBy { get; set; }
 
     public virtual ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();

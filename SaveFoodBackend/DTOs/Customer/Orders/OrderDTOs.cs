@@ -31,11 +31,26 @@ public class OrderDetailDTO
     public string? PickupCode { get; set; }
     public long? OrderCode { get; set; }
     public DateTime? ReservationExpiresAt { get; set; }
+    public DateTime? ExpectedPickupTime { get; set; }
     public Guid? ConfirmedById { get; set; }
 
     public OrderPaymentDTO? Payment { get; set; }
     
     public List<OrderLineItemDTO> Items { get; set; } = new();
+}
+
+
+public class ExtendPickupRequestDTO
+{
+    public int AdditionalMinutes { get; set; }
+}
+
+public class CancelOrderRequestDTO
+{
+    public string BankName { get; set; } = string.Empty;
+    public string BankAccount { get; set; } = string.Empty;
+    public string BankAccountName { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class OrderLineItemDTO

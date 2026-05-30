@@ -27,6 +27,24 @@ namespace SaveFoodBackend.Controllers
             return Ok(stores);
         }
 
+        // POST: api/stores/register
+        [HttpPost("register")]
+        [Authorize]
+        public async Task<IActionResult> RegisterStore([FromBody] RegisterStoreRequest request, System.Threading.CancellationToken ct)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                var profile = await _storeService.RegisterStoreAsync(userId, request, ct);
+                return Created("", profile);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi đăng ký cửa hàng.", details = ex.Message });
+            }
+        }
+
         // GET: api/stores/{id}
         [HttpGet("{id}")]
         [AllowAnonymous]

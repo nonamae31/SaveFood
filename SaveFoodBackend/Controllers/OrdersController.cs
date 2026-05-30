@@ -83,4 +83,35 @@ public class OrdersController : ApiControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
+
+    [Authorize]
+    [HttpPut("{id}/extend-pickup")]
+    public async Task<IActionResult> ExtendPickupTime(Guid id, [FromBody] ExtendPickupRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var success = await _orderService.ExtendPickupTimeAsync(id, userId, req.AdditionalMinutes, ct);
+            return Ok(new { success = success, message = "Gia hạn thời gian lấy hàng thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+    [Authorize]
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> CancelOrder(Guid id, [FromBody] CancelOrderRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var success = await _orderService.CancelOrderAsync(id, userId, req, ct);
+            return Ok(new { success = success, message = "Hủy đơn hàng và gửi yêu cầu hoàn tiền thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
 }

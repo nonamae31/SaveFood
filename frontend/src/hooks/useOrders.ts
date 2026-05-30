@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { apiClient } from '@/lib/apiClient'
 
 export interface OrderHistoryDTO {
@@ -23,6 +23,7 @@ export interface OrderDetailDTO {
   pickupCode?: string
   orderCode?: number
   reservationExpiresAt?: string
+  expectedPickupTime?: string
   confirmedById?: string
   payment?: {
     paymentMethod: number
@@ -57,5 +58,27 @@ export function useOrder(id: string) {
       return res
     },
     enabled: !!id
+  })
+}
+
+export function useExtendPickup(orderId: string) {
+  return useMutation({
+    mutationFn: async (additionalMinutes: number) => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/extend-pickup`, {
+        method: 'PUT',
+        body: JSON.stringify({ additionalMinutes })
+      })
+    }
+  })
+}
+
+export function useCancelOrder(orderId: string) {
+  return useMutation({
+    mutationFn: async (req: { bankName: string; bankAccount: string; bankAccountName: string; reason: string }) => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/cancel`, {
+        method: 'POST',
+        body: JSON.stringify(req)
+      })
+    }
   })
 }

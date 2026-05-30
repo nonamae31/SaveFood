@@ -77,6 +77,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFo
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NoShowOrderCompletionService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();

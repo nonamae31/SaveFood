@@ -14,6 +14,7 @@ namespace SaveFoodBackend.Interfaces
         Task<IEnumerable<CustomerStoreDTO>> GetCustomerStoresAsync(CancellationToken ct = default);
         Task<CustomerStoreDetailDTO?> GetCustomerStoreByIdAsync(Guid storeId, CancellationToken ct = default);
         Task<StoreAnalyticsDTO> GetStoreAnalyticsAsync(Guid storeId, CancellationToken ct = default);
+        Task<StoreProfileDTO> RegisterStoreAsync(Guid userId, RegisterStoreRequest request, CancellationToken ct = default);
     }
 }
 

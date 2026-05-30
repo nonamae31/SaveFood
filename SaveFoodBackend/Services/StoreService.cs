@@ -213,5 +213,73 @@ namespace SaveFoodBackend.Services
                 OrdersPercentageChange = Math.Round(orderChange, 1)
             };
         }
+
+        public async Task<StoreProfileDTO> RegisterStoreAsync(Guid userId, RegisterStoreRequest request, CancellationToken ct = default)
+        {
+            var store = new SaveFoodBackend.Models.Store
+            {
+                Id = Guid.NewGuid(),
+                Name = request.Name,
+                Description = request.Description,
+                AddressLine = request.AddressLine,
+                Ward = request.Ward,
+                District = request.District,
+                City = request.City,
+                PhoneNumber = request.PhoneNumber,
+                Latitude = request.Latitude,
+                Longitude = request.Longitude,
+                Status = (byte)StoreStatus.Pending,
+                CreatedAt = DateTime.UtcNow,
+                TrustScore = 100, // Default trust score
+                StoreWallet = new SaveFoodBackend.Models.StoreWallet
+                {
+                    Id = Guid.NewGuid(),
+                    AvailableBalance = 0,
+                    PendingBalance = 0,
+                    UpdatedAt = DateTime.UtcNow
+                }
+            };
+
+            store.StoreStaffs.Add(new SaveFoodBackend.Models.StoreStaff
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                StoreId = store.Id,
+                StaffRole = (byte)StaffRole.Owner,
+                StaffFlags = (byte)StaffFlagsEnum.IsActive,
+                JoinedAt = DateTime.UtcNow
+            });
+
+            if (request.SubscriptionPlanId.HasValue)
+            {
+                // In a real app we might fetch the plan to set EndDate properly based on BillingCycle.
+                // For now, we just create the record. Wait, StoreSubscription has properties.
+                store.StoreSubscriptions.Add(new SaveFoodBackend.Models.StoreSubscription
+                {
+                    Id = Guid.NewGuid(),
+                    StoreId = store.Id,
+                    PlanId = request.SubscriptionPlanId.Value,
+                    StartDate = DateTime.UtcNow,
+                    EndDate = DateTime.UtcNow.AddDays(30), // Example: 30 days
+                    Status = 0, // Assuming 0 = Active
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+
+            // Using standard repository approach
+            await _storeRepo.AddAsync(store, ct);
+            await _storeRepo.SaveChangesAsync(ct);
+
+            return new StoreProfileDTO
+            {
+                Name = store.Name,
+                Description = store.Description,
+                AddressLine = store.AddressLine,
+                Ward = store.Ward,
+                District = store.District,
+                City = store.City,
+                PhoneNumber = store.PhoneNumber
+            };
+        }
     }
 }

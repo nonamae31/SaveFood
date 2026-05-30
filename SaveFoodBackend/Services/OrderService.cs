@@ -29,6 +29,9 @@ public class OrderService : IOrderService
 
     public async Task<CheckoutResponseDTO> CheckoutAsync(Guid userId, CheckoutRequestDTO req, CancellationToken ct = default)
     {
+        if (!req.AgreedToNoRefundPolicy)
+            throw new Exception("Bạn phải đồng ý với chính sách không hoàn tiền nếu không đến lấy hàng.");
+
         if (req.CartItemIds == null || !req.CartItemIds.Any())
             throw new Exception("Giỏ hàng trống hoặc chưa chọn sản phẩm.");
 
@@ -41,6 +44,9 @@ public class OrderService : IOrderService
         if (cartItems.Count != req.CartItemIds.Count)
             throw new Exception("Có sản phẩm không hợp lệ trong giỏ hàng.");
 
+        if (req.PaymentMethod != 1)
+            throw new Exception("Chỉ hỗ trợ thanh toán online qua PayOS.");
+
         var storeIds = cartItems.Select(ci => ci.Listing.Product.StoreId).Distinct().ToList();
         if (storeIds.Count > 1)
             throw new Exception("Chỉ được thanh toán các sản phẩm của cùng 1 cửa hàng trong 1 lần thanh toán.");
@@ -50,8 +56,6 @@ public class OrderService : IOrderService
         decimal totalAmount = 0;
         foreach (var item in cartItems)
         {
-            if (item.Quantity > item.Listing.QuantityAvailable)
-                throw new Exception($"Sản phẩm '{item.Listing.Title}' chỉ còn {item.Listing.QuantityAvailable} sản phẩm trong kho.");
             if (item.Listing.ExpiryDate <= DateTime.UtcNow)
                 throw new Exception($"Sản phẩm '{item.Listing.Title}' đã hết hạn.");
 
@@ -62,6 +66,17 @@ public class OrderService : IOrderService
         string pickupCode = GenerateRandomCode(6);
         long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
 
+        // Calculate MaxPickupTime (min of EndOfDay or Earliest ExpiryDate)
+        var now = DateTime.UtcNow;
+        // In Vietnam Time, "End of Today" would be today at 23:59:59 local, but for simplicity let's use +14 hours or similar.
+        // Actually, since ExpiryDate is stored in UTC, we can just take End Of UTC Day + 7 hours, or just take the exact UTC representation of end of day local.
+        var localNow = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+        var localEndOfDay = new DateTime(localNow.Year, localNow.Month, localNow.Day, 23, 59, 59);
+        var utcEndOfDay = TimeZoneInfo.ConvertTimeToUtc(localEndOfDay, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+
+        var minExpiryDate = cartItems.Min(ci => ci.Listing.ExpiryDate);
+        var maxPickupTime = minExpiryDate < utcEndOfDay ? minExpiryDate : utcEndOfDay;
+
         var order = new Order
         {
             Id = Guid.NewGuid(),
@@ -71,13 +86,21 @@ public class OrderService : IOrderService
             OrderStatus = 0, // PendingPayment (assuming 0 is Pending)
             PickupCode = pickupCode,
             OrderCode = orderCode,
-            ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10)
+            ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+            ExpectedPickupTime = req.ExpectedPickupTime,
+            MaxPickupTime = maxPickupTime,
+            AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy
         };
 
         foreach (var item in cartItems)
         {
-            // Deduct stock for reservation
-            item.Listing.QuantityAvailable -= item.Quantity;
+            // Deduct stock atomically
+            var rowsAffected = await _ctx.ClearanceListings
+                .Where(l => l.Id == item.ListingId && l.QuantityAvailable >= item.Quantity)
+                .ExecuteUpdateAsync(s => s.SetProperty(l => l.QuantityAvailable, l => l.QuantityAvailable - item.Quantity), ct);
+
+            if (rowsAffected == 0)
+                throw new Exception($"Sản phẩm '{item.Listing.Title}' không đủ số lượng trong kho hoặc đã có người khác đặt mua.");
 
             order.OrderItems.Add(new OrderItem
             {
@@ -157,13 +180,7 @@ public class OrderService : IOrderService
         if (order.PickupCode != pickupCode)
             throw new Exception("Mã nhận hàng không chính xác.");
 
-        // If paying at counter, we consider it paid now
-        if (order.Payment != null && order.Payment.PaymentMethod == 0 && order.Payment.Status == 0) // Pay At Counter
-        {
-            order.Payment.Status = 1; // Paid
-            order.Payment.PaidAt = DateTime.UtcNow;
-        }
-        else if (order.Payment != null && order.Payment.PaymentMethod == 1 && order.Payment.Status == 0) // PayOS but pending
+        if (order.Payment != null && order.Payment.PaymentMethod == 1 && order.Payment.Status == 0) // PayOS but pending
         {
             throw new Exception("Đơn hàng thanh toán online chưa hoàn tất thanh toán. Vui lòng kiểm tra lại.");
         }
@@ -171,21 +188,24 @@ public class OrderService : IOrderService
         order.OrderStatus = 2; // Completed / Delivered
         order.ConfirmedById = userId;
 
-        // Process store wallet (add money to store)
+        // Process store wallet (add money to store - minus 5% platform fee)
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
         if (storeWallet != null)
         {
-            storeWallet.AvailableBalance += order.TotalAmount; // Assuming 0% fee for now, or calculate fee here
+            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal storeIncome = order.TotalAmount - platformFee;
+
+            storeWallet.AvailableBalance += storeIncome;
             
             _ctx.WalletTransactions.Add(new WalletTransaction
             {
                 Id = Guid.NewGuid(),
                 StoreWalletId = storeWallet.Id,
                 OrderId = order.Id,
-                Amount = order.TotalAmount,
+                Amount = storeIncome,
                 Type = 1, // Income
                 Status = 1, // Completed
-                Description = $"Thu nhập từ đơn hàng {order.OrderCode ?? 0}"
+                Description = $"Thu nhập từ đơn hàng {order.OrderCode ?? 0} (Đã trừ 5% phí nền tảng)"
             });
         }
 
@@ -263,6 +283,105 @@ public class OrderService : IOrderService
                 ImageUrl = oi.Listing?.ListingImages.FirstOrDefault()?.ImageUrl
             }).ToList()
         };
+    }
+    public async Task<bool> ExtendPickupTimeAsync(Guid orderId, Guid userId, int additionalMinutes, CancellationToken ct = default)
+    {
+        var order = await _ctx.Orders.FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId, ct);
+        
+        if (order == null)
+            throw new Exception("Không tìm thấy đơn hàng.");
+
+        if (order.OrderStatus != 1)
+            throw new Exception("Chỉ có thể gia hạn giờ lấy cho đơn hàng đã thanh toán và đang chờ lấy.");
+
+        if (!order.ExpectedPickupTime.HasValue || !order.MaxPickupTime.HasValue)
+            throw new Exception("Đơn hàng này không hỗ trợ hẹn giờ lấy.");
+
+        var newPickupTime = order.ExpectedPickupTime.Value.AddMinutes(additionalMinutes);
+
+        if (newPickupTime > order.MaxPickupTime.Value)
+            throw new Exception("Thời gian gia hạn vượt quá giới hạn cho phép (Quá giờ đóng cửa hoặc quá hạn sử dụng của món ăn).");
+
+        order.ExpectedPickupTime = newPickupTime;
+        await _ctx.SaveChangesAsync(ct);
+        
+        return true;
+    }
+
+    public async Task<bool> CancelOrderAsync(Guid orderId, Guid userId, CancelOrderRequestDTO req, CancellationToken ct = default)
+    {
+        var order = await _ctx.Orders
+            .Include(o => o.OrderItems)
+            .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId, ct);
+        
+        if (order == null)
+            throw new Exception("Không tìm thấy đơn hàng.");
+
+        if (order.OrderStatus != 1) // 1 = Confirmed/Paid Wait for pickup
+            throw new Exception("Chỉ có thể hủy đơn hàng đang chờ lấy hàng.");
+
+        decimal refundAmount = order.TotalAmount;
+        
+        if (order.ConfirmedById.HasValue)
+        {
+            // Case 2: Store has confirmed -> Refund 80%, Platform 5%, Store 15%
+            refundAmount = order.TotalAmount * 0.8m;
+            decimal storeCompensation = order.TotalAmount * 0.15m;
+            
+            var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
+            if (storeWallet != null)
+            {
+                storeWallet.AvailableBalance += storeCompensation;
+                
+                var tx = new WalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    StoreWalletId = storeWallet.Id,
+                    Type = 1, // 1 = Deposit/Income
+                    Amount = storeCompensation,
+                    Description = $"Đền bù hủy đơn {order.OrderCode} (15%)",
+                    CreatedAt = DateTime.UtcNow,
+                    OrderId = order.Id,
+                    Status = 1 // 1 = Completed
+                };
+                _ctx.WalletTransactions.Add(tx);
+            }
+        }
+        else
+        {
+            // Case 1: Store hasn't confirmed -> Refund 100%
+            refundAmount = order.TotalAmount;
+        }
+
+        var refundReq = new RefundRequest
+        {
+            Id = Guid.NewGuid(),
+            OrderId = order.Id,
+            RequestedBy = userId,
+            Amount = refundAmount,
+            Reason = req.Reason,
+            Status = 0, // Pending
+            CreatedAt = DateTime.UtcNow,
+            CustomerBankName = req.BankName,
+            CustomerBankAccount = req.BankAccount,
+            CustomerBankAccountName = req.BankAccountName
+        };
+        _ctx.RefundRequests.Add(refundReq);
+
+        // Return stock
+        foreach (var item in order.OrderItems)
+        {
+            var listing = await _ctx.ClearanceListings.FindAsync(new object[] { item.ListingId }, ct);
+            if (listing != null)
+            {
+                listing.QuantityAvailable += item.Quantity;
+            }
+        }
+
+        order.OrderStatus = 4; // Cancelled
+        await _ctx.SaveChangesAsync(ct);
+        
+        return true;
     }
 
     private string GenerateRandomCode(int length)

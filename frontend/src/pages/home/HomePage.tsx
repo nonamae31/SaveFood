@@ -216,7 +216,7 @@ export function HomePage() {
               </p>
             </div>
             <Link
-              to={ROUTES.REGISTER}
+              to={ROUTES.STORE_REGISTER}
               className="inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-bold bg-[#8ced7f] text-[#0f2913] hover:scale-105 hover:bg-[#7bde6c] transition-all duration-300 whitespace-nowrap group shrink-0"
             >
               Trở thành đối tác

@@ -36,6 +36,10 @@ _Avoid_: Store Refund.
 The core identity and login account for any individual accessing the platform. A User can have one or more system-level Roles (Admin, Store, Customer).
 _Avoid_: Account.
 
+**Store**:
+A business entity on the platform that sells products. A Store is the canonical term used instead of Partner. Users can register as a Store to start selling.
+_Avoid_: Partner, Đối tác.
+
 **Staff Role**:
 A specific permission level (Owner, Manager, Staff) that a User holds within a particular Store. This is distinct from their system-level Role.
 

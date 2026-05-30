@@ -24,6 +24,7 @@ import { ProductListPage } from '@/pages/products/ProductListPage'
 import { ProductDetailPage } from '@/pages/products/ProductDetailPage'
 import { StoreListPage } from '@/pages/stores/StoreListPage'
 import { StoreDetailPage } from '@/pages/stores/StoreDetailPage'
+import StoreRegisterPage from '@/pages/stores/StoreRegisterPage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import DashboardProductsPage from '@/pages/dashboard/DashboardProductsPage'
 import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
@@ -81,6 +82,7 @@ function App() {
               <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
               <Route path="/products/:id"          element={<ProductDetailPage />} />
               <Route path={ROUTES.STORES}          element={<StoreListPage />} />
+              <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
               <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
               {/* ── Cart & Orders (Người 4) ── */}

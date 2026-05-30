@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace SaveFoodBackend.DTOs.Customer.Orders;
 
@@ -7,6 +8,12 @@ public class CheckoutRequestDTO
 {
     public List<Guid> CartItemIds { get; set; } = new List<Guid>();
     
-    // 0: Pay At Counter, 1: PayOS
-    public byte PaymentMethod { get; set; }
+    [Required]
+    public byte PaymentMethod { get; set; } // 0: Cash, 1: PayOS
+    
+    [Required]
+    public DateTime ExpectedPickupTime { get; set; }
+
+    [Required]
+    public bool AgreedToNoRefundPolicy { get; set; }
 }

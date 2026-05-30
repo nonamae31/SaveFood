@@ -47,4 +47,39 @@ namespace SaveFoodBackend.DTOs.Store
         [Phone, MaxLength(20)]
         public string? PhoneNumber { get; set; }
     }
+
+    /// <summary>Payload để đăng ký mở cửa hàng mới.</summary>
+    public class RegisterStoreRequest
+    {
+        [Required, MaxLength(200)]
+        public string Name { get; set; } = null!;
+
+        [MaxLength(1000)]
+        public string? Description { get; set; }
+
+        [Required, MaxLength(300)]
+        public string AddressLine { get; set; } = null!;
+
+        [MaxLength(100)]
+        public string? Ward { get; set; }
+
+        [Required, MaxLength(100)]
+        public string District { get; set; } = null!;
+
+        [Required, MaxLength(100)]
+        public string City { get; set; } = null!;
+
+        [Required, Phone, MaxLength(20)]
+        public string PhoneNumber { get; set; } = null!;
+
+        public decimal? Latitude { get; set; }
+
+        public decimal? Longitude { get; set; }
+
+        public Guid? SubscriptionPlanId { get; set; }
+        
+        // BillingCycle can be added if needed, let's keep it simple or add it if they pay upfront.
+        // For now SubscriptionPlanId is enough to identify which plan they selected.
+        public string? BillingCycle { get; set; } // e.g., 'monthly', 'semiannual', 'annual'
+    }
 }

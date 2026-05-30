@@ -48,6 +48,7 @@ export const ROUTES = {
   PRODUCT_DETAIL: (id: string) => `/products/${id}`,
   STORE:          (id: string) => `/stores/${id}`,
   STORES:         '/stores',
+  STORE_REGISTER: '/stores/register',
   CART:           '/cart',
   CHECKOUT:       '/checkout',
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
@@ -98,6 +99,7 @@ export const API_ENDPOINTS = {
 
   // Stores
   STORES:               '/stores',
+  STORE_REGISTER:       '/stores/register',
   STORE_DETAIL:         (id: string) => `/stores/${id}`,
   MY_STORE:             '/stores/mine',
 

@@ -1,10 +1,10 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder } from '@/hooks/useOrders'
+import { useOrder, useExtendPickup, useCancelOrder } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
-import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText } from 'lucide-react'
+import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X } from 'lucide-react'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { HubConnectionBuilder } from '@microsoft/signalr'
 import { queryClient } from '@/lib/queryClient'
 import { useAuthContext } from '@/contexts/AuthContext'
@@ -15,8 +15,49 @@ export function OrderDetailPage() {
   const [searchParams] = useSearchParams()
   const id = pathId || searchParams.get('orderId') || ''
   const { data: order, isLoading, error } = useOrder(id)
+  const extendMutation = useExtendPickup(id)
+  const cancelMutation = useCancelOrder(id)
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
+  const [cancelForm, setCancelForm] = useState({ bankName: '', bankAccount: '', bankAccountName: '', reason: '' })
+
+  const handleCancelSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelForm.bankName || !cancelForm.bankAccount || !cancelForm.bankAccountName || !cancelForm.reason) {
+      alert("Vui lòng nhập đầy đủ thông tin.");
+      return;
+    }
+
+    if (window.confirm("Hành động này không thể hoàn tác. Bạn chắc chắn muốn hủy đơn hàng?")) {
+      cancelMutation.mutate(cancelForm, {
+        onSuccess: (res) => {
+          alert(res.message);
+          setIsCancelModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ['order', id] });
+          queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+        },
+        onError: (err: any) => {
+          alert(err.message || 'Có lỗi xảy ra khi hủy đơn.');
+        }
+      });
+    }
+  };
+
+  const handleExtend = (minutes: number) => {
+    if (window.confirm(`Bạn có chắc muốn gia hạn thêm ${minutes} phút?`)) {
+      extendMutation.mutate(minutes, {
+        onSuccess: (res) => {
+          alert(res.message);
+          queryClient.invalidateQueries({ queryKey: ['order', id] });
+        },
+        onError: (err: any) => {
+          alert(err.message || 'Có lỗi xảy ra khi gia hạn.');
+        }
+      });
+    }
+  };
 
   // Setup SignalR connection
   useEffect(() => {
@@ -202,14 +243,127 @@ export function OrderDetailPage() {
             <span>Thời gian đặt:</span>
             <span>{dayjs(order.createdAt).format('HH:mm DD/MM/YYYY')}</span>
           </div>
+          {order.expectedPickupTime && (
+            <div className="flex flex-col gap-2 border-t border-gray-100 pt-2 mt-2">
+              <div className="flex justify-between">
+                <span className="font-medium text-brand-700">Giờ lấy hàng dự kiến:</span>
+                <span className="font-bold text-brand-700">{dayjs(order.expectedPickupTime).format('HH:mm DD/MM/YYYY')}</span>
+              </div>
+              {order.orderStatus === 1 && (
+                <div className="flex gap-2 justify-end mt-1">
+                  <span className="text-xs text-gray-500 self-center mr-2">Gia hạn:</span>
+                  <button onClick={() => handleExtend(30)} disabled={extendMutation.isPending} className="text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded hover:bg-brand-200 transition-colors disabled:opacity-50">+30 Phút</button>
+                  <button onClick={() => handleExtend(60)} disabled={extendMutation.isPending} className="text-xs bg-brand-100 text-brand-700 px-3 py-1.5 rounded hover:bg-brand-200 transition-colors disabled:opacity-50">+60 Phút</button>
+                </div>
+              )}
+            </div>
+          )}
           {order.payment && (
             <div className="flex justify-between">
               <span>Phương thức:</span>
               <span>{order.payment.paymentMethod === 1 ? 'Thanh toán Online' : 'Thanh toán tại quầy'}</span>
             </div>
           )}
+
+          {order.orderStatus === 1 && (
+            <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={() => setIsCancelModalOpen(true)}
+                className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-1 transition-colors"
+              >
+                <AlertCircle className="w-4 h-4" /> Hủy đơn hàng
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Cancel Order Modal */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 animate-[--animate-fade-in]">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto animate-[--animate-scale-in]">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertCircle className="text-red-500 w-6 h-6" /> Hủy Đơn Hàng
+              </h3>
+              <button onClick={() => setIsCancelModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className={`p-4 rounded-xl mb-6 text-sm ${order.confirmedById ? 'bg-orange-50 text-orange-800' : 'bg-green-50 text-green-800'}`}>
+                <p className="font-bold mb-1">
+                  {order.confirmedById ? 'Cửa hàng ĐÃ xác nhận đơn' : 'Cửa hàng CHƯA xác nhận đơn'}
+                </p>
+                <p>
+                  {order.confirmedById 
+                    ? 'Theo chính sách, bạn sẽ được hoàn lại 80% số tiền. (20% còn lại là phí hủy đơn để hỗ trợ cửa hàng và nền tảng duy trì hoạt động).'
+                    : 'Bạn sẽ được hoàn lại 100% số tiền do cửa hàng chưa xác nhận đơn.'}
+                </p>
+              </div>
+
+              <form onSubmit={handleCancelSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Lý do hủy đơn *</label>
+                  <textarea 
+                    required
+                    value={cancelForm.reason}
+                    onChange={(e) => setCancelForm(prev => ({...prev, reason: e.target.value}))}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all resize-none h-24"
+                    placeholder="Vui lòng cho biết lý do bạn hủy..."
+                  />
+                </div>
+                
+                <div className="pt-2 border-t border-gray-100">
+                  <h4 className="font-bold text-gray-900 mb-3 text-sm">Thông tin nhận tiền hoàn</h4>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Tên ngân hàng *</label>
+                      <input 
+                        type="text" required
+                        value={cancelForm.bankName}
+                        onChange={(e) => setCancelForm(prev => ({...prev, bankName: e.target.value}))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm"
+                        placeholder="VD: Vietcombank, MB Bank..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Số tài khoản *</label>
+                      <input 
+                        type="text" required
+                        value={cancelForm.bankAccount}
+                        onChange={(e) => setCancelForm(prev => ({...prev, bankAccount: e.target.value}))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm"
+                        placeholder="Nhập số tài khoản"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Tên chủ tài khoản *</label>
+                      <input 
+                        type="text" required
+                        value={cancelForm.bankAccountName}
+                        onChange={(e) => setCancelForm(prev => ({...prev, bankAccountName: e.target.value}))}
+                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm uppercase"
+                        placeholder="NGUYEN VAN A"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={cancelMutation.isPending}
+                  className="w-full mt-6 bg-red-500 text-white font-bold py-3.5 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {cancelMutation.isPending ? 'Đang xử lý...' : 'Xác nhận Hủy & Yêu cầu hoàn tiền'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -13,6 +13,7 @@ public interface IStoreRepository
     Task<Store?> GetStoreWithStaffsAsync(Guid storeId, CancellationToken ct = default);
     Task<Store?> GetByIdAsync(Guid storeId, CancellationToken ct = default);
     Task<IEnumerable<Store>> GetActiveStoresAsync(CancellationToken ct = default);
+    Task AddAsync(Store store, CancellationToken ct = default);
     void Update(Store store);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
