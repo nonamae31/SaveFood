@@ -14,12 +14,21 @@ namespace SaveFoodBackend.Services
         private readonly IStoreRepository _storeRepo;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IOrderRepository _orderRepo;
+        private readonly ISubscriptionRepository _subscriptionRepo;
+        private readonly IPayOSService _payOSService;
 
-        public StoreService(IStoreRepository storeRepo, ICloudinaryService cloudinaryService, IOrderRepository orderRepo)
+        public StoreService(
+            IStoreRepository storeRepo, 
+            ICloudinaryService cloudinaryService, 
+            IOrderRepository orderRepo,
+            ISubscriptionRepository subscriptionRepo,
+            IPayOSService payOSService)
         {
             _storeRepo = storeRepo;
             _cloudinaryService = cloudinaryService;
             _orderRepo = orderRepo;
+            _subscriptionRepo = subscriptionRepo;
+            _payOSService = payOSService;
         }
 
         public async Task<StoreProfileDTO?> GetStoreDashboardProfileAsync(Guid storeId, Guid userId, CancellationToken ct = default)
@@ -173,7 +182,7 @@ namespace SaveFoodBackend.Services
             };
         }
 
-        public async Task<StoreAnalyticsDTO> GetStoreAnalyticsAsync(Guid storeId, CancellationToken ct = default)
+        public async Task<StoreAnalyticsDTO> GetStoreAnalyticsAsync(Guid storeId, int days = 7, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             
@@ -205,12 +214,88 @@ namespace SaveFoodBackend.Services
                 orderChange = 100;
             }
             
+            var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, now, ct);
+            string planName = activeSubscription?.Plan?.Name ?? "Free";
+            int analyticsLevel = activeSubscription?.Plan?.AnalyticsLevel ?? 0;
+
+            List<decimal> weeklyRevenue = new();
+            List<TopSellingProductDTO> topProducts = new();
+            
+            if (analyticsLevel >= 1)
+            {
+                var weekStart = now.AddDays(-(days - 1)).Date; // Use days parameter
+                var weekEnd = now;
+                weeklyRevenue = await _orderRepo.GetWeeklyRevenueAsync(storeId, weekStart, weekEnd, ct);
+                
+                topProducts = await _orderRepo.GetTopSellingProductsAsync(storeId, 3, ct);
+            }
+
             return new StoreAnalyticsDTO
             {
                 TotalRevenue = currentRevenue,
                 RevenuePercentageChange = Math.Round(revenueChange, 1),
                 CompletedOrders = currentCount,
-                OrdersPercentageChange = Math.Round(orderChange, 1)
+                OrdersPercentageChange = Math.Round(orderChange, 1),
+                PlanName = planName,
+                AnalyticsLevel = analyticsLevel,
+                WeeklyRevenue = weeklyRevenue,
+                TopSellingProducts = topProducts
+            };
+        }
+
+        public async Task<SubscriptionCheckoutResponse> CreateSubscriptionCheckoutAsync(Guid storeId, Guid userId, SubscriptionCheckoutRequest request, CancellationToken ct = default)
+        {
+            var store = await _storeRepo.GetStoreWithStaffsAsync(storeId, ct);
+            if (store == null) throw new InvalidOperationException("Cửa hàng không tồn tại.");
+
+            var isStaff = store.StoreStaffs.Any(s => s.UserId == userId);
+            if (!isStaff) throw new UnauthorizedAccessException("Bạn không có quyền truy cập cửa hàng này.");
+
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(request.PlanId, ct);
+            if (plan == null) throw new InvalidOperationException("Gói đăng ký không tồn tại.");
+
+            decimal price = 0;
+            int months = 1;
+            if (request.BillingCycle == "monthly") { price = plan.MonthlyPrice; months = 1; }
+            else if (request.BillingCycle == "semiannual") { price = plan.MonthlyPrice * 6 * 0.9m; months = 6; }
+            else if (request.BillingCycle == "annual") { price = plan.MonthlyPrice * 10; months = 12; }
+
+            if (price <= 0)
+                throw new InvalidOperationException("Gói này là miễn phí, không cần thanh toán.");
+
+            long orderCode = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+            var subscription = new SaveFoodBackend.Models.StoreSubscription
+            {
+                Id = Guid.NewGuid(),
+                StoreId = storeId,
+                PlanId = request.PlanId,
+                StartDate = DateTime.UtcNow,
+                EndDate = DateTime.UtcNow.AddMonths(months),
+                Status = 0, // Pending
+                CreatedAt = DateTime.UtcNow,
+                OrderCode = orderCode
+            };
+
+            _subscriptionRepo.AddStoreSubscription(subscription);
+            await _subscriptionRepo.SaveChangesAsync(ct);
+
+            string description = $"Mua goi {plan.Name}".PadRight(0).Substring(0, Math.Min(25, $"Mua goi {plan.Name}".Length));
+            
+            string dashboardUrl = "http://localhost:5173/dashboard/subscription";
+            var payOSResponse = await _payOSService.CreatePaymentLink(
+                orderCode, 
+                price, 
+                description, 
+                subscription.Id.ToString(), 
+                dashboardUrl, // returnUrl
+                dashboardUrl  // cancelUrl
+            );
+
+            return new SubscriptionCheckoutResponse
+            {
+                SubscriptionId = subscription.Id,
+                CheckoutUrl = payOSResponse.CheckoutUrl
             };
         }
     }

@@ -13,4 +13,5 @@ public interface IStoreOrderService
     Task MarkReadyForPickupAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default);
     Task CompleteOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default);
     Task CancelOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default);
+    Task<StoreOrderDTO> LookupOrderByPickupCodeAsync(Guid storeId, string pickupCode, Guid userId, CancellationToken ct = default);
 }

@@ -88,4 +88,18 @@ public class StoreOrdersController : ApiControllerBase
         catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         catch (InvalidOperationException ex)   { return BadRequest(new { message = ex.Message }); }
     }
+
+    // GET: api/stores/{storeId}/orders/lookup?pickupCode=ABC123
+    [HttpGet("lookup")]
+    public async Task<IActionResult> LookupByPickupCode(Guid storeId, [FromQuery] string pickupCode, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var order = await _orderService.LookupOrderByPickupCodeAsync(storeId, pickupCode, userId, ct);
+            return Ok(order);
+        }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        catch (InvalidOperationException ex)   { return NotFound(new { message = ex.Message }); }
+    }
 }

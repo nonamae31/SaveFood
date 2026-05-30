@@ -55,6 +55,7 @@ export interface LoginResponse {
     email: string;
     fullName: string;
   };
+  staffRole?: number | null;
 }
 
 export interface UpdateProfileRequest {
@@ -80,4 +81,5 @@ export interface UserProfileDTO {
   roles: string[];
   hasPassword: boolean;
   storeId?: string | null;
+  staffRole?: number | null; // 0=Owner, 1=Manager, 2=Staff, null=không thuộc store nào
 }

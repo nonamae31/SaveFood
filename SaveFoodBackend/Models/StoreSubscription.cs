@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -18,6 +18,8 @@ public partial class StoreSubscription
     public byte Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public long? OrderCode { get; set; }
 
     public virtual SubscriptionPlan Plan { get; set; } = null!;
 

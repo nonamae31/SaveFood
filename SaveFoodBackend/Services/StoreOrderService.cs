@@ -54,6 +54,10 @@ public class StoreOrderService : IStoreOrderService
             OrderStatus   = o.OrderStatus,
             OrderStatusLabel = GetStatusLabel(o.OrderStatus),
             CreatedAt     = o.CreatedAt,
+            PickupCode    = o.PickupCode,
+            OrderCode     = o.OrderCode,
+            PaymentMethod = o.Payment?.PaymentMethod,
+            PaymentStatus = o.Payment?.Status,
             Items = o.OrderItems.Select(i => new StoreOrderItemDTO
             {
                 ProductName = i.ProductNameSnapshot,
@@ -134,5 +138,34 @@ public class StoreOrderService : IStoreOrderService
         order.OrderStatus = (byte)OrderStatusEnum.Cancelled;
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
+    }
+
+    public async Task<StoreOrderDTO> LookupOrderByPickupCodeAsync(Guid storeId, string pickupCode, Guid userId, CancellationToken ct = default)
+    {
+        await EnsureStaffAccess(storeId, userId, ct);
+
+        var order = await _orderRepo.GetOrderByPickupCodeAsync(storeId, pickupCode, ct)
+            ?? throw new InvalidOperationException("Không tìm thấy đơn hàng với mã này.");
+
+        return new StoreOrderDTO
+        {
+            Id            = order.Id,
+            CustomerName  = order.User?.FullName ?? "Khách hàng",
+            CustomerEmail = order.User?.Email ?? string.Empty,
+            TotalAmount   = order.TotalAmount,
+            OrderStatus   = order.OrderStatus,
+            OrderStatusLabel = GetStatusLabel(order.OrderStatus),
+            CreatedAt     = order.CreatedAt,
+            PickupCode    = order.PickupCode,
+            OrderCode     = order.OrderCode,
+            PaymentMethod = order.Payment?.PaymentMethod,
+            PaymentStatus = order.Payment?.Status,
+            Items = order.OrderItems.Select(i => new StoreOrderItemDTO
+            {
+                ProductName = i.ProductNameSnapshot,
+                Quantity    = i.Quantity,
+                UnitPrice   = i.UnitPriceSnapshot
+            }).ToList()
+        };
     }
 }

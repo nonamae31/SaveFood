@@ -6,4 +6,14 @@ public class StoreAnalyticsDTO
     public decimal RevenuePercentageChange { get; set; }
     public int CompletedOrders { get; set; }
     public decimal OrdersPercentageChange { get; set; }
+    public string PlanName { get; set; } = "Free";
+    public int AnalyticsLevel { get; set; } = 0;
+    public List<decimal> WeeklyRevenue { get; set; } = new();
+    public List<TopSellingProductDTO> TopSellingProducts { get; set; } = new();
+}
+
+public class TopSellingProductDTO
+{
+    public string Name { get; set; } = string.Empty;
+    public int Sales { get; set; }
 }

@@ -20,5 +20,10 @@ namespace SaveFoodBackend.DTOs.User
 
         // Mảng cho Cửa hàng
         public Guid? StoreId { get; set; }
+
+        // Staff role trong store: 0=Owner, 1=Manager, 2=Staff, null=không thuộc store nào
+        public byte? StaffRole { get; set; }
+
+        public string Status { get; set; } = string.Empty;
     }
 }

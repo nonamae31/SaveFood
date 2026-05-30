@@ -52,12 +52,12 @@ export function useStoreProfile(storeId?: string) {
   })
 }
 
-export function useStoreAnalytics(storeId?: string) {
+export function useStoreAnalytics(storeId?: string, days: number = 7) {
   return useQuery({
-    queryKey: ['store-analytics', storeId],
+    queryKey: ['store-analytics', storeId, days],
     queryFn: async () => {
       if (!storeId) throw new Error('Store ID is required')
-      return await storeApi.getStoreAnalytics(storeId)
+      return await storeApi.getStoreAnalytics(storeId, days)
     },
     enabled: !!storeId,
   })

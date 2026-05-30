@@ -27,6 +27,7 @@ export const QUERY_KEYS = {
     myList: (): readonly string[] => ['orders', 'my'],
     detail: (id: string): readonly string[] => ['orders', 'detail', id],
     store:  (storeId: string): readonly string[] => ['orders', 'store', storeId],
+    lookup: (storeId: string, code: string): readonly string[] => ['orders', 'lookup', storeId, code],
   },
   cart: {
     mine: (): readonly string[] => ['cart', 'mine'],
@@ -70,6 +71,7 @@ export const ROUTES = {
   DASHBOARD_ANALYTICS:    '/dashboard/analytics',
   DASHBOARD_SETTINGS:     '/dashboard/settings',
   DASHBOARD_SUBSCRIPTION: '/dashboard/subscription',
+  DASHBOARD_PICKUP:       '/dashboard/pickup',
 
   // Admin
   ADMIN:               '/admin',

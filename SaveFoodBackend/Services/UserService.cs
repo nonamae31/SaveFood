@@ -46,7 +46,9 @@ namespace SaveFoodBackend.Services
                             .Select(ur => ur.Role.Code)
                             .ToList(),
                 HasPassword = user.PasswordHash != null && !Guid.TryParse(user.PasswordHash, out _),
-                StoreId = storeStaff?.StoreId
+                StoreId = storeStaff?.StoreId,
+                StaffRole = storeStaff?.StaffRole,
+                Status = user.UserStatusEnum.ToString()
             };
         }
 

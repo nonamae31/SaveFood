@@ -37,7 +37,11 @@ The core identity and login account for any individual accessing the platform. A
 _Avoid_: Account.
 
 **Staff Role**:
-A specific permission level (Owner, Manager, Staff) that a User holds within a particular Store. This is distinct from their system-level Role.
+A specific permission level (`Owner=0`, `Manager=1`, `Staff=2`) that a User holds within a particular Store, stored in the `StoreStaff` table. This is distinct from the system-level Role (`UserRole`). Owner and Manager share the same full dashboard capabilities. Staff (role=2) has a restricted set of capabilities: creating Clearance Listings and processing Pickup Checkout at the counter.
+_Avoid_: Confusing "Staff" (StaffRole=2 specifically) with "store staff" (any member of StoreStaff).
+
+**Pickup Checkout**:
+The in-store process performed by a Staff member when a Customer arrives to collect their order. The Staff member looks up the Order using the Customer's Pickup Code, then either collects cash payment (for Cash orders) or confirms receipt (for pre-paid online orders), before marking the Order as ReadyForPickup. A second "Complete" action finalises the Order after goods are handed over.
 
 **Trust Score**:
 A rating system that tracks a Store's reliability, affected by successful orders (+), cancellations (-), refunds (-), and user reports for policy violations (e.g., bypassing platform payments). Influences ranking and visibility.

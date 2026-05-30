@@ -21,10 +21,11 @@
     "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
     "strict": true,
-    "ignoreDeprecations": "5.0",
+    
+    /* Path mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"]

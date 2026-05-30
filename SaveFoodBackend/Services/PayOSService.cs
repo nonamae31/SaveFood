@@ -9,7 +9,7 @@ namespace SaveFoodBackend.Services
 {
     public interface IPayOSService
     {
-        Task<CreatePaymentLinkResponse> CreatePaymentLink(long orderCode, decimal amount, string description, string? orderId = null);
+        Task<CreatePaymentLinkResponse> CreatePaymentLink(long orderCode, decimal amount, string description, string? orderId = null, string? returnUrlOverride = null, string? cancelUrlOverride = null);
         WebhookData VerifyPaymentWebhookData(Webhook webhookBody);
     }
 
@@ -34,7 +34,7 @@ namespace SaveFoodBackend.Services
             _payOS = new PayOSClient(options);
         }
 
-        public async Task<CreatePaymentLinkResponse> CreatePaymentLink(long orderCode, decimal amount, string description, string? orderId = null)
+        public async Task<CreatePaymentLinkResponse> CreatePaymentLink(long orderCode, decimal amount, string description, string? orderId = null, string? returnUrlOverride = null, string? cancelUrlOverride = null)
         {
             var item = new PaymentLinkItem
             {
@@ -44,12 +44,13 @@ namespace SaveFoodBackend.Services
             };
             var items = new List<PaymentLinkItem> { item };
 
-            string returnUrl = _returnUrl;
-            string cancelUrl = _cancelUrl;
+            string returnUrl = returnUrlOverride ?? _returnUrl;
+            string cancelUrl = cancelUrlOverride ?? _cancelUrl;
+            
             if (!string.IsNullOrEmpty(orderId))
             {
-                returnUrl = $"{_returnUrl}?orderId={orderId}";
-                cancelUrl = $"{_cancelUrl}?orderId={orderId}";
+                returnUrl = returnUrl.Contains("?") ? $"{returnUrl}&orderId={orderId}" : $"{returnUrl}?orderId={orderId}";
+                cancelUrl = cancelUrl.Contains("?") ? $"{cancelUrl}&orderId={orderId}" : $"{cancelUrl}?orderId={orderId}";
             }
 
             var paymentData = new CreatePaymentLinkRequest

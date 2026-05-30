@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart } from 'lucide-react'
+import { NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
+import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart, ScanLine } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
@@ -13,7 +13,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export function DashboardLayout() {
-  const { user } = useAuthContext()
+  const { user, isLoading } = useAuthContext()
   const { data: storeProfile } = useStoreProfile(user?.storeId || undefined)
   const logoutMutation = useLogout()
   const navigate = useNavigate()
@@ -31,14 +31,37 @@ export function DashboardLayout() {
     }
   }
 
-  // Define nav items for Store Owner
-  const navItems = [
+  // Staff (staffRole=2) chỉ thấy Listings + Pickup; Owner/Manager thấy full menu
+  const isStaffOnly = user?.staffRole === 2
+  
+  // If staff tries to access analytics (default dashboard route), redirect them to listings
+  if (!isLoading && isStaffOnly && (location.pathname === ROUTES.DASHBOARD || location.pathname === ROUTES.DASHBOARD_ANALYTICS)) {
+    return <Navigate to={ROUTES.DASHBOARD_LISTINGS} replace />
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-600"></div>
+      </div>
+    )
+  }
+
+  const staffNavItems = [
+    { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
+    { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
+  ]
+
+  const ownerNavItems = [
     { name: 'Tổng quan', href: ROUTES.DASHBOARD_ANALYTICS, icon: LayoutDashboard },
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
     { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
+
+  const navItems = isStaffOnly ? staffNavItems : ownerNavItems
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -73,7 +96,9 @@ export function DashboardLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">Quản lý cửa hàng</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">
+            {isStaffOnly ? 'Nhân viên' : 'Quản lý cửa hàng'}
+          </div>
           {navItems.map((item) => {
             const Icon = item.icon
             return (

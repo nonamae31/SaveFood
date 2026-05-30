@@ -107,16 +107,41 @@ namespace SaveFoodBackend.Controllers
         // GET: api/stores/{id}/analytics
         [HttpGet("{id}/analytics")]
         // [Authorize] // Temporarily disabled for testing if needed, or keep it
-        public async Task<IActionResult> GetStoreAnalytics(Guid id)
+        public async Task<IActionResult> GetStoreAnalytics(Guid id, [FromQuery] int days = 7)
         {
             try
             {
-                var analytics = await _storeService.GetStoreAnalyticsAsync(id);
+                var analytics = await _storeService.GetStoreAnalyticsAsync(id, days);
                 return Ok(analytics);
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "An error occurred while fetching analytics.", details = ex.Message });
+            }
+        }
+        // POST: api/stores/{id}/subscriptions/checkout
+        [HttpPost("{id}/subscriptions/checkout")]
+        [Authorize]
+        public async Task<IActionResult> CreateSubscriptionCheckout(Guid id, [FromBody] SubscriptionCheckoutRequest request, System.Threading.CancellationToken ct)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                var response = await _storeService.CreateSubscriptionCheckoutAsync(id, userId, request, ct);
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
             }
         }
     }

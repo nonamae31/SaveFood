@@ -8,15 +8,46 @@ import { useStoreAnalytics } from '@/hooks/useStores';
 export default function DashboardAnalyticsPage() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
-  const storeId = user?.storeId || undefined;
+  const storeId = user?.storeId ?? '';
   
-  const { data: analytics, isLoading } = useStoreAnalytics(storeId);
+  const [days, setDays] = useState(7);
+  const { data: analytics, isLoading } = useStoreAnalytics(storeId, days);
   
-  // MOCK: Replace with real subscription data fetch
-  const [subscription] = useState({
-    planName: 'Free', // Change to 'Free', 'Plus', 'Premium' to test
-    analyticsLevel: 0, // 0 = Free, 1 = Plus, 2 = Premium
-  });
+  const subscription = {
+    planName: analytics?.planName || 'Free',
+    analyticsLevel: analytics?.analyticsLevel || 0,
+  };
+
+  const handleExport = () => {
+    if (!analytics) return;
+
+    // Build CSV content
+    const bom = '\uFEFF'; // BOM for Excel UTF-8 support
+    let csvContent = bom + "Ngay,Doanh Thu\n";
+    
+    analytics.weeklyRevenue.forEach((rev, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - ((days - 1) - i));
+      const dateStr = d.toLocaleDateString('vi-VN');
+      csvContent += `${dateStr},${rev}\n`;
+    });
+
+    csvContent += `\nSan pham ban chay,So luong\n`;
+    if (analytics.topSellingProducts) {
+      analytics.topSellingProducts.forEach(product => {
+        csvContent += `"${product.name}",${product.sales}\n`;
+      });
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `BaoCao_DoanhThu_${days}ngay.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   if (isLoading) {
     return (
@@ -39,9 +70,20 @@ export default function DashboardAnalyticsPage() {
           </p>
         </div>
         
-        {/* PREMIUM FEATURE: Export */}
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl hover:bg-green-100 transition-colors font-medium shadow-sm"
+          >
+            Quản lý gói
+          </button>
+          
+          {/* PREMIUM FEATURE: Export */}
         {subscription.analyticsLevel >= 2 ? (
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-sm">
+          <button 
+            onClick={handleExport}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-sm"
+          >
             <Download className="w-4 h-4" />
             Xuất báo cáo chi tiết
           </button>
@@ -56,6 +98,7 @@ export default function DashboardAnalyticsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* ALL TIERS: Basic Stats */}
@@ -147,21 +190,55 @@ export default function DashboardAnalyticsPage() {
               <BarChart3 className="w-5 h-5 text-gray-400" /> Doanh thu theo tuần
             </h3>
             {subscription.analyticsLevel >= 1 && (
-              <select className="text-sm border-gray-200 rounded-lg">
-                <option>7 ngày qua</option>
-                <option>30 ngày qua</option>
+              <select 
+                className="text-sm border-gray-200 rounded-lg"
+                value={days}
+                onChange={(e) => setDays(Number(e.target.value))}
+              >
+                <option value={7}>7 ngày qua</option>
+                <option value={30}>30 ngày qua</option>
               </select>
             )}
           </div>
           
           {subscription.analyticsLevel >= 1 ? (
             <div className="h-48 w-full flex items-end justify-between gap-2 px-4">
-              {/* Mock Bar Chart */}
-              {[40, 70, 45, 90, 65, 85, 100].map((h, i) => (
-                <div key={i} className="w-full bg-green-100 rounded-t-md relative group">
-                  <div className="absolute bottom-0 w-full bg-green-500 rounded-t-md transition-all duration-500 hover:bg-green-400" style={{ height: `${h}%` }}></div>
+              {analytics?.weeklyRevenue && analytics.weeklyRevenue.length > 0 ? (
+                <div className={`w-full h-full ${days === 30 ? 'overflow-x-auto pb-2' : ''}`}>
+                  <div className={`flex flex-col h-full justify-end pt-8 ${days === 30 ? 'w-[800px]' : 'w-full'}`}>
+                    <div className="flex items-end justify-between gap-2 h-full w-full">
+                    {(() => {
+                      const maxRev = Math.max(...analytics.weeklyRevenue, 1); // prevent div by zero
+                      return analytics.weeklyRevenue.map((rev, i) => {
+                        const h = (rev / maxRev) * 100;
+                        return (
+                          <div key={i} className="w-full h-full bg-transparent rounded-t-md relative group flex flex-col justify-end">
+                            <div className="w-full bg-green-500 rounded-t-md transition-all duration-500 hover:bg-green-400" style={{ height: `${h}%` }}></div>
+                            {/* Tooltip */}
+                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
+                              {rev.toLocaleString()}đ
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+                  <div className="flex justify-between gap-2 mt-2 w-full">
+                    {Array.from({length: days}, (_, i) => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - ((days - 1) - i));
+                      return (
+                        <div key={i} className={`flex-1 text-center text-gray-500 font-medium ${days === 30 ? 'text-[10px]' : 'text-xs'}`}>
+                          {d.toLocaleDateString('vi-VN', {day: '2-digit', month: '2-digit'})}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
+              </div>
+              ) : (
+                <div className="w-full text-center text-sm text-gray-400 pb-8">Chưa có dữ liệu giao dịch trong {days} ngày qua.</div>
+              )}
             </div>
           ) : (
             <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
@@ -188,21 +265,21 @@ export default function DashboardAnalyticsPage() {
           
           {subscription.analyticsLevel >= 1 ? (
             <div className="space-y-4">
-              {[
-                { name: 'Bánh mì thịt nướng', sales: 45 },
-                { name: 'Cà phê sữa đá', sales: 38 },
-                { name: 'Túi bất ngờ Bánh ngọt', sales: 24 }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                      #{i + 1}
+              {analytics?.topSellingProducts && analytics.topSellingProducts.length > 0 ? (
+                analytics.topSellingProducts.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                        #{i + 1}
+                      </div>
+                      <span className="text-sm font-medium text-gray-700">{item.name}</span>
                     </div>
-                    <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                    <span className="text-sm font-bold text-gray-900">{item.sales}</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-900">{item.sales}</span>
-                </div>
-              ))}
+                ))
+              ) : (
+                <div className="text-sm text-gray-400 text-center py-4">Chưa có dữ liệu sản phẩm.</div>
+              )}
             </div>
           ) : (
             <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
