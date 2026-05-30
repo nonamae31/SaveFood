@@ -44,10 +44,15 @@ public class SubscriptionRepository : ISubscriptionRepository
         _ctx.SubscriptionPlans.Update(plan);
     }
 
+    public void AddStoreSubscription(StoreSubscription subscription)
+    {
+        _ctx.StoreSubscriptions.Add(subscription);
+    }
+
     public async Task<int> GetTotalActiveStoreSubscriptionsAsync(DateTime currentDate, CancellationToken ct = default)
     {
         return await _ctx.StoreSubscriptions
-            .Where(s => s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .CountAsync(ct);
     }
 
@@ -62,7 +67,7 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return await _ctx.StoreSubscriptions
             .Include(s => s.Plan)
-            .Where(s => s.StoreId == storeId && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.StoreId == storeId && s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .OrderByDescending(s => s.EndDate)
             .FirstOrDefaultAsync(ct);
     }

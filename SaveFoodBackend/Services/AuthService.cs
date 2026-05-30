@@ -184,6 +184,8 @@ public class AuthService : IAuthService
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id);
+
         return new LoginResponse
         {
             AccessToken = token,
@@ -191,7 +193,8 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             Role = roleCode,
-            RefreshToken = session.RefreshTokenHash
+            RefreshToken = session.RefreshTokenHash,
+            StaffRole = storeStaff?.StaffRole
         };
     }
 
@@ -459,6 +462,8 @@ public class AuthService : IAuthService
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id);
+
         return new LoginResponse
         {
             AccessToken = token,
@@ -466,7 +471,8 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             Role = roleCode,
-            RefreshToken = session.RefreshTokenHash
+            RefreshToken = session.RefreshTokenHash,
+            StaffRole = storeStaff?.StaffRole
         };
     }
 

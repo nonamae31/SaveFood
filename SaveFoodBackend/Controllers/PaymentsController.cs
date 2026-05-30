@@ -48,6 +48,25 @@ public class PaymentsController : ControllerBase
                         await _ctx.SaveChangesAsync();
                     }
                 }
+                else
+                {
+                    var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
+                    if (subscription != null && subscription.Status == 0)
+                    {
+                        subscription.Status = 1; // Active
+                        
+                        // We must cancel any other active subscriptions for this store to prevent overlap
+                        var activeSubs = await _ctx.StoreSubscriptions
+                                                   .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                   .ToListAsync();
+                        foreach(var sub in activeSubs)
+                        {
+                            sub.Status = 2; // Cancelled/Expired
+                        }
+
+                        await _ctx.SaveChangesAsync();
+                    }
+                }
             }
 
             return Ok(new { success = true });
@@ -64,20 +83,20 @@ public class PaymentsController : ControllerBase
     {
         try
         {
+            var payOSClient = new PayOS.PayOSClient(
+                new PayOS.PayOSOptions
+                {
+                    ClientId = configuration["PayOS:ClientId"],
+                    ApiKey = configuration["PayOS:ApiKey"],
+                    ChecksumKey = configuration["PayOS:ChecksumKey"]
+                }
+            );
+
             var order = await _ctx.Orders.Include(o => o.Payment)
                                          .FirstOrDefaultAsync(o => o.Id == orderId);
             
             if (order != null && order.Payment != null && order.Payment.Status == 0 && order.OrderCode.HasValue)
             {
-                var payOSClient = new PayOS.PayOSClient(
-                    new PayOS.PayOSOptions
-                    {
-                        ClientId = configuration["PayOS:ClientId"],
-                        ApiKey = configuration["PayOS:ApiKey"],
-                        ChecksumKey = configuration["PayOS:ChecksumKey"]
-                    }
-                );
-                
                 var payOSInfo = await payOSClient.PaymentRequests.GetAsync(order.OrderCode.Value);
                 if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                 {
@@ -85,6 +104,27 @@ public class PaymentsController : ControllerBase
                     order.Payment.PaidAt = DateTime.UtcNow;
                     order.OrderStatus = 1; // Paid / Confirmed
                     await _ctx.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                // check if it's a subscription (orderId could be subscriptionId)
+                var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.Id == orderId);
+                if (subscription != null && subscription.Status == 0 && subscription.OrderCode.HasValue)
+                {
+                    var payOSInfo = await payOSClient.PaymentRequests.GetAsync(subscription.OrderCode.Value);
+                    if (payOSInfo.Status.ToString().ToUpper() == "PAID")
+                    {
+                        subscription.Status = 1; // Active
+                        var activeSubs = await _ctx.StoreSubscriptions
+                                                   .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                   .ToListAsync();
+                        foreach(var sub in activeSubs)
+                        {
+                            sub.Status = 2; // Cancelled/Expired
+                        }
+                        await _ctx.SaveChangesAsync();
+                    }
                 }
             }
             return Ok(new { success = true });

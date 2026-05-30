@@ -27,7 +27,11 @@ export function LoginPage() {
             if (role === 'admin') {
               navigate(ROUTES.ADMIN_ACCOUNTS);
             } else if (role === 'store') {
-              navigate(ROUTES.DASHBOARD);
+              if (response?.staffRole === 2) {
+                navigate(ROUTES.DASHBOARD_LISTINGS);
+              } else {
+                navigate(ROUTES.DASHBOARD);
+              }
             } else {
               navigate(ROUTES.HOME);
             }
@@ -60,7 +64,11 @@ export function LoginPage() {
         if (role === 'admin') {
           navigate(ROUTES.ADMIN_ACCOUNTS);
         } else if (role === 'store') {
-          navigate(ROUTES.DASHBOARD);
+          if (response?.staffRole === 2) {
+            navigate(ROUTES.DASHBOARD_LISTINGS);
+          } else {
+            navigate(ROUTES.DASHBOARD);
+          }
         } else {
           navigate(ROUTES.HOME);
         }

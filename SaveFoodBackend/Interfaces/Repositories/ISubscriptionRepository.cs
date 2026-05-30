@@ -12,6 +12,7 @@ public interface ISubscriptionRepository
     Task<SubscriptionPlan?> GetPlanByIdAsync(Guid id, CancellationToken ct = default);
     void AddPlan(SubscriptionPlan plan);
     void UpdatePlan(SubscriptionPlan plan);
+    void AddStoreSubscription(StoreSubscription subscription);
     
     Task<int> GetTotalActiveStoreSubscriptionsAsync(DateTime currentDate, CancellationToken ct = default);
     Task<IEnumerable<StoreSubscription>> GetSubscriptionsWithPlansAsync(CancellationToken ct = default);

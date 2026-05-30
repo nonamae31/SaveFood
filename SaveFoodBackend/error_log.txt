@@ -1,10 +1,5 @@
-Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'AnalyticsLevel'.
-Invalid column name 'HasCustomBanner'.
-Invalid column name 'HasFeaturedBadge'.
-Invalid column name 'MaxActiveListings'.
-Invalid column name 'PriorityLevel'.
-Invalid column name 'PriorityLevel'.
-Invalid column name 'PriorityLevel'.
+Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'OrderCode'.
+   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
    at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
    at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
 --- End of stack trace from previous location ---
@@ -39,5 +34,5 @@ Invalid column name 'PriorityLevel'.
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:0b710b2b-b08e-4e6b-8c30-c9437da00618
+ClientConnectionId:47a64108-cd60-4782-9943-1308b006cd57
 Error Number:207,State:1,Class:16

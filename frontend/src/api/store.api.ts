@@ -27,6 +27,10 @@ export interface StoreAnalyticsDTO {
   revenuePercentageChange: number;
   completedOrders: number;
   ordersPercentageChange: number;
+  planName: string;
+  analyticsLevel: number;
+  weeklyRevenue: number[];
+  topSellingProducts: { name: string; sales: number }[];
 }
 
 export const storeApi = {
@@ -38,13 +42,13 @@ export const storeApi = {
   },
 
   getStoreProfile: async (storeId: string): Promise<StoreProfileDTO> => {
-    return await apiClient(`/stores/${storeId}/dashboard/profile`, {
+    return await apiClient(`/stores/${storeId}/profile`, {
       method: 'GET'
     })
   },
-  
-  getStoreAnalytics: async (storeId: string): Promise<StoreAnalyticsDTO> => {
-    return await apiClient(`/stores/${storeId}/analytics`, {
+
+  getStoreAnalytics: async (storeId: string, days: number = 7): Promise<StoreAnalyticsDTO> => {
+    return await apiClient(`/stores/${storeId}/analytics?days=${days}`, {
       method: 'GET'
     })
   },
@@ -53,6 +57,13 @@ export const storeApi = {
     return apiClient<void>(`/stores/${storeId}/profile`, {
       method: 'PUT',
       body: JSON.stringify(data),
+    })
+  },
+  
+  createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string): Promise<{ checkoutUrl: string }> => {
+    return await apiClient(`/stores/${storeId}/subscriptions/checkout`, {
+      method: 'POST',
+      body: JSON.stringify({ planId, billingCycle })
     })
   },
 }

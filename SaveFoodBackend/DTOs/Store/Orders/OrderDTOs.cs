@@ -14,6 +14,12 @@ namespace SaveFoodBackend.DTOs.Store.Orders
         public string OrderStatusLabel { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public List<StoreOrderItemDTO> Items { get; set; } = new();
+
+        // Pickup & Payment info — dùng cho Pickup Checkout
+        public string? PickupCode { get; set; }
+        public long? OrderCode { get; set; }
+        public byte? PaymentMethod { get; set; }   // 0=Cash, 1=PayOS
+        public byte? PaymentStatus { get; set; }   // 0=Pending, 1=Paid
     }
 
     public class StoreOrderItemDTO

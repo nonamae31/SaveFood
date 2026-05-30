@@ -179,7 +179,7 @@ export function OrderDetailPage() {
 
           {!isCompleted && !isCancelled && order.pickupCode && (
             <div className="bg-white p-4 rounded-xl shadow-sm mb-6 animate-[--animate-scale-in]">
-              <QRCodeSVG value={order.id} size={200} />
+              <QRCodeSVG value={`pickupCode=${order.pickupCode}`} size={200} />
             </div>
           )}
 
