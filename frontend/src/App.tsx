@@ -68,76 +68,79 @@ function PlaceholderPage({ title }: { title: string }) {
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { LocationProvider } from '@/contexts/LocationContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Routes>
-            {/* ── Public Pages ── */}
-            <Route element={<MainLayout />}>
-              <Route path={ROUTES.HOME}            element={<HomePage />} />
-              <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
-              <Route path="/products/:id"          element={<ProductDetailPage />} />
-              <Route path={ROUTES.STORES}          element={<StoreListPage />} />
-              <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
-              <Route path="/stores/:id"            element={<StoreDetailPage />} />
+        <LocationProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Routes>
+              {/* ── Public Pages ── */}
+              <Route element={<MainLayout />}>
+                <Route path={ROUTES.HOME}            element={<HomePage />} />
+                <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
+                <Route path="/products/:id"          element={<ProductDetailPage />} />
+                <Route path={ROUTES.STORES}          element={<StoreListPage />} />
+                <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
+                <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
-              {/* ── Cart & Orders (Người 4) ── */}
-              <Route path={ROUTES.CART}            element={<CartPage />} />
-              <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
-              <Route path="/checkout/success"      element={<OrderDetailPage />} />
-              <Route path="/checkout/cancel"       element={<OrderDetailPage />} />
-              <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
-              <Route path="/orders/:id"            element={<OrderDetailPage />} />
+                {/* ── Cart & Orders (Người 4) ── */}
+                <Route path={ROUTES.CART}            element={<CartPage />} />
+                <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
+                <Route path="/checkout/success"      element={<OrderDetailPage />} />
+                <Route path="/checkout/cancel"       element={<OrderDetailPage />} />
+                <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
+                <Route path="/orders/:id"            element={<OrderDetailPage />} />
 
-              {/* Profile nested in MainLayout for now */}
-              <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
-              <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
-            </Route>
-
-            {/* ── Auth (Người 1) ── */}
-            <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
-            <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
-            <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
-            <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-            <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
-
-            {/* ── Store Dashboard (Người 2 & 3) ── */}
-            <Route element={<DashboardLayout />}>
-              <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
-              <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
-              <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
-              <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
-              <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
-              <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
-              <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
-              <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
-            </Route>
-
-            {/* ── Admin (Người 5) ── */}
-            <Route element={<AdminProtectedRoute />}>
-              <Route element={<AdminLayout />}>
-                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
-                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-                <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
-                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
-                <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
-                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
-                <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+                {/* Profile nested in MainLayout for now */}
+                <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
+                <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
               </Route>
-            </Route>
 
-            {/* ── Payment Return (Người 5) ── */}
-            <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
+              {/* ── Auth (Người 1) ── */}
+              <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
+              <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
+              <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
+              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+              <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
 
-            {/* ── 404 Fallback ── */}
-            <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-          </Routes>
-        </BrowserRouter>
+              {/* ── Store Dashboard (Người 2 & 3) ── */}
+              <Route element={<DashboardLayout />}>
+                <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
+                <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
+                <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
+                <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
+                <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
+                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
+                <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
+                <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
+              </Route>
+
+              {/* ── Admin (Người 5) ── */}
+              <Route element={<AdminProtectedRoute />}>
+                <Route element={<AdminLayout />}>
+                  <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+                  <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                  <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
+                  <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+                  <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
+                  <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
+                  <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+                </Route>
+              </Route>
+
+              {/* ── Payment Return (Người 5) ── */}
+              <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
+
+              {/* ── 404 Fallback ── */}
+              <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+            </Routes>
+          </BrowserRouter>
+        </LocationProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

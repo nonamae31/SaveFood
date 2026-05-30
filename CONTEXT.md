@@ -68,3 +68,7 @@ _Avoid_: Basket.
 **Product Review**:
 An evaluation (1-5 stars, optional text and photos) left by a Customer for a specific `OrderItem` they successfully purchased. Because an `OrderItem` maps back to a `Clearance Listing` and its underlying `Product`, these reviews are displayed on future listings of the same `Product`. The `Store`'s overall rating is aggregated from all `Product Review`s left for its items.
 _Avoid_: Store Review, Shop Rating.
+
+**Customer Location**:
+The geographical coordinates (Latitude and Longitude) representing where the Customer is currently located or wants their food delivered/searched. This is obtained via Browser Geolocation or manually picked via a map (e.g., LocationPickerMap), cached in LocalStorage for guests, and persisted in the `User` table for logged-in users. It is used to calculate the Haversine distance to Stores and filter listings by a specific radius.
+_Avoid_: User Address (when referring strictly to coordinates).

@@ -7,6 +7,7 @@ import { useListings } from '@/hooks/useListings'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
+import { ReviewSection } from '@/components/reviews/ReviewSection'
 
 export function StoreDetailPage() {
   const { id } = useParams()
@@ -63,9 +64,9 @@ export function StoreDetailPage() {
               </span>
               <h1 className="text-3xl sm:text-4xl font-bold text-white font-[--font-display] mb-2">{store.name}</h1>
               <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
                   <Star size={16} className="text-[#f59e0b] fill-[#f59e0b]" />
-                  <span className="font-bold text-white">{store.rating} / 5</span>
+                  <span className="font-bold text-white">{store.rating != null ? `${store.rating} / 5` : '___'}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <MapPin size={16} />
@@ -118,6 +119,19 @@ export function StoreDetailPage() {
               ))}
             </div>
           )}
+
+          {/* ── Reviews Section ── */}
+          {id && (
+            <div className="mt-10">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-6 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+                <h2 className="text-2xl font-bold font-[--font-display] text-[--color-ink-primary]">Đánh giá từ khách hàng</h2>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <ReviewSection storeId={id} />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ── Sidebar (Info) ── */}
@@ -131,7 +145,19 @@ export function StoreDetailPage() {
             <ul className="space-y-4">
               <li className="flex items-start gap-3">
                 <MapPin className="text-[--color-brand-500] shrink-0 mt-0.5" size={18} />
-                <span className="text-sm text-[--color-ink-secondary]">{store.address}</span>
+                {store.latitude && store.longitude ? (
+                  <a 
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sm text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors cursor-pointer underline decoration-dotted underline-offset-2"
+                    title="Chỉ đường qua Google Maps"
+                  >
+                    {store.address}
+                  </a>
+                ) : (
+                  <span className="text-sm text-[--color-ink-secondary]">{store.address}</span>
+                )}
               </li>
               <li className="flex items-start gap-3">
                 <Clock className="text-[--color-brand-500] shrink-0 mt-0.5" size={18} />

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaveFoodBackend.DTOs.Store;
+using SaveFoodBackend.DTOs.Customer.Stores;
 using SaveFoodBackend.Interfaces;
 
 namespace SaveFoodBackend.Controllers
@@ -21,9 +22,9 @@ namespace SaveFoodBackend.Controllers
         // GET: api/stores
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IActionResult> GetStores(System.Threading.CancellationToken ct)
+        public async Task<IActionResult> GetStores([FromQuery] CustomerStoreFilterDTO filter, System.Threading.CancellationToken ct)
         {
-            var stores = await _storeService.GetCustomerStoresAsync(ct);
+            var stores = await _storeService.GetCustomerStoresAsync(filter, ct);
             return Ok(stores);
         }
 

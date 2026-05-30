@@ -133,9 +133,16 @@ export function ListingCard({ listing }: ListingCardProps) {
         </h3>
 
         {/* Cửa hàng */}
-        <div className="flex items-center gap-1 text-[--text-body-sm] text-[--color-ink-secondary]">
-          <Store size={13} strokeWidth={2} aria-hidden="true" />
-          <span className="truncate">{listing.storeName}</span>
+        <div className="flex items-center justify-between text-[--text-body-sm] text-[--color-ink-secondary]">
+          <div className="flex items-center gap-1">
+            <Store size={13} strokeWidth={2} aria-hidden="true" />
+            <span className="truncate max-w-[150px]">{listing.storeName}</span>
+          </div>
+          {listing.distance !== undefined && listing.distance !== null && (
+            <span className="text-sm font-bold text-brand-700 bg-brand-100 px-2.5 py-1 rounded-full shadow-sm">
+              {listing.distance} km
+            </span>
+          )}
         </div>
 
         {/* Expiry label */}

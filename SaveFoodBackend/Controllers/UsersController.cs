@@ -450,5 +450,44 @@ namespace SaveFoodBackend.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Cập nhật tọa độ vị trí hiện tại
+        /// </summary>
+        [HttpPut("location")]
+        public async Task<IActionResult> UpdateLocation([FromBody] DTOs.User.UpdateLocationRequest request, [FromQuery] Guid? overrideUserId = null)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
+                         ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            Guid userId;
+
+            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            {
+                userId = parsedId;
+            }
+            else if (overrideUserId.HasValue)
+            {
+                userId = overrideUserId.Value;
+            }
+            else
+            {
+                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+            }
+
+            try
+            {
+                await _userService.UpdateLocationAsync(userId, request);
+                return Ok(new { message = "Location updated successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
     }
 }

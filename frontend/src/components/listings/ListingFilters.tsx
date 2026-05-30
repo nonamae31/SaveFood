@@ -14,6 +14,7 @@ interface ListingFiltersProps {
 
 const SORT_OPTIONS = [
   { label: 'Mặc định', value: '' },
+  { label: 'Gần tôi', value: 'distance' },
   { label: 'Sắp hết hạn', value: 'expiry_asc' },
   { label: 'Giá thấp nhất', value: 'price_asc' },
   { label: 'Giá cao nhất', value: 'price_desc' },

@@ -19,6 +19,7 @@ public class CustomerListingDTO
     public List<string> Images { get; set; } = new();
     public bool HasFeaturedBadge { get; set; }
     public int PriorityLevel { get; set; }
+    public double? Distance { get; set; } // km
 }
 
 public class CustomerListingFilterDTO
@@ -28,5 +29,9 @@ public class CustomerListingFilterDTO
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public bool? IsSurpriseBag { get; set; }
-    public string? SortBy { get; set; } // "price_asc", "price_desc", "expiry_asc"
+    public string? SortBy { get; set; } // "price_asc", "price_desc", "expiry_asc", "distance"
+    public string? SearchQuery { get; set; }
+    public double? UserLat { get; set; }
+    public double? UserLng { get; set; }
+    public double? RadiusKm { get; set; }
 }

@@ -74,6 +74,8 @@ builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBacke
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBackend.Services.OrderService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFoodBackend.Services.StoreOrderService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();

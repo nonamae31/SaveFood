@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SaveFoodBackend.Data;
 
@@ -11,9 +12,11 @@ using SaveFoodBackend.Data;
 namespace SaveFoodBackend.Migrations
 {
     [DbContext(typeof(SaveFoodDbContext))]
-    partial class SaveFoodDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530124720_AddReviewImagesAndStoreReply")]
+    partial class AddReviewImagesAndStoreReply
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -943,12 +946,6 @@ namespace SaveFoodBackend.Migrations
 
                     b.Property<string>("ImgCloudinaryId")
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("Latitude")
-                        .HasColumnType("decimal(9, 6)");
-
-                    b.Property<decimal?>("Longitude")
-                        .HasColumnType("decimal(9, 6)");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(255)

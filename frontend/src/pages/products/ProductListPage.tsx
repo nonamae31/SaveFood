@@ -12,11 +12,13 @@ import { ListingCard } from '@/components/listings/ListingCard'
 import { ListingFilters } from '@/components/listings/ListingFilters'
 import { useListings, useRecommendations } from '@/hooks/useListings'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useLocationContext } from '@/contexts/LocationContext'
 import type { ListingFilter } from '@/types/listing.types'
 
 export function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated } = useAuthContext()
+  const { location: userLocation } = useLocationContext()
 
   const filter: ListingFilter = useMemo(() => {
     return {
@@ -25,8 +27,12 @@ export function ProductListPage() {
       maxPrice: searchParams.has('maxPrice') ? Number(searchParams.get('maxPrice')) : undefined,
       isSurpriseBag: searchParams.has('isSurpriseBag') ? searchParams.get('isSurpriseBag') === 'true' : undefined,
       sortBy: (searchParams.get('sortBy') as ListingFilter['sortBy']) || undefined,
+      searchQuery: searchParams.get('q') || undefined,
+      radiusKm: searchParams.has('radiusKm') ? Number(searchParams.get('radiusKm')) : undefined,
+      userLat: userLocation?.lat,
+      userLng: userLocation?.lng,
     }
-  }, [searchParams])
+  }, [searchParams, userLocation])
 
   const setFilter = (next: ListingFilter) => {
     const params = new URLSearchParams()
@@ -35,6 +41,8 @@ export function ProductListPage() {
     if (next.maxPrice !== undefined) params.set('maxPrice', String(next.maxPrice))
     if (next.isSurpriseBag !== undefined) params.set('isSurpriseBag', String(next.isSurpriseBag))
     if (next.sortBy) params.set('sortBy', next.sortBy)
+    if (next.searchQuery) params.set('q', next.searchQuery)
+    if (next.radiusKm !== undefined) params.set('radiusKm', String(next.radiusKm))
     setSearchParams(params)
   }
 
@@ -63,10 +71,18 @@ export function ProductListPage() {
         <div className="relative max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 sm:pt-36 sm:pb-16">
 
           <h1 className="text-4xl sm:text-5xl font-bold font-[--font-display] leading-tight mb-3">
-            Đồ ăn <span className="text-[#8ced7f] font-serif italic font-normal">cận date</span>
+            {filter.searchQuery ? (
+              <>Kết quả tìm kiếm cho: <span className="text-[#8ced7f] font-serif italic font-normal">"{filter.searchQuery}"</span></>
+            ) : (
+              <>Đồ ăn <span className="text-[#8ced7f] font-serif italic font-normal">cận date</span></>
+            )}
           </h1>
           <p className="text-white/70 max-w-xl text-base sm:text-lg leading-relaxed">
-            Tiết kiệm đến <strong className="text-[#8ced7f]">70%</strong> cho thực phẩm sắp hết hạn từ các cửa hàng uy tín — vừa tiết kiệm, vừa bảo vệ môi trường.
+            {filter.searchQuery ? (
+              <>Khám phá các sản phẩm phù hợp với từ khóa tìm kiếm của bạn.</>
+            ) : (
+              <>Tiết kiệm đến <strong className="text-[#8ced7f]">70%</strong> cho thực phẩm sắp hết hạn từ các cửa hàng uy tín — vừa tiết kiệm, vừa bảo vệ môi trường.</>
+            )}
           </p>
         </div>
       </section>

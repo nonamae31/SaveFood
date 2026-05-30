@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -17,5 +17,13 @@ public partial class Review
 
     public DateTime CreatedAt { get; set; }
 
+    public DateTime? UpdatedAt { get; set; }
+
+    public string? StoreReply { get; set; }
+
+    public DateTime? StoreReplyAt { get; set; }
+
     public virtual OrderItem OrderItem { get; set; } = null!;
+
+    public virtual ICollection<ReviewImage> ReviewImages { get; set; } = new List<ReviewImage>();
 }

@@ -22,6 +22,23 @@ public class CustomerListingService : ICustomerListingService
         _ctx = ctx;
     }
 
+    private double CalculateHaversine(double lat1, double lon1, double lat2, double lon2)
+    {
+        var R = 6371; // Radius of the earth in km
+        var dLat = ToRadians(lat2 - lat1);
+        var dLon = ToRadians(lon2 - lon1);
+        var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
+    }
+
+    private double ToRadians(double angle)
+    {
+        return Math.PI * angle / 180.0;
+    }
+
     public async Task<IEnumerable<CustomerListingDTO>> GetListingsAsync(CustomerListingFilterDTO filter, CancellationToken ct = default)
     {
         var listings = await _listingRepo.GetCustomerListingsAsync(
@@ -31,9 +48,30 @@ public class CustomerListingService : ICustomerListingService
             filter.MaxPrice, 
             filter.IsSurpriseBag, 
             filter.SortBy, 
+            filter.SearchQuery,
             ct);
 
-        return listings.Select(MapToDTO);
+        var dtos = listings.Select(l => 
+        {
+            var dto = MapToDTO(l);
+            if (filter.UserLat.HasValue && filter.UserLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
+            {
+                dto.Distance = Math.Round(CalculateHaversine(filter.UserLat.Value, filter.UserLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
+            }
+            return dto;
+        }).ToList();
+
+        if (filter.RadiusKm.HasValue && filter.RadiusKm.Value > 0)
+        {
+            dtos = dtos.Where(d => d.Distance == null || d.Distance <= filter.RadiusKm.Value).ToList();
+        }
+
+        if (filter.SortBy == "distance" && filter.UserLat.HasValue && filter.UserLng.HasValue)
+        {
+            dtos = dtos.OrderBy(d => d.Distance.HasValue ? 0 : 1).ThenBy(d => d.Distance).ThenByDescending(d => d.PriorityLevel).ToList();
+        }
+
+        return dtos;
     }
 
     public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, CancellationToken ct = default)
@@ -48,8 +86,7 @@ public class CustomerListingService : ICustomerListingService
 
         if (!favoriteCategoryIds.Any())
         {
-            // Nếu người dùng chưa từng mua gì, trả về các tin đăng mới nhất (fallback)
-            var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", ct);
+            var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", null, ct);
             return recentListings.Take(10).Select(MapToDTO);
         }
 

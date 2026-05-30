@@ -10,6 +10,8 @@ namespace SaveFoodBackend.DTOs.User
         public string FullName { get; set; } = null!;
         public string? PhoneNumber { get; set; }
         public string? Address { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
         public string? AvatarUrl { get; set; }
         
         // Trả về danh sách tên Role thay vì toàn bộ object Role

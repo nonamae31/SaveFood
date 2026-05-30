@@ -40,6 +40,8 @@ namespace SaveFoodBackend.Services
                 FullName = user.FullName,
                 PhoneNumber = user.PhoneNumber,
                 Address = user.Address,
+                Latitude = user.Latitude,
+                Longitude = user.Longitude,
                 AvatarUrl = user.AvatarUrl,
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
@@ -114,6 +116,24 @@ namespace SaveFoodBackend.Services
                     user.AvatarUrl = uploadResult.SecureUrl;
                     user.ImgCloudinaryId = uploadResult.PublicId;
                 }
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                throw new InvalidOperationException("User not found.");
+            }
+
+            user.Latitude = request.Latitude;
+            user.Longitude = request.Longitude;
+            if (!string.IsNullOrEmpty(request.Address))
+            {
+                user.Address = request.Address;
             }
 
             await _context.SaveChangesAsync();

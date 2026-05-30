@@ -81,4 +81,15 @@ public class StoreRepository : IStoreRepository
     {
         return await _ctx.SaveChangesAsync(ct);
     }
+
+    public async Task<Dictionary<Guid, double>> GetAverageRatingsForStoresAsync(IEnumerable<Guid> storeIds, CancellationToken ct = default)
+    {
+        var ratings = await _ctx.Reviews
+            .Where(r => storeIds.Contains(r.OrderItem.Order.StoreId))
+            .GroupBy(r => r.OrderItem.Order.StoreId)
+            .Select(g => new { StoreId = g.Key, AvgRating = g.Average(r => (double)r.Rating) })
+            .ToDictionaryAsync(x => x.StoreId, x => x.AvgRating, ct);
+            
+        return ratings;
+    }
 }

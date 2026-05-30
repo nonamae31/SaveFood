@@ -8,6 +8,7 @@ namespace SaveFoodBackend.Interfaces
     {
         Task<UserProfileDTO> GetProfileAsync(Guid userId);
         Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request);
+        Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request);
         Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request);
     }
 }

@@ -46,6 +46,8 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<Review> Reviews { get; set; }
 
+    public virtual DbSet<ReviewImage> ReviewImages { get; set; }
+
     public virtual DbSet<Role> Roles { get; set; }
 
     public virtual DbSet<Store> Stores { get; set; }
@@ -292,11 +294,25 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Comment).HasMaxLength(1000);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.StoreReply).HasMaxLength(1000);
 
             entity.HasOne(d => d.OrderItem).WithOne(p => p.Review)
                 .HasForeignKey<Review>(d => d.OrderItemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reviews_OrderItems");
+        });
+
+        modelBuilder.Entity<ReviewImage>(entity =>
+        {
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
+
+            entity.HasOne(d => d.Review).WithMany(p => p.ReviewImages)
+                .HasForeignKey(d => d.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ReviewImages_Reviews");
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -445,6 +461,8 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(150);
+            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);

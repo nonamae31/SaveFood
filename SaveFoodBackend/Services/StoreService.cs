@@ -6,6 +6,7 @@ using SaveFoodBackend.Interfaces.Repositories;
 using Microsoft.AspNetCore.Http;
 using SaveFoodBackend.Models.Enums;
 using System.Linq;
+using SaveFoodBackend.DTOs.Customer.Stores;
 
 namespace SaveFoodBackend.Services
 {
@@ -118,36 +119,79 @@ namespace SaveFoodBackend.Services
             }
         }
 
-        public async Task<System.Collections.Generic.IEnumerable<SaveFoodBackend.DTOs.Customer.Stores.CustomerStoreDTO>> GetCustomerStoresAsync(System.Threading.CancellationToken ct = default)
+        private double CalculateHaversine(double lat1, double lon1, double lat2, double lon2)
+        {
+            var R = 6371; // Radius of the earth in km
+            var dLat = ToRadians(lat2 - lat1);
+            var dLon = ToRadians(lon2 - lon1);
+            var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
+                    Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2)) *
+                    Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return R * c; // Distance in km
+        }
+
+        private double ToRadians(double angle)
+        {
+            return Math.PI * angle / 180.0;
+        }
+
+        public async Task<System.Collections.Generic.IEnumerable<SaveFoodBackend.DTOs.Customer.Stores.CustomerStoreDTO>> GetCustomerStoresAsync(CustomerStoreFilterDTO filter, System.Threading.CancellationToken ct = default)
         {
             var stores = await _storeRepo.GetActiveStoresAsync(ct);
 
-            // Since we need to randomize those with PriorityLevel 0, we do the order in memory
+            if (!string.IsNullOrEmpty(filter?.SearchQuery))
+            {
+                var q = filter.SearchQuery.ToLower();
+                stores = stores.Where(s => s.Name.ToLower().Contains(q) || s.AddressLine.ToLower().Contains(q));
+            }
+
             var random = new Random();
+            
+            var storeIds = stores.Select(s => s.Id).ToList();
+            var averageRatings = await _storeRepo.GetAverageRatingsForStoresAsync(storeIds, ct);
 
             var dtos = stores.Select(s =>
             {
                 var activeSub = s.StoreSubscriptions?.FirstOrDefault();
                 var plan = activeSub?.Plan;
-                
-                // Determine mock/fallback values for UI display if needed
                 var mainCategory = s.Products?.Select(p => p.Category?.Name).FirstOrDefault(c => c != null) ?? "Thực phẩm";
+
+                double? distance = null;
+                if (filter?.UserLat != null && filter?.UserLng != null && s.Latitude != null && s.Longitude != null)
+                {
+                    distance = CalculateHaversine(filter.UserLat.Value, filter.UserLng.Value, (double)s.Latitude.Value, (double)s.Longitude.Value);
+                    distance = Math.Round(distance.Value, 1);
+                }
 
                 return new SaveFoodBackend.DTOs.Customer.Stores.CustomerStoreDTO
                 {
                     Id = s.Id,
                     Name = s.Name,
                     Category = mainCategory,
-                    Rating = Math.Round(s.TrustScore / 20.0, 1),
+                    Rating = averageRatings.ContainsKey(s.Id) ? Math.Round(averageRatings[s.Id], 1) : (double?)null,
                     Address = $"{s.AddressLine}, {s.Ward}, {s.District}, {s.City}",
                     ImageUrl = s.LogoUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                     Tags = new System.Collections.Generic.List<string> { "Giải cứu", "Tiết kiệm" },
                     PriorityLevel = plan?.PriorityLevel ?? 0,
-                    HasFeaturedBadge = plan?.HasFeaturedBadge ?? false
+                    HasFeaturedBadge = plan?.HasFeaturedBadge ?? false,
+                    Distance = distance,
+                    Latitude = s.Latitude != null ? (double)s.Latitude.Value : null,
+                    Longitude = s.Longitude != null ? (double)s.Longitude.Value : null
                 };
             }).ToList();
 
-            // Order by PriorityLevel descending, then random order
+            if (filter?.RadiusKm != null && filter.RadiusKm > 0)
+            {
+                dtos = dtos.Where(d => d.Distance == null || d.Distance <= filter.RadiusKm).ToList();
+            }
+
+            // Order by distance if available, else by priority then random
+            if (filter?.UserLat != null && filter?.UserLng != null)
+            {
+                return dtos.OrderBy(d => d.Distance.HasValue ? 0 : 1).ThenBy(d => d.Distance).ThenByDescending(d => d.PriorityLevel).ToList();
+            }
+
             return dtos.OrderByDescending(d => d.PriorityLevel).ThenBy(d => random.Next()).ToList();
         }
 
@@ -164,12 +208,15 @@ namespace SaveFoodBackend.Services
             var plan = activeSub?.Plan;
             var mainCategory = store.Products?.Select(p => p.Category?.Name).FirstOrDefault(c => c != null) ?? "Thực phẩm";
 
+            var averageRatings = await _storeRepo.GetAverageRatingsForStoresAsync(new[] { store.Id }, ct);
+            var rating = averageRatings.ContainsKey(store.Id) ? Math.Round(averageRatings[store.Id], 1) : (double?)null;
+
             return new SaveFoodBackend.DTOs.Customer.Stores.CustomerStoreDetailDTO
             {
                 Id = store.Id,
                 Name = store.Name,
                 Category = mainCategory,
-                Rating = Math.Round(store.TrustScore / 20.0, 1),
+                Rating = rating,
                 Address = $"{store.AddressLine}, {store.Ward}, {store.District}, {store.City}",
                 ImageUrl = store.LogoUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                 Tags = new System.Collections.Generic.List<string> { "Giải cứu", "Tiết kiệm" },
@@ -178,7 +225,9 @@ namespace SaveFoodBackend.Services
                 Phone = store.PhoneNumber ?? string.Empty,
                 OpeningHours = "07:00 - 22:00", // Not in DB yet
                 CoverImage = store.CoverUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
-                Description = store.Description ?? string.Empty
+                Description = store.Description ?? string.Empty,
+                Latitude = store.Latitude != null ? (double)store.Latitude.Value : null,
+                Longitude = store.Longitude != null ? (double)store.Longitude.Value : null
             };
         }
 

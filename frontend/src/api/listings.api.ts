@@ -17,6 +17,10 @@ function toQueryString(filter: ListingFilter): string {
   if (filter.maxPrice   !== undefined)  params.set('maxPrice',     String(filter.maxPrice))
   if (filter.isSurpriseBag !== undefined) params.set('isSurpriseBag', String(filter.isSurpriseBag))
   if (filter.sortBy     !== undefined)  params.set('sortBy',       filter.sortBy)
+  if (filter.searchQuery!== undefined)  params.set('searchQuery',  filter.searchQuery)
+  if (filter.userLat    !== undefined)  params.set('userLat',      String(filter.userLat))
+  if (filter.userLng    !== undefined)  params.set('userLng',      String(filter.userLng))
+  if (filter.radiusKm   !== undefined)  params.set('radiusKm',     String(filter.radiusKm))
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }

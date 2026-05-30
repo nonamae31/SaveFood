@@ -3,12 +3,19 @@ import { MapPin, Star, Store, ArrowRight } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 
 import { useStores } from '@/hooks/useStores'
+import { useLocationContext } from '@/contexts/LocationContext'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 
 export function StoreListPage() {
-  const { data: stores, isLoading, isError, error, refetch } = useStores()
+  const { location: userLocation } = useLocationContext()
+  const filter = {
+    userLat: userLocation?.lat,
+    userLng: userLocation?.lng,
+    // radiusKm could be read from searchParams if needed, keeping it simple for now
+  }
+  const { data: stores, isLoading, isError, error, refetch } = useStores(filter)
   return (
     <>
       {/* ── Hero Banner ── */}
@@ -93,8 +100,8 @@ export function StoreListPage() {
                   <div className="flex justify-between items-start mb-1">
                     <span className="text-xs font-bold text-[--color-brand-600] bg-[--color-brand-50] px-2 py-0.5 rounded-md">{store.category}</span>
                     <div className="flex items-center gap-1 bg-[#fff8e1] px-2 py-0.5 rounded-md text-[#f59e0b]">
-                      <Star size={12} fill="currentColor" />
-                      <span className="text-xs font-bold">{store.rating} / 5</span>
+                      <Star size={12} fill="currentColor" strokeWidth={2} />
+                      <span className="text-xs font-bold">{store.rating != null ? `${store.rating} / 5` : '___'}</span>
                     </div>
                   </div>
                   
@@ -102,11 +109,30 @@ export function StoreListPage() {
                   
                   <div className="flex items-start gap-1.5 text-[--color-ink-secondary] text-sm mb-3">
                     <MapPin size={14} className="mt-0.5 shrink-0" />
-                    <span className="line-clamp-2">{store.address}</span>
+                    {store.latitude && store.longitude ? (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          window.open(`https://www.google.com/maps/dir/?api=1&destination=${store.latitude},${store.longitude}`, '_blank');
+                        }}
+                        className="text-left line-clamp-2 hover:text-[--color-brand-600] transition-colors cursor-pointer underline decoration-dotted underline-offset-2"
+                        title="Mở bản đồ chỉ đường"
+                      >
+                        {store.address}
+                      </button>
+                    ) : (
+                      <span className="line-clamp-2">{store.address}</span>
+                    )}
                   </div>
                   
                   <div className="mt-auto flex items-center justify-between">
                     <div className="flex flex-wrap gap-2">
+                      {store.distance !== undefined && store.distance !== null && (
+                        <span className="text-sm text-brand-700 bg-brand-100 px-2.5 py-1 rounded-full font-bold shadow-sm">
+                          {store.distance} km
+                        </span>
+                      )}
                       {store.tags.map(tag => (
                         <span key={tag} className="text-[11px] text-[--color-ink-tertiary] border border-[--color-surface-border] px-2 py-0.5 rounded-full">
                           {tag}

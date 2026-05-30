@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -16,6 +16,10 @@ public partial class User
     public string? PhoneNumber { get; set; }
 
     public string? Address { get; set; }
+
+    public decimal? Latitude { get; set; }
+
+    public decimal? Longitude { get; set; }
 
     public string? AvatarUrl { get; set; }
 

@@ -1,7 +1,8 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useOrder, useExtendPickup, useCancelOrder } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
-import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X } from 'lucide-react'
+import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star } from 'lucide-react'
+import { ReviewForm } from '@/components/reviews/ReviewForm'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
 import { useEffect, useState } from 'react'
@@ -22,6 +23,7 @@ export function OrderDetailPage() {
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [cancelForm, setCancelForm] = useState({ bankName: '', bankAccount: '', bankAccountName: '', reason: '' })
+  const [reviewingItem, setReviewingItem] = useState<{ id: string; title: string } | null>(null)
 
   const handleCancelSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,8 +220,18 @@ export function OrderDetailPage() {
                   <p className="font-medium">{item.title}</p>
                   <p className="text-sm text-gray-500">x{item.quantity}</p>
                 </div>
-                <div className="font-medium whitespace-nowrap">
-                  {(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
+                <div className="flex items-center gap-3">
+                  {isCompleted && (
+                    <button
+                      onClick={() => setReviewingItem({ id: item.id, title: item.title })}
+                      className="flex items-center gap-1 text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 hover:bg-amber-100 px-2.5 py-1.5 rounded-lg transition-colors"
+                    >
+                      <Star size={12} className="fill-amber-500" /> Đánh giá
+                    </button>
+                  )}
+                  <div className="font-medium whitespace-nowrap">
+                    {(item.unitPrice * item.quantity).toLocaleString('vi-VN')} đ
+                  </div>
                 </div>
               </div>
             ))}
@@ -363,6 +375,15 @@ export function OrderDetailPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Review Modal */}
+      {reviewingItem && (
+        <ReviewForm
+          orderItemId={reviewingItem.id}
+          orderItemTitle={reviewingItem.title}
+          onClose={() => setReviewingItem(null)}
+        />
       )}
     </div>
   )

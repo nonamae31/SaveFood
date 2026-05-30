@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/Button'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
-
+import { MapPin } from 'lucide-react'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { LocationPickerMap } from '@/components/map/LocationPickerMap'
 function CartBadge() {
   const { data: cartItems } = useCart()
   if (!cartItems || cartItems.length === 0) return null
@@ -37,6 +39,9 @@ export function Navbar() {
   const navigate = useNavigate()
   const { isAuthenticated, user } = useAuthContext()
   const logoutMutation = useLogout()
+  
+  const { location: userLocation, setLocation, isLoading: isLocLoading } = useLocationContext()
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
 
   const isHome = location.pathname === ROUTES.HOME
   const isProducts = location.pathname === ROUTES.PRODUCTS
@@ -50,8 +55,9 @@ export function Navbar() {
 
   useEffect(() => {
     setIsSearchOpen(false)
-    setSearchQuery('')
-  }, [location.pathname])
+    const qs = new URLSearchParams(location.search)
+    setSearchQuery(qs.get('q') || '')
+  }, [location.pathname, location.search])
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
@@ -111,8 +117,8 @@ export function Navbar() {
                   className={[
                     'px-5 py-2 rounded-full text-sm font-medium transition-all duration-300',
                     active
-                      ? (isDark ? 'bg-white/20 text-white' : 'bg-[--color-brand-100] text-[--color-brand-700]')
-                      : (isDark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-[--color-ink-secondary] hover:text-[--color-ink-primary] hover:bg-[--color-surface-muted]'),
+                      ? (isDark ? 'bg-white/20 text-white font-bold shadow-sm' : 'bg-brand-100 text-brand-700 font-bold shadow-sm')
+                      : (isDark ? 'text-white/70 hover:text-white hover:bg-white/10' : 'text-ink-secondary hover:text-ink-primary hover:bg-surface-muted'),
                   ].join(' ')}
                   aria-current={active ? 'page' : undefined}
                 >
@@ -125,6 +131,18 @@ export function Navbar() {
           {/* ── Desktop Actions ── */}
           <div className={`hidden md:flex items-center transition-all duration-500 rounded-full pl-5 pr-1.5 py-1.5 gap-4 ${pillStyle}`}>
             
+            {/* Location Button */}
+            <button
+              onClick={() => setIsLocationModalOpen(true)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+              title="Thay đổi vị trí giao hàng"
+            >
+              <MapPin width={16} height={16} className={isDark ? 'text-green-300' : 'text-green-600'} />
+              <span className="max-w-[120px] truncate">
+                {isLocLoading ? 'Đang lấy vị trí...' : (userLocation?.address || 'Chọn vị trí')}
+              </span>
+            </button>
+
             {/* Search */}
             <div className="relative flex items-center">
               {isSearchOpen ? (
@@ -230,8 +248,8 @@ export function Navbar() {
                 className={[
                   'block px-4 py-3 rounded-[1rem] font-medium transition-colors',
                   isActive(link.href)
-                    ? (isDark ? 'bg-white/20 text-white' : 'bg-[--color-brand-50] text-[--color-brand-700]')
-                    : (isDark ? 'text-white/80 hover:bg-white/10' : 'text-[--color-ink-secondary] hover:bg-[--color-surface-muted]'),
+                    ? (isDark ? 'bg-white/20 text-white font-bold' : 'bg-brand-50 text-brand-700 font-bold')
+                    : (isDark ? 'text-white/80 hover:bg-white/10' : 'text-ink-secondary hover:bg-surface-muted'),
                 ].join(' ')}
               >
                 {link.label}
@@ -249,6 +267,46 @@ export function Navbar() {
           </div>
         )}
       </nav>
+
+      {/* ── Location Picker Modal ── */}
+      {isLocationModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm pointer-events-auto">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-[--animate-slide-up]">
+            <div className="flex justify-between items-center p-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <MapPin className="text-green-600" width={20} height={20} />
+                Vị trí của bạn
+              </h3>
+              <button onClick={() => setIsLocationModalOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors">
+                <X width={20} height={20} />
+              </button>
+            </div>
+            <div className="p-4 bg-gray-50/50">
+              <LocationPickerMap
+                onLocationChange={(lat, lng) => {
+                  setLocation(lat, lng, 'Vị trí đã chọn');
+                }}
+                defaultPosition={userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : undefined}
+                searchTriggerAddress={userLocation?.address}
+              />
+            </div>
+            <div className="p-4 border-t border-gray-100 flex justify-end gap-3 bg-white">
+              <button 
+                onClick={() => setIsLocationModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Đóng
+              </button>
+              <button 
+                onClick={() => setIsLocationModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl text-sm font-bold bg-green-600 text-white hover:bg-green-700 transition-colors shadow-sm"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   )
 }

@@ -51,6 +51,20 @@ function LocationMarker({ position, setPosition, onLocationChange }: any) {
   );
 }
 
+function MapResizer() {
+  const map = useMapEvents({});
+  useEffect(() => {
+    // Force map to recalculate its size after the modal animation finishes
+    const timer1 = setTimeout(() => map.invalidateSize(), 100);
+    const timer2 = setTimeout(() => map.invalidateSize(), 300);
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [map]);
+  return null;
+}
+
 export function LocationPickerMap({ onLocationChange, defaultPosition, searchTriggerAddress }: LocationPickerMapProps) {
   // Default to Ho Chi Minh City if no position provided
   const center = defaultPosition || { lat: 10.762622, lng: 106.660172 };
@@ -63,9 +77,8 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    if (searchTriggerAddress) {
+    if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn') {
       setSearchQuery(searchTriggerAddress);
-      performSearch(searchTriggerAddress);
     }
   }, [searchTriggerAddress]);
 
@@ -105,28 +118,54 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
 
   return (
     <div className="flex flex-col gap-3 w-full h-full">
-      {/* Search Bar */}
-      <form onSubmit={handleSearch} className="relative z-10">
-        <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500 transition-all">
-          <div className="pl-3 text-gray-400">
-            <Search className="w-5 h-5" />
+      {/* Search Bar & GPS Button */}
+      <div className="flex gap-2 relative z-10">
+        <form onSubmit={handleSearch} className="flex-1">
+          <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500 transition-all">
+            <div className="pl-3 text-gray-400">
+              <Search className="w-5 h-5" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm kiếm địa chỉ để chấm ghim..."
+              className="flex-1 py-3 px-3 outline-none text-sm"
+            />
+            <button 
+              type="submit"
+              disabled={isSearching}
+              className="px-4 py-3 bg-green-50 text-green-700 font-semibold text-sm hover:bg-green-100 transition-colors disabled:opacity-50 whitespace-nowrap"
+            >
+              {isSearching ? 'Đang tìm...' : 'Tìm vị trí'}
+            </button>
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm kiếm địa chỉ để chấm ghim..."
-            className="flex-1 py-3 px-3 outline-none text-sm"
-          />
-          <button 
-            type="submit"
-            disabled={isSearching}
-            className="px-4 py-3 bg-green-50 text-green-700 font-semibold text-sm hover:bg-green-100 transition-colors disabled:opacity-50"
-          >
-            {isSearching ? 'Đang tìm...' : 'Tìm vị trí'}
-          </button>
-        </div>
-      </form>
+        </form>
+        <button
+          type="button"
+          onClick={() => {
+            if ('geolocation' in navigator) {
+              navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                  const lat = pos.coords.latitude;
+                  const lng = pos.coords.longitude;
+                  const newPos = new L.LatLng(lat, lng);
+                  setPosition(newPos);
+                  onLocationChange(lat, lng);
+                },
+                (err) => {
+                  console.error(err);
+                  alert('Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí của trình duyệt!');
+                }
+              );
+            }
+          }}
+          className="flex-shrink-0 flex items-center justify-center bg-white border border-gray-200 rounded-xl px-4 text-gray-600 hover:bg-gray-50 hover:text-green-600 transition-colors shadow-sm"
+          title="Dùng vị trí hiện tại (GPS)"
+        >
+          <MapPin className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* Map Container */}
       <div className="relative w-full h-[300px] rounded-xl overflow-hidden border border-gray-200 shadow-inner z-0">
@@ -149,6 +188,7 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
               />
             </LayersControl.BaseLayer>
           </LayersControl>
+          <MapResizer />
           <LocationMarker 
             position={position} 
             setPosition={setPosition} 

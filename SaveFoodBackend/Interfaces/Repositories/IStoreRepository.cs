@@ -16,4 +16,5 @@ public interface IStoreRepository
     Task AddAsync(Store store, CancellationToken ct = default);
     void Update(Store store);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
+    Task<Dictionary<Guid, double>> GetAverageRatingsForStoresAsync(IEnumerable<Guid> storeIds, CancellationToken ct = default);
 }

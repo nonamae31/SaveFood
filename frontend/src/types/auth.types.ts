@@ -69,6 +69,12 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export interface UpdateLocationRequest {
+  latitude: number;
+  longitude: number;
+  address?: string;
+}
+
 export interface UserProfileDTO {
   id: string;
   email: string;
@@ -76,6 +82,8 @@ export interface UserProfileDTO {
   avatarUrl: string | null;
   phoneNumber: string | null;
   address: string | null;
+  latitude: number | null;
+  longitude: number | null;
   status: string;
   createdAt: string;
   roles: string[];

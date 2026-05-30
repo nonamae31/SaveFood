@@ -6,12 +6,15 @@ export interface CustomerStoreDTO {
   id: string
   name: string
   category: string
-  rating: number
+  rating: number | null
   address: string
   imageUrl: string
   tags: string[]
   priorityLevel: number
   hasFeaturedBadge: boolean
+  distance?: number
+  latitude?: number
+  longitude?: number
 }
 
 export interface CustomerStoreDetailDTO extends CustomerStoreDTO {
@@ -21,11 +24,25 @@ export interface CustomerStoreDetailDTO extends CustomerStoreDTO {
   description: string
 }
 
-export function useStores() {
+export interface CustomerStoreFilter {
+  searchQuery?: string
+  userLat?: number
+  userLng?: number
+  radiusKm?: number
+}
+
+export function useStores(filter?: CustomerStoreFilter) {
   return useQuery({
-    queryKey: ['customer-stores'],
+    queryKey: ['customer-stores', filter],
     queryFn: async () => {
-      return await apiClient<CustomerStoreDTO[]>('/stores')
+      const params = new URLSearchParams()
+      if (filter?.searchQuery) params.set('searchQuery', filter.searchQuery)
+      if (filter?.userLat !== undefined) params.set('userLat', String(filter.userLat))
+      if (filter?.userLng !== undefined) params.set('userLng', String(filter.userLng))
+      if (filter?.radiusKm !== undefined) params.set('radiusKm', String(filter.radiusKm))
+      
+      const qs = params.toString()
+      return await apiClient<CustomerStoreDTO[]>(`/stores${qs ? `?${qs}` : ''}`)
     },
   })
 }

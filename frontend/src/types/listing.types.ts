@@ -19,6 +19,7 @@ export interface CustomerListingDTO {
   images?: string[]
   hasFeaturedBadge?: boolean
   priorityLevel?: number
+  distance?: number
 }
 
 /** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */
@@ -28,5 +29,9 @@ export interface ListingFilter {
   minPrice?: number
   maxPrice?: number
   isSurpriseBag?: boolean
-  sortBy?: 'price_asc' | 'price_desc' | 'expiry_asc'
+  sortBy?: 'price_asc' | 'price_desc' | 'expiry_asc' | 'distance'
+  searchQuery?: string
+  userLat?: number
+  userLng?: number
+  radiusKm?: number
 }

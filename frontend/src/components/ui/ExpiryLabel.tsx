@@ -7,10 +7,10 @@ import type { ExpiryStatus } from '@/types/product.types'
 // Đây là component TRUNG TÂM của SaveFood — phải xuất hiện trên mọi thẻ sản phẩm.
 
 const statusStyles: Record<ExpiryStatus, string> = {
-  fresh:   'bg-[--color-brand-100]     text-[--color-brand-700]',
-  soon:    'bg-amber-100                text-amber-700',
-  urgent:  'bg-red-100                  text-[--color-expiry-urgent]  animate-[--animate-pulse-expiry]',
-  expired: 'bg-[--color-surface-muted] text-[--color-ink-tertiary]   opacity-70',
+  fresh:   'bg-brand-100 text-brand-700',
+  soon:    'bg-amber-100 text-amber-700',
+  urgent:  'bg-red-100 text-expiry-urgent animate-[--animate-pulse-expiry]',
+  expired: 'bg-surface-muted text-ink-tertiary opacity-70',
 }
 
 interface ExpiryLabelProps {
