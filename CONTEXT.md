@@ -60,3 +60,7 @@ A special type of Product (IsSurpriseBag flag) that guarantees a certain origina
 **Cart**:
 A persistent, server-side collection of `Clearance Listing`s that a Customer intends to purchase. A Cart can contain items from multiple Stores. However, upon Checkout, the Cart is split into multiple separate `Order`s (one per Store). Items in the Cart do not reserve `QuantityAvailable` until the moment of successful checkout.
 _Avoid_: Basket.
+
+**Product Review**:
+An evaluation (1-5 stars, optional text and photos) left by a Customer for a specific `OrderItem` they successfully purchased. Because an `OrderItem` maps back to a `Clearance Listing` and its underlying `Product`, these reviews are displayed on future listings of the same `Product`. The `Store`'s overall rating is aggregated from all `Product Review`s left for its items.
+_Avoid_: Store Review, Shop Rating.

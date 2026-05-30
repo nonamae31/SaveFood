@@ -66,7 +66,7 @@ export function Navbar() {
       ? location.pathname === href
       : location.pathname.startsWith(href)
 
-  const isStores = location.pathname === ROUTES.STORES || location.pathname.startsWith('/stores/')
+  const isStores = location.pathname === ROUTES.STORES || (location.pathname.startsWith('/stores/') && location.pathname !== ROUTES.STORE_REGISTER)
   
   // Các trang có Hero Banner nền tối ở đầu trang
   const isDarkHeroPage = isHome || isProducts || isStores

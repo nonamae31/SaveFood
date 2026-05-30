@@ -1,22 +1,34 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
 import { useListings } from '@/hooks/useListings';
 import { ListingCard } from '@/components/listings/ListingCard';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
+import { useAuthContext } from '@/contexts/AuthContext';
+import toast from 'react-hot-toast';
 
 export function HomePage() {
   const { data: listings, isLoading, isError } = useListings();
-  
+  const { isAuthenticated } = useAuthContext();
+  const navigate = useNavigate();
+
+  const handlePartnerClick = (e: React.MouseEvent) => {
+    if (!isAuthenticated) {
+      e.preventDefault();
+      toast.error('Bạn cần đăng nhập để trở thành đối tác!');
+      navigate(ROUTES.LOGIN, { state: { from: ROUTES.STORE_REGISTER } });
+    }
+  };
+
   return (
     <div className="bg-[--color-surface-base] min-h-screen">
       {/* 1. Cinematic Hero Section (Light Theme) */}
-      <section className="relative overflow-hidden bg-[--color-surface-base] min-h-screen flex flex-col items-center justify-center text-center px-6 group">
+      <section className="relative overflow-hidden bg-[#111814] min-h-screen flex flex-col items-center justify-center text-center px-6 group">
 
         {/* Background Video Layer */}
         <video
           src="/hero.mp4"
-          className="absolute inset-0 w-full h-full object-cover z-0 animate-fade-rise"
+          className="absolute inset-0 w-full h-full object-cover z-0 animate-fade-rise opacity-70"
           muted
           autoPlay
           loop
@@ -25,7 +37,9 @@ export function HomePage() {
 
         {/* Gradient Overlays */}
         {/* Left-to-right gradient to make text readable while preserving right-side visuals */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#171a17]/90 via-[#171a17]/50 to-transparent z-0 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#111814]/95 via-[#111814]/70 to-[#111814]/30 z-0 pointer-events-none"></div>
+        {/* Top gradient for Navbar visibility */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#111814]/80 to-transparent z-0 pointer-events-none"></div>
         {/* Bottom fade to blend with the next section */}
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[--color-surface-base] to-transparent z-0 pointer-events-none"></div>
 
@@ -69,31 +83,6 @@ export function HomePage() {
                 Bắt đầu khám phá
               </Link>
             </div>
-
-            {/* Stats */}
-            {/* <div className="flex items-center gap-8 mt-14 animate-fade-rise-delay-2 self-start text-left">
-              <div className="flex items-center gap-3">
-                <div className="text-white/60">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                </div>
-                <div>
-                  <div className="text-white font-bold text-lg">500+</div>
-                  <div className="text-white/50 text-xs">cửa hàng đối tác</div>
-                </div>
-              </div>
-              
-              <div className="w-px h-10 bg-white/10"></div>
-              
-              <div className="flex items-center gap-3">
-                <div className="text-white/60">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                </div>
-                <div>
-                  <div className="text-white font-bold text-lg">10.000+</div>
-                  <div className="text-white/50 text-xs">món ăn được cứu mỗi ngày</div>
-                </div>
-              </div>
-            </div> */}
           </div>
         </div>
       </section>
@@ -193,18 +182,6 @@ export function HomePage() {
       {/* 4. Partner Stores & CTA */}
       <section className="py-24 bg-[--color-surface-subtle]">
         <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Partner logos */}
-          {/* <div className="text-center mb-16">
-            <span className="text-sm font-medium text-[--color-ink-tertiary] uppercase tracking-wider">Được tin tưởng bởi các cửa hàng</span>
-            <div className="flex flex-wrap justify-center items-center gap-10 sm:gap-16 mt-8 opacity-40 hover:opacity-70 transition-opacity duration-500">
-              <span className="text-2xl sm:text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Highlands</span>
-              <span className="text-2xl sm:text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">KFC</span>
-              <span className="text-2xl sm:text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Paris Baguette</span>
-              <span className="text-2xl sm:text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Circle K</span>
-              <span className="text-2xl sm:text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">GS25</span>
-            </div>
-          </div> */}
-
           {/* CTA Block */}
           <div className="bg-gradient-to-br from-[#0f2913] to-[#1a3d20] rounded-[2rem] p-10 sm:p-14 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="text-center md:text-left">
@@ -217,6 +194,7 @@ export function HomePage() {
             </div>
             <Link
               to={ROUTES.STORE_REGISTER}
+              onClick={handlePartnerClick}
               className="inline-flex items-center gap-3 rounded-full px-8 py-4 text-lg font-bold bg-[#8ced7f] text-[#0f2913] hover:scale-105 hover:bg-[#7bde6c] transition-all duration-300 whitespace-nowrap group shrink-0"
             >
               Trở thành đối tác
