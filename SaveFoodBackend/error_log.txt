@@ -1,5 +1,5 @@
-Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'OrderCode'.
-   at Microsoft.Data.SqlClient.SqlCommand.<>c.<ExecuteDbDataReaderAsync>b__211_0(Task`1 result)
+Microsoft.Data.SqlClient.SqlException (0x80131904): A severe error occurred on the current command.  The results, if any, should be discarded.
+Operation cancelled by user.
    at System.Threading.Tasks.ContinuationResultTaskFromResultTask`2.InnerInvoke()
    at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
 --- End of stack trace from previous location ---
@@ -17,9 +17,9 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'OrderCo
    at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
    at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync[TSource](IQueryable`1 source, CancellationToken cancellationToken)
-   at SaveFoodBackend.Repositories.ListingRepository.GetCustomerListingsAsync(Nullable`1 storeId, List`1 categoryIds, Nullable`1 minPrice, Nullable`1 maxPrice, Nullable`1 isSurpriseBag, String sortBy, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Repositories\ListingRepository.cs:line 126
-   at SaveFoodBackend.Services.CustomerListingService.GetListingsAsync(CustomerListingFilterDTO filter, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Services\CustomerListingService.cs:line 27
-   at SaveFoodBackend.Controllers.CustomerListingsController.GetListings(CustomerListingFilterDTO filter, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Controllers\CustomerListingsController.cs:line 25
+   at SaveFoodBackend.Repositories.ListingRepository.GetByStoreIdAsync(Guid storeId, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Repositories\ListingRepository.cs:line 45
+   at SaveFoodBackend.Services.ListingService.GetListingsByStoreAsync(Guid storeId, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Services\ListingService.cs:line 31
+   at SaveFoodBackend.Controllers.ListingsController.GetListings(Guid storeId, CancellationToken ct) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Controllers\ListingsController.cs:line 24
    at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
@@ -34,5 +34,4 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid column name 'OrderCo
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\os\Documents\Subject_Ky_8\PRN232\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:47a64108-cd60-4782-9943-1308b006cd57
-Error Number:207,State:1,Class:16
+ClientConnectionId:87c2e233-f7ad-4289-892a-7cbbd5fadc12

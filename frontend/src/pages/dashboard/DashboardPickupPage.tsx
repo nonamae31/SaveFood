@@ -40,51 +40,76 @@ interface QrScannerProps {
 function QrScanner({ onScan, onClose }: QrScannerProps) {
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const [error, setError] = useState<string | null>(null)
+  
+  const [isStoppingUI, setIsStoppingUI] = useState(false)
+  const isStoppingRef = useRef(false)
+
+  const onScanRef = useRef(onScan);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+    onCloseRef.current = onClose;
+  }, [onScan, onClose]);
+
+  const handleAction = async (action: (code?: string) => void, code?: string) => {
+    if (isStoppingRef.current) return;
+    isStoppingRef.current = true;
+    setIsStoppingUI(true);
+    
+    try {
+      if (scannerRef.current) {
+        // Cố gắng tắt camera an toàn
+        await scannerRef.current.stop().catch(() => {});
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      action(code);
+    }
+  };
 
   useEffect(() => {
     let isMounted = true;
     const scanner = new Html5Qrcode(QR_READER_ID)
     scannerRef.current = scanner
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (decodedText) => {
-        const match = decodedText.match(/pickupCode=([A-Z0-9]+)/i)
-        const code = match ? match[1] : decodedText.trim().toUpperCase()
+    const timeoutId = setTimeout(() => {
+      if (!isMounted) return;
+      
+      scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          const match = decodedText.match(/pickupCode=([A-Z0-9]+)/i)
+          const code = match ? match[1] : decodedText.trim().toUpperCase()
+          if (isMounted) {
+            handleAction((c) => onScanRef.current(c!), code)
+          }
+        },
+        () => { /* ignore per-frame errors */ }
+      ).catch((err) => {
         if (isMounted) {
-          onScan(code)
+          setError('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.')
+          console.error(err)
         }
-      },
-      () => { /* ignore per-frame errors */ }
-    ).then(() => {
-      // If component unmounted while starting, stop it immediately
-      if (!isMounted) {
-        scanner.stop().catch(console.error)
-      }
-    }).catch((err) => {
-      if (isMounted) {
-        setError('Không thể truy cập camera. Vui lòng kiểm tra quyền truy cập.')
-        console.error(err)
-      }
-    })
+      })
+    }, 150);
 
     return () => {
       isMounted = false;
-      try {
-        if (scannerRef.current) {
-          // html5-qrcode might throw synchronously if stop is called while not scanning
-          if (scannerRef.current.isScanning) {
-            scannerRef.current.stop().catch(console.error)
-          } else {
-            scannerRef.current.clear()
-          }
+      clearTimeout(timeoutId);
+      if (scannerRef.current) {
+        try {
+          scannerRef.current.stop().catch(() => {}).finally(() => {
+            try { scannerRef.current?.clear() } catch(e) {}
+          });
+        } catch (syncError) {
+          try { scannerRef.current?.clear() } catch(e) {}
         }
-      } catch (e) {
-        console.error("Lỗi khi dọn dẹp scanner:", e)
       }
     }
-  }, [onScan])
+  }, []) // Không truyền dep để tránh restart
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
@@ -92,12 +117,13 @@ function QrScanner({ onScan, onClose }: QrScannerProps) {
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div className="flex items-center gap-2 text-gray-900 font-semibold">
-            <Camera className="w-5 h-5 text-[--color-brand-600]" />
-            Quét mã QR
+            {isStoppingUI ? <Loader2 className="w-5 h-5 text-[--color-brand-600] animate-spin" /> : <Camera className="w-5 h-5 text-[--color-brand-600]" />}
+            {isStoppingUI ? 'Đang xử lý...' : 'Quét mã QR'}
           </div>
           <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer"
+            onClick={() => handleAction(() => onCloseRef.current())}
+            disabled={isStoppingUI}
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors cursor-pointer disabled:opacity-50"
           >
             <XCircle className="w-5 h-5" />
           </button>

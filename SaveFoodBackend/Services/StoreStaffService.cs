@@ -16,15 +16,18 @@ public class StoreStaffService : IStoreStaffService
     private readonly IStoreStaffRepository _staffRepo;
     private readonly IUserRepository _userRepo;
     private readonly IStoreRepository _storeRepo;
+    private readonly IOrderRepository _orderRepo;
 
     public StoreStaffService(
         IStoreStaffRepository staffRepo,
         IUserRepository userRepo,
-        IStoreRepository storeRepo)
+        IStoreRepository storeRepo,
+        IOrderRepository orderRepo)
     {
         _staffRepo = staffRepo;
         _userRepo = userRepo;
         _storeRepo = storeRepo;
+        _orderRepo = orderRepo;
     }
 
     public async Task<IEnumerable<StoreStaffDTO>> GetStoreStaffAsync(Guid storeId, Guid requestingUserId, CancellationToken ct = default)
@@ -59,6 +62,11 @@ public class StoreStaffService : IStoreStaffService
         var existingRecord = await _staffRepo.GetByStoreAndUserIdAsync(storeId, targetUser.Id, ct);
         if (existingRecord != null)
             throw new InvalidOperationException($"Người dùng '{request.Email}' đã là thành viên của cửa hàng này.");
+
+        // Validate: User không được có đơn hàng đang xử lý
+        var hasActiveOrders = await _orderRepo.HasActiveOrdersAsync(targetUser.Id, ct);
+        if (hasActiveOrders)
+            throw new InvalidOperationException("Tài khoản này đang có đơn hàng chưa hoàn thành, không thể thêm làm nhân viên lúc này.");
 
         // Đảm bảo User có system-level role là "Store"
         var storeRole = await _userRepo.GetRoleByCodeAsync("Store", ct);
