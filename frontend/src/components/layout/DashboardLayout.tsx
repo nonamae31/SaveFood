@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart, ScanLine } from 'lucide-react'
+import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart, ScanLine, Users } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
@@ -58,6 +58,7 @@ export function DashboardLayout() {
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
     { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
 

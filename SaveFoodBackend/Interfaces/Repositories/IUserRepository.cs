@@ -19,5 +19,6 @@ public interface IUserRepository
     void Add(User user);
     void Update(User user);
     void AddUserRole(UserRole userRole);
+    Task RemoveUserRoleAsync(Guid userId, Guid roleId, CancellationToken ct = default);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

@@ -72,6 +72,8 @@ export const ROUTES = {
   DASHBOARD_SETTINGS:     '/dashboard/settings',
   DASHBOARD_SUBSCRIPTION: '/dashboard/subscription',
   DASHBOARD_PICKUP:       '/dashboard/pickup',
+  DASHBOARD_STAFF:        '/dashboard/staff',
+
 
   // Admin
   ADMIN:               '/admin',

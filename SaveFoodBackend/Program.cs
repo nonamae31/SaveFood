@@ -75,6 +75,11 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBac
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFoodBackend.Services.StoreOrderService>();
 
+// Staff management
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreStaffRepository, SaveFoodBackend.Repositories.StoreStaffRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFoodBackend.Services.StoreStaffService>();
+
+
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 // ─────────────────────────────────────────────────────────────────────────────
