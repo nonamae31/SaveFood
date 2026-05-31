@@ -106,4 +106,10 @@ public class OrderRepository : IOrderRepository
             .Take(count)
             .ToListAsync(ct);
     }
+
+    public async Task<bool> HasActiveOrdersAsync(Guid userId, CancellationToken ct = default)
+    {
+        // 0: Pending, 1: Confirmed, 2: AwaitingPickup
+        return await _set.AnyAsync(o => o.UserId == userId && (o.OrderStatus == 0 || o.OrderStatus == 1 || o.OrderStatus == 2), ct);
+    }
 }

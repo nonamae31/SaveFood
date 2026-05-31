@@ -58,6 +58,7 @@ export function DashboardLayout() {
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
     { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
     { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
