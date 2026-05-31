@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
-  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search
+  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search, ChevronDown
 } from 'lucide-react';
 import { storeStaffApi, type StoreStaffDTO } from '@/api/store.staff.api';
 import toast from 'react-hot-toast';
@@ -20,19 +20,27 @@ function getInitials(name: string) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function RoleBadge({ role, label }: { role: number; label: string }) {
+function RoleBadge({ role }: { role: number }) {
   if (role === 0) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
         <Crown size={11} />
-        {label}
+        Owner
+      </span>
+    );
+  }
+  if (role === 1) {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+        <Shield size={11} />
+        Manager
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
       <Shield size={11} />
-      {label}
+      Staff
     </span>
   );
 }
@@ -41,12 +49,16 @@ function StaffCard({
   member,
   currentUserId,
   onRemove,
+  onRoleChange,
   isRemoving,
+  isUpdatingRole,
 }: {
   member: StoreStaffDTO;
   currentUserId: string;
   onRemove: (userId: string, name: string) => void;
+  onRoleChange: (staffId: string, name: string, newRole: number) => void;
   isRemoving: boolean;
+  isUpdatingRole: boolean;
 }) {
   const isOwner = member.staffRole === 0;
   const isSelf = member.userId === currentUserId;
@@ -92,9 +104,25 @@ function StaffCard({
         </p>
       </div>
 
-      {/* Role badge */}
+      {/* Role badge / Role selector */}
       <div className="shrink-0">
-        <RoleBadge role={member.staffRole} label={member.staffRoleLabel} />
+        {!isOwner && !isSelf ? (
+          <div className="relative">
+            <select
+              id={`role-select-${member.storeStaffId}`}
+              value={member.staffRole}
+              onChange={e => onRoleChange(member.storeStaffId, member.fullName, Number(e.target.value))}
+              disabled={isUpdatingRole}
+              className="appearance-none bg-white border border-gray-200 rounded-lg px-2.5 py-1.5 pr-6 text-xs font-medium text-gray-700 cursor-pointer hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition disabled:opacity-50"
+            >
+              <option value={1}>Manager</option>
+              <option value={2}>Staff</option>
+            </select>
+            <ChevronDown size={12} className="absolute right-1.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        ) : (
+          <RoleBadge role={member.staffRole} />
+        )}
       </div>
 
       {/* Remove button — chỉ hiển thị cho Staff (không phải Owner, không phải chính mình) */}
@@ -269,6 +297,9 @@ export default function DashboardStaffPage() {
   const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null);
   const [isRemoving, setIsRemoving] = useState(false);
 
+  // Role update state
+  const [updatingRoleId, setUpdatingRoleId] = useState<string | null>(null);
+
   // ── Fetch staff list ──────────────────────────────────────────────────────────
   const fetchStaff = useCallback(async () => {
     if (!storeId) return;
@@ -321,6 +352,22 @@ export default function DashboardStaffPage() {
     }
   };
 
+  // ── Update staff role ──────────────────────────────────────────────────────────
+  const handleRoleChange = async (staffId: string, name: string, newRole: number) => {
+    if (!storeId) return;
+    setUpdatingRoleId(staffId);
+    try {
+      const updated = await storeStaffApi.updateStoreStaffRole(storeId, staffId, { staffRole: newRole });
+      setStaffList(prev => prev.map(s => s.storeStaffId === staffId ? updated : s));
+      toast.success(`Đã cập nhật vai trò của ${name} thành ${updated.staffRoleLabel}!`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật vai trò.';
+      toast.error(msg);
+    } finally {
+      setUpdatingRoleId(null);
+    }
+  };
+
   // ── Filtered list ─────────────────────────────────────────────────────────────
   const filteredStaff = searchQuery.trim()
     ? staffList.filter(s =>
@@ -330,6 +377,7 @@ export default function DashboardStaffPage() {
     : staffList;
 
   const ownerCount = staffList.filter(s => s.staffRole === 0).length;
+  const managerCount = staffList.filter(s => s.staffRole === 1).length;
   const staffCount = staffList.filter(s => s.staffRole === 2).length;
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -354,7 +402,7 @@ export default function DashboardStaffPage() {
       </div>
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
@@ -377,7 +425,18 @@ export default function DashboardStaffPage() {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm col-span-2 sm:col-span-1">
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">
+              <Shield size={18} className="text-purple-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{managerCount}</p>
+              <p className="text-xs text-gray-500">Quản lý</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
               <Shield size={18} className="text-blue-600" />
@@ -434,7 +493,9 @@ export default function DashboardStaffPage() {
                 member={member}
                 currentUserId={currentUserId}
                 onRemove={(userId, name) => setRemoveTarget({ userId, name })}
+                onRoleChange={handleRoleChange}
                 isRemoving={isRemoving && removeTarget?.userId === member.userId}
+                isUpdatingRole={updatingRoleId === member.storeStaffId}
               />
             ))
           )}
@@ -451,6 +512,10 @@ export default function DashboardStaffPage() {
           <li className="flex items-start gap-2">
             <Crown size={11} className="mt-0.5 shrink-0 text-amber-500" />
             <span><strong>Owner (Chủ cửa hàng):</strong> Toàn quyền quản lý: sản phẩm, đợt giảm giá, đơn hàng, nhân viên, cài đặt và thanh toán.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Shield size={11} className="mt-0.5 shrink-0 text-purple-500" />
+            <span><strong>Manager (Quản lý):</strong> Quản lý sản phẩm, đợt giảm giá, đơn hàng và nhận hàng. Không thể thêm/xóa nhân viên.</span>
           </li>
           <li className="flex items-start gap-2">
             <Shield size={11} className="mt-0.5 shrink-0 text-blue-500" />

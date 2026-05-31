@@ -22,6 +22,31 @@ export interface UpdateStoreProfileRequest {
   phoneNumber: string | null;
 }
 
+export interface UpdateStoreRequest {
+  name: string;
+  description: string | null;
+  addressLine: string;
+  ward: string | null;
+  district: string;
+  city: string;
+  phoneNumber: string | null;
+  status?: number | null;
+}
+
+export interface RegisterStoreRequest {
+  name: string;
+  description: string | null;
+  addressLine: string;
+  ward: string | null;
+  district: string;
+  city: string;
+  phoneNumber: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  subscriptionPlanId?: string | null;
+  billingCycle?: string | null;
+}
+
 export interface StoreAnalyticsDTO {
   totalRevenue: number;
   revenuePercentageChange: number;
@@ -34,6 +59,20 @@ export interface StoreAnalyticsDTO {
 }
 
 export const storeApi = {
+  createStore: async (data: RegisterStoreRequest): Promise<StoreProfileDTO> => {
+    return await apiClient('/stores', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  updateStore: async (storeId: string, data: UpdateStoreRequest): Promise<StoreProfileDTO> => {
+    return await apiClient(`/stores/${storeId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
   updateStoreImages: async (storeId: string, formData: FormData): Promise<void> => {
     await apiClient(`/stores/${storeId}/images`, {
       method: 'PUT',

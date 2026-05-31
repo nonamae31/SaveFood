@@ -105,7 +105,9 @@ export const API_ENDPOINTS = {
   STORES:               '/stores',
   STORE_REGISTER:       '/stores/register',
   STORE_DETAIL:         (id: string) => `/stores/${id}`,
+  STORE_UPDATE:         (id: string) => `/stores/${id}`,
   MY_STORE:             '/stores/mine',
+  STORE_STAFF_ROLE:     (storeId: string, staffId: string) => `/stores/${storeId}/staff/${staffId}`,
 
   // Cart
   CART:                 '/cart',

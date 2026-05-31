@@ -17,6 +17,10 @@ export interface AddStoreStaffRequest {
   email: string;
 }
 
+export interface UpdateStaffRoleRequest {
+  staffRole: number; // 0 = Owner, 1 = Manager, 2 = Staff
+}
+
 // ── API ───────────────────────────────────────────────────────────────────────
 
 export const storeStaffApi = {
@@ -29,6 +33,14 @@ export const storeStaffApi = {
   addStoreStaff: async (storeId: string, request: AddStoreStaffRequest): Promise<StoreStaffDTO> => {
     return await apiClient(`/stores/${storeId}/staff`, {
       method: 'POST',
+      body: JSON.stringify(request),
+    });
+  },
+
+  /** Cập nhật vai trò nhân viên (Owner / Manager / Staff). */
+  updateStoreStaffRole: async (storeId: string, staffId: string, request: UpdateStaffRoleRequest): Promise<StoreStaffDTO> => {
+    return await apiClient(`/stores/${storeId}/staff/${staffId}`, {
+      method: 'PUT',
       body: JSON.stringify(request),
     });
   },
