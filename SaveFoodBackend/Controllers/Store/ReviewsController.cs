@@ -11,7 +11,7 @@ namespace SaveFoodBackend.Controllers.Store
 {
     [ApiController]
     [Route("api/store/reviews")]
-    [Authorize(Roles = "Store")]
+    [Authorize(Roles = "STORE,Store")]
     public class ReviewsController : ApiControllerBase
     {
         private readonly IReviewService _reviewService;
@@ -21,15 +21,22 @@ namespace SaveFoodBackend.Controllers.Store
             _reviewService = reviewService;
         }
 
-        [HttpPost("{reviewId}/reply")]
-        public async Task<IActionResult> ReplyToReview([FromHeader(Name = "Store-Id")] Guid storeId, Guid reviewId, [FromBody] StoreReplyRequest request, CancellationToken ct)
+        [HttpGet]
+        public async Task<IActionResult> GetMyStoreReviews(CancellationToken ct)
         {
-            if (storeId == Guid.Empty)
-                return BadRequestResponse("Store-Id header is required.");
+            var storeId = GetRequiredStoreId();
+            var reviews = await _reviewService.GetReviewsByStoreIdAsync(storeId, ct);
+            return OkResponse(reviews);
+        }
 
+        [HttpPost("{reviewId}/reply")]
+        public async Task<IActionResult> ReplyToReview(Guid reviewId, [FromBody] StoreReplyRequest request, CancellationToken ct)
+        {
+            var storeId = GetRequiredStoreId();
             var staffUserId = GetRequiredUserId();
             var result = await _reviewService.ReplyToReviewAsync(storeId, staffUserId, reviewId, request, ct);
             return OkResponse(result);
         }
     }
 }
+

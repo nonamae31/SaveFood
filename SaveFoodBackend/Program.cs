@@ -49,6 +49,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBack
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();
 
 // Admin Repositories
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();

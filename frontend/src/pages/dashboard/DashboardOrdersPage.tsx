@@ -8,6 +8,7 @@ import {
 import { storeOrdersApi } from '@/api/store.orders.api';
 import type { StoreOrderDTO } from '@/api/store.orders.api';
 import toast from 'react-hot-toast';
+import { HubConnectionBuilder } from '@microsoft/signalr';
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG: Record<number, { label: string; color: string; bg: string; dot: string }> = {
@@ -287,6 +288,38 @@ export default function DashboardOrdersPage() {
     return () => { cancelled = true; };
   }, [storeId, refreshKey]);
 
+  // Lắng nghe sự kiện đơn hàng mới qua SignalR
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!storeId || !token) return;
+
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${import.meta.env.VITE_API_URL || 'https://localhost:7251'}/hubs/notifications`, {
+        accessTokenFactory: () => token
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('NewOrderReceived', (orderId: string) => {
+      toast.success('🛒 Cửa hàng vừa có đơn hàng mới!', {
+        duration: 5000,
+        position: 'top-right',
+        style: {
+          background: '#16a34a',
+          color: '#fff',
+          fontWeight: 'bold'
+        }
+      });
+      setRefreshKey(k => k + 1);
+    });
+
+    connection.start().catch(console.error);
+
+    return () => {
+      connection.stop();
+    };
+  }, [storeId]);
+
   const filtered = activeFilter === 'all'
     ? orders
     : orders.filter(o => o.orderStatus === Number(activeFilter));
@@ -295,7 +328,7 @@ export default function DashboardOrdersPage() {
     key === 'all' ? orders.length : orders.filter(o => o.orderStatus === Number(key)).length;
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 max-w-full">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

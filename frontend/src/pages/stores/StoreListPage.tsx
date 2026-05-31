@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { MapPin, Star, Store, ArrowRight } from 'lucide-react'
-import { ROUTES } from '@/lib/constants'
 
 import { useStores } from '@/hooks/useStores'
 import { useLocationContext } from '@/contexts/LocationContext'

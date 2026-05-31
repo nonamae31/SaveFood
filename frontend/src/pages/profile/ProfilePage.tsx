@@ -38,11 +38,8 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      // eslint-disable-next-line
       setFullName(user.fullName || '');
-      // eslint-disable-next-line
       setPhoneNumber(user.phoneNumber || '');
-      // eslint-disable-next-line
       setAvatarUrl(user.avatarUrl || '');
     }
   }, [user]);

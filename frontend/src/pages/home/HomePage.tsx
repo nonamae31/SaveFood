@@ -28,7 +28,7 @@ export function HomePage() {
         {/* Background Video Layer */}
         <video
           src="/hero.mp4"
-          className="absolute inset-0 w-full h-full object-cover z-0 animate-fade-rise opacity-70"
+          className="absolute inset-0 w-full h-full object-cover z-0 animate-fade-rise"
           muted
           autoPlay
           loop
@@ -37,9 +37,9 @@ export function HomePage() {
 
         {/* Gradient Overlays */}
         {/* Left-to-right gradient to make text readable while preserving right-side visuals */}
-        <div className="absolute inset-0 bg-gradient-to-r from-[#111814]/95 via-[#111814]/70 to-[#111814]/30 z-0 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#111814]/80 via-[#111814]/40 to-transparent z-0 pointer-events-none"></div>
         {/* Top gradient for Navbar visibility */}
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#111814]/80 to-transparent z-0 pointer-events-none"></div>
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#111814]/60 to-transparent z-0 pointer-events-none"></div>
         {/* Bottom fade to blend with the next section */}
         <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[--color-surface-base] to-transparent z-0 pointer-events-none"></div>
 

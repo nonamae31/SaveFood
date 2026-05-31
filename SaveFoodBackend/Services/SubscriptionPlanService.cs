@@ -138,7 +138,8 @@ namespace SaveFoodBackend.Services
                 throw new InvalidOperationException("Subscription Plan not found.");
             }
 
-            plan.PlanFlags |= (byte)PlanFlagsEnum.IsDeleted;
+            // Đánh dấu là đã xóa và gỡ cờ Active (nếu có)
+            plan.PlanFlags = (byte)((plan.PlanFlags & ~(byte)PlanFlagsEnum.IsActive) | (byte)PlanFlagsEnum.IsDeleted);
             await _subscriptionRepo.SaveChangesAsync();
         }
     }

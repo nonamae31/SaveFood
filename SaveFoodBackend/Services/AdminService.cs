@@ -66,7 +66,7 @@ namespace SaveFoodBackend.Services
                 {
                     StoreId = ss.StoreId,
                     StoreName = ss.Store.Name,
-                    AddressLine = ss.Store.AddressLine,
+                    DetailedAddress = ss.Store.DetailedAddress,
                     StoreStatus = ss.Store.Status,
                     StaffRole = ss.StaffRole
                 }).ToList()

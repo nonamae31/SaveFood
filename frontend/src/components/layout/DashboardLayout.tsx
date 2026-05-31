@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, Outlet, useNavigate, useLocation, Navigate } from 'react-router-dom'
-import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart, ScanLine, Users } from 'lucide-react'
+import { Store, LogOut, Menu, X, ChevronRight, Package, Tag, Settings, LayoutDashboard, ShoppingCart, ScanLine, Users, Wallet, Star } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
@@ -60,6 +60,8 @@ export function DashboardLayout() {
     { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
     { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
     { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
+    { name: 'Ví & Doanh thu', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
+    { name: 'Đánh giá', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
 
@@ -83,10 +85,10 @@ export function DashboardLayout() {
         {/* Logo Area */}
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-[--color-brand-500] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
               <Store className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">SaveFood <span className="text-[--color-brand-600]">Store</span></span>
+            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">SaveFood <span className="text-brand-600">Store</span></span>
           </div>
           <button 
             className="ml-auto lg:hidden text-gray-400 hover:text-gray-600"
@@ -110,7 +112,7 @@ export function DashboardLayout() {
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group",
                   isActive 
-                    ? "bg-[--color-brand-50] text-[--color-brand-700]" 
+                    ? "bg-brand-50 text-brand-700 shadow-sm" 
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 )}
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -119,10 +121,10 @@ export function DashboardLayout() {
                   <>
                     <Icon className={cn(
                       "w-5 h-5 transition-colors",
-                      isActive ? "text-[--color-brand-600]" : "text-gray-400 group-hover:text-gray-600"
+                      isActive ? "text-brand-600" : "text-gray-400 group-hover:text-gray-600"
                     )} />
                     {item.name}
-                    {isActive && <ChevronRight className="w-4 h-4 ml-auto text-[--color-brand-600]" />}
+                    {isActive && <ChevronRight className="w-4 h-4 ml-auto text-brand-600" />}
                   </>
                 )}
               </NavLink>
@@ -133,17 +135,17 @@ export function DashboardLayout() {
         {/* User & Store Profile Area */}
         <div className="p-4 border-t border-gray-100">
           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors mb-2 group">
-            <div className="w-10 h-10 rounded-full bg-[--color-brand-100] flex items-center justify-center overflow-hidden shrink-0 border border-[--color-brand-200]">
+            <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center overflow-hidden shrink-0 border border-brand-200">
               {storeProfile?.logoUrl ? (
                 <img src={storeProfile.logoUrl} alt={storeProfile.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-sm font-bold text-[--color-brand-700]">
+                <span className="text-sm font-bold text-brand-700">
                   {storeProfile?.name?.charAt(0).toUpperCase() || user?.fullName?.charAt(0).toUpperCase() || 'S'}
                 </span>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate group-hover:text-[--color-brand-600] transition-colors" title={storeProfile?.name || 'Cửa hàng'}>
+              <p className="text-sm font-bold text-gray-900 truncate group-hover:text-brand-600 transition-colors" title={storeProfile?.name || 'Cửa hàng'}>
                 {storeProfile?.name || 'Cửa hàng'}
               </p>
               <p className="text-xs text-gray-500 truncate" title={user?.fullName || user?.email}>
@@ -173,7 +175,7 @@ export function DashboardLayout() {
             <Menu className="w-6 h-6" />
           </button>
           <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
-            <Store className="w-5 h-5 text-[--color-brand-600]" />
+            <Store className="w-5 h-5 text-brand-600" />
             SaveFood Store
           </div>
         </header>

@@ -39,6 +39,14 @@ export const QUERY_KEYS = {
     all:         (): readonly string[] => ['categories'],
     adminAll:    (): readonly string[] => ['categories', 'admin'],
   },
+  storeFinance: {
+    wallet: (): readonly string[] => ['storeFinance', 'wallet'],
+    transactions: (page: number, size: number): readonly unknown[] => ['storeFinance', 'transactions', page, size],
+    withdrawals: (page: number, size: number): readonly unknown[] => ['storeFinance', 'withdrawals', page, size],
+  },
+  reviews: {
+    byStore: (storeId: string): readonly string[] => ['reviews', 'store', storeId],
+  },
 } as const
 
 // ── Frontend Routes ───────────────────────────────────────────────────────────
@@ -74,7 +82,8 @@ export const ROUTES = {
   DASHBOARD_SUBSCRIPTION: '/dashboard/subscription',
   DASHBOARD_PICKUP:       '/dashboard/pickup',
   DASHBOARD_STAFF:        '/dashboard/staff',
-
+  DASHBOARD_WALLET:       '/dashboard/wallet',
+  DASHBOARD_REVIEWS:      '/dashboard/reviews',
 
   // Admin
   ADMIN:               '/admin',
@@ -106,6 +115,15 @@ export const API_ENDPOINTS = {
   STORE_REGISTER:       '/stores/register',
   STORE_DETAIL:         (id: string) => `/stores/${id}`,
   MY_STORE:             '/stores/mine',
+
+  // Store Finance
+  STORE_FINANCE_WALLET:       '/store/finance/wallet',
+  STORE_FINANCE_TRANSACTIONS: '/store/finance/transactions',
+  STORE_FINANCE_WITHDRAWALS:  '/store/finance/withdrawals',
+
+  // Store Reviews
+  STORE_REVIEWS:              '/store/reviews',
+  STORE_REVIEW_REPLY:         (reviewId: string) => `/store/reviews/${reviewId}/reply`,
 
   // Cart
   CART:                 '/cart',

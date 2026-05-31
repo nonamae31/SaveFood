@@ -35,6 +35,8 @@ import DashboardOrdersPage from '@/pages/dashboard/DashboardOrdersPage'
 import DashboardSubscriptionPage from '@/pages/dashboard/DashboardSubscriptionPage'
 import DashboardPickupPage from '@/pages/dashboard/DashboardPickupPage'
 import DashboardStaffPage from '@/pages/dashboard/DashboardStaffPage'
+import DashboardWalletPage from '@/pages/dashboard/DashboardWalletPage'
+import DashboardReviewsPage from '@/pages/dashboard/DashboardReviewsPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -120,6 +122,8 @@ function App() {
               <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
               <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
               <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
+              <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
+              <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
             </Route>
 
             {/* ── Admin (Người 5) ── */}

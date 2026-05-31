@@ -132,6 +132,17 @@ public class OrderService : IOrderService
 
         await _ctx.SaveChangesAsync(ct);
 
+        // Notify Store Staff & Owner via SignalR
+        var staffIds = await _ctx.StoreStaffs
+            .Where(s => s.StoreId == storeId)
+            .Select(s => s.UserId)
+            .ToListAsync(ct);
+
+        foreach (var uid in staffIds.Distinct())
+        {
+            await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: ct);
+        }
+
         string? checkoutUrl = null;
         if (req.PaymentMethod == 1) // PayOS
         {
@@ -259,7 +270,7 @@ public class OrderService : IOrderService
             Id = order.Id,
             StoreId = order.StoreId,
             StoreName = order.Store.Name,
-            StoreAddress = $"{order.Store.AddressLine}, {order.Store.Ward}, {order.Store.District}, {order.Store.City}".Replace(" ,", ",").Trim(',', ' '),
+            StoreAddress = $"{order.Store.DetailedAddress}, {order.Store.Ward}, {order.Store.City}".Replace(" ,", ",").Trim(',', ' '),
             TotalAmount = order.TotalAmount,
             OrderStatus = order.OrderStatus,
             CreatedAt = order.CreatedAt,

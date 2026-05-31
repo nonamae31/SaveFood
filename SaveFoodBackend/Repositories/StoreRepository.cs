@@ -34,7 +34,7 @@ public class StoreRepository : IStoreRepository
             {
                 Id = s.Id,
                 Name = s.Name,
-                AddressLine = s.AddressLine,
+                DetailedAddress = s.DetailedAddress,
                 PhoneNumber = s.PhoneNumber,
                 CreatedAt = s.CreatedAt,
                 OwnerName = s.StoreStaffs.Where(ss => ss.StaffRole == ownerStaffRole).Select(ss => ss.User.FullName).FirstOrDefault(),

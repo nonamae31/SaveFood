@@ -14,13 +14,16 @@ namespace SaveFoodBackend.DTOs.Store
     {
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
-        public string AddressLine { get; set; } = null!;
-        public string? Ward { get; set; }
-        public string District { get; set; } = null!;
+        public string DetailedAddress { get; set; } = null!;
+        public string Ward { get; set; } = null!;
         public string City { get; set; } = null!;
         public string? PhoneNumber { get; set; }
         public string? LogoUrl { get; set; }
         public string? CoverUrl { get; set; }
+        public string PlanName { get; set; } = "Free";
+        public bool HasCustomBanner { get; set; } = false;
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
     }
 
     /// <summary>Payload để cập nhật thông tin cơ bản của cửa hàng.</summary>
@@ -33,19 +36,19 @@ namespace SaveFoodBackend.DTOs.Store
         public string? Description { get; set; }
 
         [Required, MaxLength(300)]
-        public string AddressLine { get; set; } = null!;
-
-        [MaxLength(100)]
-        public string? Ward { get; set; }
+        public string DetailedAddress { get; set; } = null!;
 
         [Required, MaxLength(100)]
-        public string District { get; set; } = null!;
+        public string Ward { get; set; } = null!;
 
         [Required, MaxLength(100)]
         public string City { get; set; } = null!;
 
         [Phone, MaxLength(20)]
         public string? PhoneNumber { get; set; }
+
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
     }
 
     /// <summary>Payload để đăng ký mở cửa hàng mới.</summary>
@@ -58,13 +61,10 @@ namespace SaveFoodBackend.DTOs.Store
         public string? Description { get; set; }
 
         [Required, MaxLength(300)]
-        public string AddressLine { get; set; } = null!;
-
-        [MaxLength(100)]
-        public string? Ward { get; set; }
+        public string DetailedAddress { get; set; } = null!;
 
         [Required, MaxLength(100)]
-        public string District { get; set; } = null!;
+        public string Ward { get; set; } = null!;
 
         [Required, MaxLength(100)]
         public string City { get; set; } = null!;

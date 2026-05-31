@@ -327,11 +327,10 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<Store>(entity =>
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.AddressLine).HasMaxLength(300);
+            entity.Property(e => e.DetailedAddress).HasMaxLength(300);
             entity.Property(e => e.City).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.Property(e => e.District).HasMaxLength(100);
             entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");

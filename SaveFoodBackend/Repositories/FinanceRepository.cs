@@ -146,6 +146,46 @@ public class FinanceRepository : IFinanceRepository
         _ctx.WalletTransactions.Add(transaction);
     }
 
+    public async Task<StoreWallet?> GetStoreWalletByStoreIdAsync(Guid storeId, CancellationToken ct = default)
+    {
+        return await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == storeId, ct);
+    }
+
+    public async Task<(IEnumerable<WalletTransaction> Items, int TotalCount)> GetStoreTransactionsAsync(Guid storeWalletId, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var query = _ctx.WalletTransactions
+            .Where(t => t.StoreWalletId == storeWalletId)
+            .OrderByDescending(t => t.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
+    public async Task<(IEnumerable<WithdrawalRequest> Items, int TotalCount)> GetStoreWithdrawalsAsync(Guid storeId, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var query = _ctx.WithdrawalRequests
+            .Where(w => w.StoreId == storeId)
+            .OrderByDescending(w => w.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
+    public async Task<WalletTransaction?> GetPendingWalletTransactionByReferenceIdAsync(Guid referenceId, CancellationToken ct = default)
+    {
+        return await _ctx.WalletTransactions
+            .FirstOrDefaultAsync(t => t.ReferenceId == referenceId && t.Status == (byte)TransactionStatusEnum.Pending, ct);
+    }
+
+    public void AddWithdrawalRequest(WithdrawalRequest request)
+    {
+        _ctx.WithdrawalRequests.Add(request);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);
