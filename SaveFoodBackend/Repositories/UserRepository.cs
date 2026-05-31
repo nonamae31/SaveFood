@@ -123,6 +123,16 @@ public class UserRepository : IUserRepository
         _ctx.UserRoles.Add(userRole);
     }
 
+    public async Task RemoveUserRoleAsync(Guid userId, Guid roleId, CancellationToken ct = default)
+    {
+        var userRole = await _ctx.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId, ct);
+        if (userRole != null)
+        {
+            _ctx.UserRoles.Remove(userRole);
+        }
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

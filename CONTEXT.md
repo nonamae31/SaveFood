@@ -41,8 +41,8 @@ A business entity on the platform that sells products. A Store is the canonical 
 _Avoid_: Partner, Đối tác.
 
 **Staff Role**:
-A specific permission level (`Owner=0`, `Manager=1`, `Staff=2`) that a User holds within a particular Store, stored in the `StoreStaff` table. This is distinct from the system-level Role (`UserRole`). Owner and Manager share the same full dashboard capabilities. Staff (role=2) has a restricted set of capabilities: creating Clearance Listings and processing Pickup Checkout at the counter.
-_Avoid_: Confusing "Staff" (StaffRole=2 specifically) with "store staff" (any member of StoreStaff).
+A specific permission level (`Owner=0`, `Staff=2`) that a User holds within a particular Store, stored in the `StoreStaff` table. This is distinct from the system-level Role (`UserRole`, which for all store personnel is `Store`). The Owner (0) has full dashboard capabilities. Staff (2) has a restricted set of capabilities: creating Clearance Listings and processing Pickup Checkout at the counter.
+_Avoid_: Confusing "Staff" (StaffRole=2 specifically) with "store staff" (any member of StoreStaff). Manager (1) is not used.
 
 **Pickup Checkout**:
 The in-store process performed by a Staff member when a Customer arrives to collect their order. The Staff member looks up the Order using the Customer's Pickup Code, then either collects cash payment (for Cash orders) or confirms receipt (for pre-paid online orders), before marking the Order as ReadyForPickup. A second "Complete" action finalises the Order after goods are handed over.
