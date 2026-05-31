@@ -133,45 +133,14 @@ function App() {
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
               </Route>
+            </Route>
 
-              {/* ── Auth (Người 1) ── */}
-              <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
-              <Route path={ROUTES.REGISTER}        element={<RegisterPage />} />
-              <Route path={ROUTES.VERIFY_OTP}      element={<VerifyOtpPage />} />
-              <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-              <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
+            {/* ── Payment Return (Người 5) ── */}
+            <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
 
-              {/* ── Store Dashboard (Người 2 & 3) ── */}
-              <Route element={<DashboardLayout />}>
-                <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
-                <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
-                <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
-                <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
-                <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
-                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
-                <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
-                <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
-              </Route>
-
-              {/* ── Admin (Người 5) ── */}
-              <Route element={<AdminProtectedRoute />}>
-                <Route element={<AdminLayout />}>
-                  <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
-                  <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
-                  <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
-                  <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
-                  <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
-                  <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
-                  <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
-                </Route>
-              </Route>
-
-              {/* ── Payment Return (Người 5) ── */}
-              <Route path="/payment/return"        element={<PlaceholderPage title="Kết quả thanh toán" />} />
-
-              {/* ── 404 Fallback ── */}
-              <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
-            </Routes>
+            {/* ── 404 Fallback ── */}
+            <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
+          </Routes>
           </BrowserRouter>
         </LocationProvider>
       </AuthProvider>
