@@ -348,6 +348,44 @@ namespace SaveFoodBackend.Services
             };
         }
 
+        public async Task<StoreProfileDTO> UpdateStoreAsync(Guid storeId, Guid userId, UpdateStoreRequest request, CancellationToken ct = default)
+        {
+            var store = await _storeRepo.GetStoreWithStaffsAsync(storeId, ct);
+            if (store == null)
+                throw new InvalidOperationException("Cửa hàng không tồn tại.");
+
+            var isStaff = store.StoreStaffs.Any(s => s.UserId == userId);
+            if (!isStaff)
+                throw new UnauthorizedAccessException("Bạn không có quyền thực hiện thao tác này.");
+
+            store.Name = request.Name;
+            store.Description = request.Description;
+            store.AddressLine = request.AddressLine;
+            store.Ward = request.Ward;
+            store.District = request.District;
+            store.City = request.City;
+            store.PhoneNumber = request.PhoneNumber;
+
+            if (request.Status.HasValue)
+                store.Status = request.Status.Value;
+
+            _storeRepo.Update(store);
+            await _storeRepo.SaveChangesAsync(ct);
+
+            return new StoreProfileDTO
+            {
+                Name = store.Name,
+                Description = store.Description,
+                AddressLine = store.AddressLine,
+                Ward = store.Ward,
+                District = store.District,
+                City = store.City,
+                PhoneNumber = store.PhoneNumber,
+                LogoUrl = store.LogoUrl,
+                CoverUrl = store.CoverUrl
+            };
+        }
+
         public async Task<StoreProfileDTO> RegisterStoreAsync(Guid userId, RegisterStoreRequest request, CancellationToken ct = default)
         {
             var store = new SaveFoodBackend.Models.Store

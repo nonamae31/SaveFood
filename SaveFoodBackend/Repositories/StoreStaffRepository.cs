@@ -38,6 +38,11 @@ public class StoreStaffRepository : IStoreStaffRepository
             .FirstOrDefaultAsync(ss => ss.StoreId == storeId && ss.UserId == userId, ct);
     }
 
+    public async Task<StoreStaff?> GetByIdAsync(Guid staffId, CancellationToken ct = default)
+    {
+        return await _set.FirstOrDefaultAsync(ss => ss.Id == staffId, ct);
+    }
+
     public async Task<int> CountStoresByUserIdAsync(Guid userId, CancellationToken ct = default)
     {
         return await _set.CountAsync(ss => ss.UserId == userId, ct);
@@ -46,6 +51,11 @@ public class StoreStaffRepository : IStoreStaffRepository
     public void Add(StoreStaff storeStaff)
     {
         _set.Add(storeStaff);
+    }
+
+    public void Update(StoreStaff storeStaff)
+    {
+        _set.Update(storeStaff);
     }
 
     public void Remove(StoreStaff storeStaff)

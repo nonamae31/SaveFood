@@ -67,6 +67,32 @@ public class StoreStaffController : ApiControllerBase
         }
     }
 
+    // PUT: api/stores/{storeId}/staff/{staffId}
+    /// <summary>Cập nhật role nhân viên (OWNER / MANAGER / STAFF). Chỉ Owner mới có quyền thực hiện.</summary>
+    [HttpPut("{staffId}")]
+    public async Task<IActionResult> UpdateStoreStaffRole(Guid storeId, Guid staffId, [FromBody] UpdateStaffRoleRequest request, CancellationToken ct)
+    {
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+        try
+        {
+            var userId = GetRequiredUserId();
+            var result = await _staffService.UpdateStaffRoleAsync(storeId, userId, staffId, request, ct);
+            return OkResponse(result, "Cập nhật vai trò thành công!");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+        }
+    }
+
     // DELETE: api/stores/{storeId}/staff/{targetUserId}
     /// <summary>Xóa một Staff khỏi cửa hàng. Chỉ Owner mới có quyền thực hiện. Thu hồi quyền Store nếu User không còn làm việc cho cửa hàng nào khác.</summary>
     [HttpDelete("{targetUserId}")]

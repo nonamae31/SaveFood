@@ -28,6 +28,24 @@ namespace SaveFoodBackend.Controllers
             return Ok(stores);
         }
 
+        // POST: api/stores
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> CreateStore([FromBody] RegisterStoreRequest request, System.Threading.CancellationToken ct)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                var profile = await _storeService.RegisterStoreAsync(userId, request, ct);
+                return CreatedResponse(nameof(GetStoreById), new { id = Guid.Empty }, profile);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi tạo cửa hàng.", details = ex.Message });
+            }
+        }
+
         // POST: api/stores/register
         [HttpPost("register")]
         [Authorize]
@@ -54,6 +72,28 @@ namespace SaveFoodBackend.Controllers
             var store = await _storeService.GetCustomerStoreByIdAsync(id, ct);
             if (store == null) return NotFound();
             return Ok(store);
+        }
+
+        // PUT: api/stores/{id}
+        [HttpPut("{id}")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStore(Guid id, [FromBody] UpdateStoreRequest request, System.Threading.CancellationToken ct)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                var profile = await _storeService.UpdateStoreAsync(id, userId, request, ct);
+                return OkResponse(profile);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         // GET: api/stores/{id}/profile  (Dashboard — Staff only)

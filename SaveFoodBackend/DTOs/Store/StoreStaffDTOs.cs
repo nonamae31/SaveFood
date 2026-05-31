@@ -11,6 +11,14 @@ namespace SaveFoodBackend.DTOs.Store
         public string Email { get; set; } = null!;
     }
 
+    /// <summary>Payload để cập nhật role của nhân viên.</summary>
+    public class UpdateStaffRoleRequest
+    {
+        [Required(ErrorMessage = "StaffRole là bắt buộc.")]
+        [Range(0, 2, ErrorMessage = "StaffRole phải là 0 (Owner), 1 (Manager), hoặc 2 (Staff).")]
+        public byte StaffRole { get; set; }
+    }
+
     /// <summary>Thông tin một thành viên trong danh sách nhân viên cửa hàng.</summary>
     public class StoreStaffDTO
     {

@@ -110,6 +110,42 @@ public class StoreStaffService : IStoreStaffService
         };
     }
 
+    public async Task<StoreStaffDTO> UpdateStaffRoleAsync(Guid storeId, Guid requestingUserId, Guid staffId, UpdateStaffRoleRequest request, CancellationToken ct = default)
+    {
+        var requesterRecord = await _staffRepo.GetByStoreAndUserIdAsync(storeId, requestingUserId, ct);
+        if (requesterRecord == null || requesterRecord.StaffRoleEnum != StaffRole.Owner)
+            throw new UnauthorizedAccessException("Chỉ Chủ cửa hàng (Owner) mới có quyền thay đổi vai trò nhân viên.");
+
+        var staffRecord = await _staffRepo.GetByIdAsync(staffId, ct);
+        if (staffRecord == null || staffRecord.StoreId != storeId)
+            throw new InvalidOperationException("Không tìm thấy nhân viên này trong cửa hàng.");
+
+        if (staffRecord.StaffRoleEnum == StaffRole.Owner)
+            throw new InvalidOperationException("Không thể thay đổi vai trò của Chủ cửa hàng.");
+
+        var newRole = (StaffRole)request.StaffRole;
+        if (newRole == StaffRole.Owner)
+            throw new InvalidOperationException("Không thể thăng cấp nhân viên lên Owner. Chỉ có thể chuyển quyền sở hữu.");
+
+        staffRecord.StaffRole = (byte)newRole;
+        _staffRepo.Update(staffRecord);
+        await _staffRepo.SaveChangesAsync(ct);
+
+        var user = await _userRepo.GetByIdAsync(staffRecord.UserId, ct);
+
+        return new StoreStaffDTO
+        {
+            UserId = staffRecord.UserId,
+            StoreStaffId = staffRecord.Id,
+            FullName = user?.FullName ?? "Unknown",
+            Email = user?.Email ?? "unknown@email.com",
+            AvatarUrl = user?.AvatarUrl,
+            StaffRole = staffRecord.StaffRole,
+            StaffRoleLabel = newRole.ToString(),
+            JoinedAt = staffRecord.JoinedAt
+        };
+    }
+
     public async Task RemoveStaffAsync(Guid storeId, Guid requestingUserId, Guid targetUserId, CancellationToken ct = default)
     {
         // Validate: chỉ Owner mới được xóa Staff
