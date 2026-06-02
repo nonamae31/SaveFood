@@ -139,6 +139,18 @@ using (var scope = app.Services.CreateScope())
             ALTER TABLE Stores ADD LogoCloudinaryId nvarchar(max) NULL;
         END
 
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Latitude')
+        BEGIN
+            ALTER TABLE Users ADD Latitude decimal(18,7) NULL;
+            ALTER TABLE Users ADD Longitude decimal(18,7) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'Latitude')
+        BEGIN
+            ALTER TABLE Stores ADD Latitude decimal(18,7) NULL;
+            ALTER TABLE Stores ADD Longitude decimal(18,7) NULL;
+        END  
+
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverUrl')
         BEGIN
             ALTER TABLE Stores ADD CoverUrl nvarchar(max) NULL;
