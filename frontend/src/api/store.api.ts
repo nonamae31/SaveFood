@@ -3,23 +3,27 @@ import { apiClient } from './client'
 export interface StoreProfileDTO {
   name: string;
   description: string | null;
-  addressLine: string;
-  ward: string | null;
-  district: string;
+  detailedAddress: string;
+  ward: string;
   city: string;
   phoneNumber: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
+  planName: string;
+  hasCustomBanner: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface UpdateStoreProfileRequest {
   name: string;
   description: string | null;
-  addressLine: string;
-  ward: string | null;
-  district: string;
+  detailedAddress: string;
+  ward: string;
   city: string;
   phoneNumber: string | null;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface StoreAnalyticsDTO {

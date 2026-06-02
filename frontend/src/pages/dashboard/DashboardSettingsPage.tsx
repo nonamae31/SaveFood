@@ -1,18 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '@/lib/constants';
 import { Lock, Image as ImageIcon, Upload, Star, Store, Loader2, Phone, MapPin, FileText, Save } from 'lucide-react';
 import { storeApi } from '@/api/store.api';
 import type { UpdateStoreProfileRequest } from '@/api/store.api';
 import toast from 'react-hot-toast';
 import { useQueryClient } from '@tanstack/react-query';
+import { LocationPickerMap } from '@/components/map/LocationPickerMap';
+
+interface EsgooLocation {
+  id: string;
+  name: string;
+  full_name: string;
+}
 
 export default function DashboardSettingsPage() {
   const { user } = useAuthContext();
   const storeId = user?.storeId ?? '';
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
-  // ── Subscription (still mock until subscription flow is built) ───────────────
-  const [subscription] = useState({ planName: 'Plus', hasCustomBanner: true });
+  // ── Subscription is now fetched along with the profile ───────────────────────
 
   // ── Image upload state ───────────────────────────────────────────────────────
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
@@ -24,15 +33,26 @@ export default function DashboardSettingsPage() {
   // ── Store profile form state ─────────────────────────────────────────────────
   const [profile, setProfile] = useState<UpdateStoreProfileRequest>({
     name: '',
-    description: null,
-    addressLine: '',
-    ward: null,
-    district: '',
+    description: '',
+    detailedAddress: '',
+    ward: '',
     city: '',
-    phoneNumber: null,
+    phoneNumber: '',
+    latitude: undefined,
+    longitude: undefined,
   });
+  const [planName, setPlanName] = useState('Free');
+  const [hasCustomBanner, setHasCustomBanner] = useState(false);
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  // ── Locations State ─────────────────────────────────────────────────────────  // API Locations State (v2 - No Districts)
+  const [provinces, setProvinces] = useState<EsgooLocation[]>([]);
+  const [wards, setWards] = useState<EsgooLocation[]>([]);
+
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [selectedWardId, setSelectedWardId] = useState<string>('');
+  const [searchTriggerAddress, setSearchTriggerAddress] = useState('');
 
   // ── Fetch profile on mount ───────────────────────────────────────────────────
   useEffect(() => {
@@ -45,12 +65,15 @@ export default function DashboardSettingsPage() {
           setProfile({
             name: data.name,
             description: data.description,
-            addressLine: data.addressLine,
+            detailedAddress: data.detailedAddress,
             ward: data.ward,
-            district: data.district,
             city: data.city,
             phoneNumber: data.phoneNumber,
+            latitude: data.latitude,
+            longitude: data.longitude,
           });
+          setPlanName(data.planName);
+          setHasCustomBanner(data.hasCustomBanner);
           if (data.logoUrl) setLogoPreview(data.logoUrl);
           if (data.coverUrl) setBannerPreview(data.coverUrl);
           setIsFetchingProfile(false);
@@ -65,6 +88,44 @@ export default function DashboardSettingsPage() {
 
     return () => { cancelled = true; };
   }, [storeId]);
+
+  // Fetch Provinces on Mount
+  useEffect(() => {
+    fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+      .then(res => res.json())
+      .then(data => { if (data.error === 0) setProvinces(data.data); })
+      .catch(err => console.error('Error fetching provinces:', err));
+  }, []);
+
+  // Sync province code from profile.city
+  useEffect(() => {
+    if (provinces.length > 0 && profile.city && !selectedProvinceId) {
+      const p = provinces.find(x => x.name === profile.city || x.full_name === profile.city);
+      if (p) setSelectedProvinceId(p.id);
+    }
+  }, [provinces, profile.city]);
+
+  // Fetch Wards (Districts in Esgoo API) when Province changes
+  useEffect(() => {
+    if (selectedProvinceId) {
+      fetch(`https://esgoo.net/api-tinhthanh/2/${selectedProvinceId}.htm`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.error === 0) setWards(data.data || []);
+        })
+        .catch(err => console.error('Error fetching wards:', err));
+    } else {
+      setWards([]);
+    }
+  }, [selectedProvinceId]);
+
+  // Sync ward code from profile.ward
+  useEffect(() => {
+    if (wards.length > 0 && profile.ward && !selectedWardId) {
+      const w = wards.find(x => x.name === profile.ward || x.full_name === profile.ward);
+      if (w) setSelectedWardId(w.id);
+    }
+  }, [wards, profile.ward]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleBannerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,8 +187,17 @@ export default function DashboardSettingsPage() {
     }
   };
 
-  const setField = (key: keyof UpdateStoreProfileRequest, value: string) => {
-    setProfile(prev => ({ ...prev, [key]: value || null }));
+  const setField = (key: keyof UpdateStoreProfileRequest, value: string | number | undefined) => {
+    setProfile(prev => ({ ...prev, [key]: value || (typeof value === 'number' ? value : null) }));
+  };
+
+  const handleTriggerSearch = () => {
+    const parts = [profile.detailedAddress, profile.ward, profile.city].filter(Boolean);
+    if (parts.length > 0) {
+      setSearchTriggerAddress(parts.join(', '));
+    } else {
+      toast.error('Vui lòng nhập ít nhất một trường địa chỉ để định vị!');
+    }
   };
 
   // ── Render ────────────────────────────────────────────────────────────────────
@@ -197,42 +267,103 @@ export default function DashboardSettingsPage() {
             </div>
 
             {/* Địa chỉ */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1">
-                <MapPin size={14} className="text-gray-400" />
-                Địa chỉ
-              </label>
-              <div className="space-y-2">
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 mb-4">
+                <MapPin className="text-gray-500" size={16} />
+                Địa chỉ chi tiết
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Thành phố / Tỉnh <span className="text-red-500">*</span>
+                  </label>
+                  <select 
+                    name="city"
+                    value={selectedProvinceId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedProvinceId(id);
+                      setSelectedWardId('');
+                      const name = e.target.options[e.target.selectedIndex].text;
+                      setField('city', id ? name : '');
+                      setField('ward', '');
+                    }}
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition bg-white text-gray-900"
+                  >
+                    <option className="text-gray-900 bg-white" value="">-- Chọn Thành phố / Tỉnh --</option>
+                    {provinces.map(p => (
+                      <option className="text-gray-900 bg-white" key={p.id} value={p.id}>{p.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                    Phường / Xã <span className="text-red-500">*</span>
+                  </label>
+                  <select 
+                    name="ward"
+                    value={selectedWardId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setSelectedWardId(id);
+                      const name = e.target.options[e.target.selectedIndex].text;
+                      setField('ward', id ? name : '');
+                    }}
+                    disabled={!selectedProvinceId}
+                    className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition bg-white text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option className="text-gray-900 bg-white" value="">-- Chọn Phường / Xã --</option>
+                    {wards.map(w => (
+                      <option className="text-gray-900 bg-white" key={w.id} value={w.id}>{w.full_name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  Số nhà, tên đường <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
-                  value={profile.addressLine}
-                  onChange={e => setField('addressLine', e.target.value)}
-                  placeholder="Số nhà, tên đường *"
+                  value={profile.detailedAddress}
+                  onChange={e => setField('detailedAddress', e.target.value)}
+                  placeholder="VD: 123 Lê Lợi"
                   className="w-full px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
                 />
-                <div className="grid grid-cols-3 gap-2">
-                  <input
-                    type="text"
-                    value={profile.ward ?? ''}
-                    onChange={e => setField('ward', e.target.value)}
-                    placeholder="Phường / Xã"
-                    className="px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
-                  />
-                  <input
-                    type="text"
-                    value={profile.district}
-                    onChange={e => setField('district', e.target.value)}
-                    placeholder="Quận / Huyện *"
-                    className="px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
-                  />
-                  <input
-                    type="text"
-                    value={profile.city}
-                    onChange={e => setField('city', e.target.value)}
-                    placeholder="Tỉnh / Thành phố *"
-                    className="px-3.5 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500/30 focus:border-green-500 transition"
+              </div>
+
+              <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700">Ghim vị trí trên bản đồ <span className="text-red-500">*</span></label>
+                    <p className="text-xs text-gray-500">Giúp khách hàng tìm đường đến quán dễ dàng hơn</p>
+                  </div>
+                  <button
+                    onClick={handleTriggerSearch}
+                    type="button"
+                    className="px-3 py-1.5 bg-white border border-gray-200 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-50 hover:text-green-600 transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <MapPin className="w-3.5 h-3.5" /> Định vị địa chỉ
+                  </button>
+                </div>
+                <div className="h-[300px] w-full">
+                  <LocationPickerMap 
+                    searchTriggerAddress={searchTriggerAddress}
+                    defaultPosition={profile.latitude && profile.longitude ? { lat: profile.latitude, lng: profile.longitude } : undefined}
+                    onLocationChange={(lat, lng) => {
+                      setField('latitude', lat);
+                      setField('longitude', lng);
+                    }}
                   />
                 </div>
+                {!profile.latitude && (
+                  <div className="bg-red-50 p-2 text-center border-t border-red-100">
+                    <p className="text-red-600 text-xs font-medium">Vui lòng chấm ghim để lấy tọa độ chính xác.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -291,17 +422,20 @@ export default function DashboardSettingsPage() {
               Ảnh bìa cửa hàng (Banner)
             </h2>
             <span className="text-xs font-semibold px-2.5 py-1 bg-green-100 text-green-700 rounded-lg">
-              Gói hiện tại: {subscription.planName}
+              Gói hiện tại: {planName}
             </span>
           </div>
 
-          {!subscription.hasCustomBanner ? (
+          {!hasCustomBanner ? (
             <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center bg-gray-50 relative overflow-hidden">
               <div className="absolute inset-0 bg-gray-100/50 flex flex-col items-center justify-center z-10 backdrop-blur-[1px]">
                 <Lock className="w-8 h-8 text-gray-400 mb-2" />
                 <h3 className="font-semibold text-gray-700 mb-1">Tính năng bị khóa</h3>
                 <p className="text-sm text-gray-500 mb-4">Tính năng Tùy chỉnh Banner chỉ dành cho gói Plus và Premium.</p>
-                <button className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white text-sm font-medium rounded-lg shadow-sm hover:from-green-700 hover:to-green-600 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
+                  className="px-4 py-2 bg-gradient-to-r from-green-600 to-green-500 text-white text-sm font-medium rounded-lg shadow-sm hover:from-green-700 hover:to-green-600 transition-colors flex items-center gap-2"
+                >
                   <Star size={16} /> Nâng cấp ngay
                 </button>
               </div>

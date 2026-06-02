@@ -44,22 +44,16 @@ public class AdminFinanceService : IAdminFinanceService
         withdrawal.AdminNote = request.AdminNote;
         withdrawal.ProcessedAt = DateTime.UtcNow;
 
+        var pendingTx = await _financeRepo.GetPendingWalletTransactionByReferenceIdAsync(withdrawal.Id);
+        if (pendingTx == null) throw new InvalidOperationException("Pending wallet transaction not found.");
+
         if (request.IsApproved)
         {
             withdrawal.Status = (byte)WithdrawalStatusEnum.Paid;
             // The money was already deducted from AvailableBalance when request was created.
-            // Create a completed WalletTransaction
-            _financeRepo.AddWalletTransaction(new WalletTransaction
-            {
-                Id = Guid.NewGuid(),
-                StoreWalletId = wallet.Id,
-                Amount = -withdrawal.Amount,
-                Type = (byte)TransactionTypeEnum.Withdrawal,
-                Status = (byte)TransactionStatusEnum.Completed,
-                ReferenceId = withdrawal.Id,
-                Description = "Withdrawal Processed",
-                CreatedAt = DateTime.UtcNow
-            });
+            // Update the pending WalletTransaction to Completed
+            pendingTx.Status = (byte)TransactionStatusEnum.Completed;
+            pendingTx.Description = "Withdrawal Processed";
         }
         else
         {
@@ -67,17 +61,14 @@ public class AdminFinanceService : IAdminFinanceService
             // Refund the money back to AvailableBalance
             wallet.AvailableBalance += withdrawal.Amount;
 
-            _financeRepo.AddWalletTransaction(new WalletTransaction
-            {
-                Id = Guid.NewGuid(),
-                StoreWalletId = wallet.Id,
-                Amount = withdrawal.Amount,
-                Type = (byte)TransactionTypeEnum.Withdrawal,
-                Status = (byte)TransactionStatusEnum.Failed,
-                ReferenceId = withdrawal.Id,
-                Description = "Withdrawal Rejected",
-                CreatedAt = DateTime.UtcNow
-            });
+            // Update the pending WalletTransaction to Failed
+            pendingTx.Status = (byte)TransactionStatusEnum.Failed;
+            pendingTx.Description = "Withdrawal Rejected";
+            
+            // Note: If withdrawal was rejected, technically it was 'Failed', 
+            // but we might want the amount to be positive to indicate a refund?
+            // Usually, if it's a failed withdrawal, the amount stays negative but status is Failed,
+            // and the balance is just restored. Let's keep Amount as is (-dto.Amount).
         }
 
         await _financeRepo.SaveChangesAsync();

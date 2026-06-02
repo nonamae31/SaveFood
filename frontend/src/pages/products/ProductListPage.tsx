@@ -2,7 +2,7 @@
 // Route: /products
 // Trang duyệt Clearance Listings cho Customer (Người 3).
 
-import { useState, useMemo, useEffect } from 'react'
+import { useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Sparkles, RefreshCw } from 'lucide-react'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'

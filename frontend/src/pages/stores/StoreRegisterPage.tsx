@@ -7,19 +7,10 @@ import { LocationPickerMap } from '@/components/map/LocationPickerMap';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
-interface Province {
-  code: number;
+interface EsgooLocation {
+  id: string;
   name: string;
-}
-
-interface District {
-  code: number;
-  name: string;
-}
-
-interface Ward {
-  code: number;
-  name: string;
+  full_name: string;
 }
 
 export default function StoreRegisterPage() {
@@ -28,18 +19,18 @@ export default function StoreRegisterPage() {
   const [loading, setLoading] = useState(false);
   
   // API Locations State (v2 - No Districts)
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [wards, setWards] = useState<Ward[]>([]);
+  const [provinces, setProvinces] = useState<EsgooLocation[]>([]);
+  const [wards, setWards] = useState<EsgooLocation[]>([]);
 
-  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | ''>('');
-  const [selectedWardCode, setSelectedWardCode] = useState<number | ''>('');
+  const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
+  const [selectedWardId, setSelectedWardId] = useState<string>('');
 
   // Form State
   const [formData, setFormData] = useState({
     name: '',
     phoneNumber: '',
     description: '',
-    addressLine: '',
+    detailedAddress: '',
     ward: '',
     city: '',
     latitude: undefined as number | undefined,
@@ -52,23 +43,25 @@ export default function StoreRegisterPage() {
 
   // Fetch Provinces on Mount (v2)
   useEffect(() => {
-    fetch('https://provinces.open-api.vn/api/v2/p/')
+    fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
       .then(res => res.json())
-      .then(data => setProvinces(data))
+      .then(data => { if (data.error === 0) setProvinces(data.data); })
       .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
-  // Fetch Wards when Province changes (v2 skips District)
+  // Fetch Wards (Districts in Esgoo API) when Province changes
   useEffect(() => {
-    if (selectedProvinceCode) {
-      fetch(`https://provinces.open-api.vn/api/v2/p/${selectedProvinceCode}?depth=2`)
+    if (selectedProvinceId) {
+      fetch(`https://esgoo.net/api-tinhthanh/2/${selectedProvinceId}.htm`)
         .then(res => res.json())
-        .then(data => setWards(data.wards || []))
+        .then(data => {
+          if (data.error === 0) setWards(data.data || []);
+        })
         .catch(err => console.error('Error fetching wards:', err));
     } else {
       setWards([]);
     }
-  }, [selectedProvinceCode]);
+  }, [selectedProvinceId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -76,7 +69,7 @@ export default function StoreRegisterPage() {
   };
 
   const handleTriggerSearch = () => {
-    const parts = [formData.addressLine, formData.ward, formData.city].filter(Boolean);
+    const parts = [formData.detailedAddress, formData.ward, formData.city].filter(Boolean);
     if (parts.length > 0) {
       setSearchTriggerAddress(parts.join(', '));
     } else {
@@ -92,7 +85,7 @@ export default function StoreRegisterPage() {
       }
     }
     if (step === 2) {
-      if (!formData.addressLine || !formData.ward || !formData.city) {
+      if (!formData.detailedAddress || !formData.ward || !formData.city) {
         toast.error('Vui lòng điền/chọn đầy đủ địa chỉ bắt buộc (Tỉnh, Phường, Số nhà)');
         return;
       }
@@ -108,7 +101,7 @@ export default function StoreRegisterPage() {
     setStep(prev => prev - 1);
   };
 
-  const handleSubscribe = async (planName: string, planId: string) => {
+  const handleSubscribe = async (planId: string) => {
     try {
       setLoading(true);
       // Giả lập lấy token và gọi API POST /api/stores/register
@@ -122,9 +115,8 @@ export default function StoreRegisterPage() {
       const payload = {
         name: formData.name,
         description: formData.description,
-        addressLine: formData.addressLine,
+        detailedAddress: formData.detailedAddress,
         ward: formData.ward,
-        district: '', // District removed in v2
         city: formData.city,
         phoneNumber: formData.phoneNumber,
         latitude: formData.latitude,
@@ -168,11 +160,13 @@ export default function StoreRegisterPage() {
         {/* Progress Bar */}
         <div className="mb-12">
           <div className="flex items-center justify-between relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
-            <div 
-              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-green-500 rounded-full z-0 transition-all duration-500"
-              style={{ width: `${((step - 1) / 2) * 100}%` }}
-            ></div>
+            <div className="absolute left-5 right-5 top-1/2 -translate-y-1/2 h-1 z-0">
+              <div className="w-full h-full bg-gray-200 rounded-full"></div>
+              <div 
+                className="absolute left-0 top-0 h-full bg-green-500 rounded-full transition-all duration-500"
+                style={{ width: `${((step - 1) / 2) * 100}%` }}
+              ></div>
+            </div>
             
             <div className={`relative z-10 flex flex-col items-center gap-2 ${step >= 1 ? 'text-green-600' : 'text-gray-400'}`}>
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white transition-colors duration-300 ${step >= 1 ? 'bg-green-500 shadow-md shadow-green-200' : 'bg-gray-300'}`}>
@@ -262,19 +256,19 @@ export default function StoreRegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Thành phố / Tỉnh <span className="text-red-500">*</span></label>
                   <select 
                     name="city"
-                    value={selectedProvinceCode}
+                    value={selectedProvinceId}
                     onChange={(e) => {
-                      const code = Number(e.target.value);
-                      setSelectedProvinceCode(code || '');
-                      setSelectedWardCode('');
+                      const id = e.target.value;
+                      setSelectedProvinceId(id);
+                      setSelectedWardId('');
                       const name = e.target.options[e.target.selectedIndex].text;
-                      setFormData(prev => ({ ...prev, city: code ? name : '', ward: '' }));
+                      setFormData(prev => ({ ...prev, city: id ? name : '', ward: '' }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900"
                   >
-                    <option value="">-- Chọn Thành phố / Tỉnh --</option>
+                    <option className="text-gray-900 bg-white" value="">-- Chọn Thành phố / Tỉnh --</option>
                     {provinces.map(p => (
-                      <option key={p.code} value={p.code}>{p.name}</option>
+                      <option className="text-gray-900 bg-white" key={p.id} value={p.id}>{p.full_name}</option>
                     ))}
                   </select>
                 </div>
@@ -282,19 +276,19 @@ export default function StoreRegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Phường / Xã <span className="text-red-500">*</span></label>
                   <select 
                     name="ward"
-                    value={selectedWardCode}
+                    value={selectedWardId}
                     onChange={(e) => {
-                      const code = Number(e.target.value);
-                      setSelectedWardCode(code || '');
+                      const id = e.target.value;
+                      setSelectedWardId(id);
                       const name = e.target.options[e.target.selectedIndex].text;
-                      setFormData(prev => ({ ...prev, ward: code ? name : '' }));
+                      setFormData(prev => ({ ...prev, ward: id ? name : '' }));
                     }}
-                    disabled={!selectedProvinceCode}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white disabled:bg-gray-50 disabled:text-gray-400"
+                    disabled={!selectedProvinceId}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
                   >
-                    <option value="">-- Chọn Phường / Xã --</option>
+                    <option className="text-gray-900 bg-white" value="">-- Chọn Phường / Xã --</option>
                     {wards.map(w => (
-                      <option key={w.code} value={w.code}>{w.name}</option>
+                      <option className="text-gray-900 bg-white" key={w.id} value={w.id}>{w.full_name}</option>
                     ))}
                   </select>
                 </div>
@@ -302,8 +296,8 @@ export default function StoreRegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Số nhà, Tên đường <span className="text-red-500">*</span></label>
                   <input 
                     type="text" 
-                    name="addressLine"
-                    value={formData.addressLine}
+                    name="detailedAddress"
+                    value={formData.detailedAddress}
                     onChange={handleChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                     placeholder="VD: 123 Lê Lợi"
@@ -414,7 +408,7 @@ export default function StoreRegisterPage() {
                   </ul>
                   <button 
                     disabled={loading}
-                    onClick={() => handleSubscribe('Free', 'free')}
+                    onClick={() => handleSubscribe('free')}
                     className="w-full py-3 rounded-xl border-2 border-gray-900 text-gray-900 font-bold hover:bg-gray-50 transition-colors"
                   >
                     Bắt đầu miễn phí
@@ -448,7 +442,7 @@ export default function StoreRegisterPage() {
                   </ul>
                   <button 
                     disabled={loading}
-                    onClick={() => handleSubscribe('Plus', 'plus-plan-id')}
+                    onClick={() => handleSubscribe('plus-plan-id')}
                     className="w-full py-3 rounded-xl bg-green-600 text-white font-bold hover:bg-green-700 transition-colors shadow-md flex justify-center items-center gap-2"
                   >
                     {loading ? 'Đang xử lý...' : 'Chọn Plus'}
@@ -481,7 +475,7 @@ export default function StoreRegisterPage() {
                   </ul>
                   <button 
                     disabled={loading}
-                    onClick={() => handleSubscribe('Premium', 'premium-plan-id')}
+                    onClick={() => handleSubscribe('premium-plan-id')}
                     className="w-full py-3 rounded-xl bg-gray-900 text-white font-bold hover:bg-gray-800 transition-colors shadow-md flex justify-center items-center gap-2"
                   >
                     {loading ? 'Đang xử lý...' : 'Chọn Premium'}

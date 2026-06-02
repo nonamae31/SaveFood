@@ -11,11 +11,9 @@ public partial class Store
 
     public string? Description { get; set; }
 
-    public string AddressLine { get; set; } = null!;
+    public string DetailedAddress { get; set; } = null!;
 
-    public string? Ward { get; set; }
-
-    public string District { get; set; } = null!;
+    public string Ward { get; set; } = null!;
 
     public string City { get; set; } = null!;
 

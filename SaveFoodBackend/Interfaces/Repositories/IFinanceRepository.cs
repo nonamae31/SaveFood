@@ -16,5 +16,12 @@ public interface IFinanceRepository
     Task<RefundRequest?> GetRefundWithOrderAndWalletAsync(Guid id, CancellationToken ct = default);
     Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default);
     void AddWalletTransaction(WalletTransaction transaction);
+    
+    Task<StoreWallet?> GetStoreWalletByStoreIdAsync(Guid storeId, CancellationToken ct = default);
+    Task<(IEnumerable<WalletTransaction> Items, int TotalCount)> GetStoreTransactionsAsync(Guid storeWalletId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<(IEnumerable<WithdrawalRequest> Items, int TotalCount)> GetStoreWithdrawalsAsync(Guid storeId, int pageNumber, int pageSize, CancellationToken ct = default);
+    Task<WalletTransaction?> GetPendingWalletTransactionByReferenceIdAsync(Guid referenceId, CancellationToken ct = default);
+    void AddWithdrawalRequest(WithdrawalRequest request);
+
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

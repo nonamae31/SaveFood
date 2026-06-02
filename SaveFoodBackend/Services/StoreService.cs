@@ -42,17 +42,24 @@ namespace SaveFoodBackend.Services
             if (!isStaff)
                 throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin cửa hàng này.");
 
+            var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, DateTime.UtcNow, ct);
+            var planName = activeSubscription?.Plan?.Name ?? "Free";
+            var hasCustomBanner = activeSubscription?.Plan?.HasCustomBanner ?? false;
+
             return new StoreProfileDTO
             {
                 Name = store.Name,
                 Description = store.Description,
-                AddressLine = store.AddressLine,
+                DetailedAddress = store.DetailedAddress,
                 Ward = store.Ward,
-                District = store.District,
                 City = store.City,
                 PhoneNumber = store.PhoneNumber,
                 LogoUrl = store.LogoUrl,
-                CoverUrl = store.CoverUrl
+                CoverUrl = store.CoverUrl,
+                PlanName = planName,
+                HasCustomBanner = hasCustomBanner,
+                Latitude = store.Latitude,
+                Longitude = store.Longitude
             };
         }
 
@@ -68,11 +75,13 @@ namespace SaveFoodBackend.Services
 
             store.Name = request.Name;
             store.Description = request.Description;
-            store.AddressLine = request.AddressLine;
+            store.DetailedAddress = request.DetailedAddress;
             store.Ward = request.Ward;
-            store.District = request.District;
             store.City = request.City;
             store.PhoneNumber = request.PhoneNumber;
+            
+            if (request.Latitude.HasValue) store.Latitude = request.Latitude.Value;
+            if (request.Longitude.HasValue) store.Longitude = request.Longitude.Value;
 
             _storeRepo.Update(store);
             await _storeRepo.SaveChangesAsync(ct);
@@ -143,7 +152,7 @@ namespace SaveFoodBackend.Services
             if (!string.IsNullOrEmpty(filter?.SearchQuery))
             {
                 var q = filter.SearchQuery.ToLower();
-                stores = stores.Where(s => s.Name.ToLower().Contains(q) || s.AddressLine.ToLower().Contains(q));
+                stores = stores.Where(s => s.Name.ToLower().Contains(q) || s.DetailedAddress.ToLower().Contains(q));
             }
 
             var random = new Random();
@@ -170,7 +179,7 @@ namespace SaveFoodBackend.Services
                     Name = s.Name,
                     Category = mainCategory,
                     Rating = averageRatings.ContainsKey(s.Id) ? Math.Round(averageRatings[s.Id], 1) : (double?)null,
-                    Address = $"{s.AddressLine}, {s.Ward}, {s.District}, {s.City}",
+                    Address = $"{s.DetailedAddress}, {s.Ward}, {s.City}",
                     ImageUrl = s.LogoUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                     Tags = new System.Collections.Generic.List<string> { "Giải cứu", "Tiết kiệm" },
                     PriorityLevel = plan?.PriorityLevel ?? 0,
@@ -217,7 +226,7 @@ namespace SaveFoodBackend.Services
                 Name = store.Name,
                 Category = mainCategory,
                 Rating = rating,
-                Address = $"{store.AddressLine}, {store.Ward}, {store.District}, {store.City}",
+                Address = $"{store.DetailedAddress}, {store.Ward}, {store.City}",
                 ImageUrl = store.LogoUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                 Tags = new System.Collections.Generic.List<string> { "Giải cứu", "Tiết kiệm" },
                 PriorityLevel = plan?.PriorityLevel ?? 0,
@@ -355,9 +364,8 @@ namespace SaveFoodBackend.Services
                 Id = Guid.NewGuid(),
                 Name = request.Name,
                 Description = request.Description,
-                AddressLine = request.AddressLine,
+                DetailedAddress = request.DetailedAddress,
                 Ward = request.Ward,
-                District = request.District,
                 City = request.City,
                 PhoneNumber = request.PhoneNumber,
                 Latitude = request.Latitude,
@@ -408,9 +416,8 @@ namespace SaveFoodBackend.Services
             {
                 Name = store.Name,
                 Description = store.Description,
-                AddressLine = store.AddressLine,
+                DetailedAddress = store.DetailedAddress,
                 Ward = store.Ward,
-                District = store.District,
                 City = store.City,
                 PhoneNumber = store.PhoneNumber
             };
