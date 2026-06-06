@@ -56,6 +56,16 @@ namespace SaveFoodBackend.Controllers
             return Ok(store);
         }
 
+        // GET: api/stores/my-registrations
+        [HttpGet("my-registrations")]
+        [Authorize]
+        public async Task<IActionResult> GetMyStoreRegistrations(System.Threading.CancellationToken ct)
+        {
+            var userId = GetRequiredUserId();
+            var registrations = await _storeService.GetMyStoreRegistrationsAsync(userId, ct);
+            return Ok(registrations);
+        }
+
         // GET: api/stores/{id}/profile  (Dashboard — Staff only)
         [HttpGet("{id}/profile")]
         [Authorize]
@@ -125,7 +135,7 @@ namespace SaveFoodBackend.Controllers
         }
         // GET: api/stores/{id}/analytics
         [HttpGet("{id}/analytics")]
-        // [Authorize] // Temporarily disabled for testing if needed, or keep it
+        [Authorize(Roles = "STORE,Store")]
         public async Task<IActionResult> GetStoreAnalytics(Guid id, [FromQuery] int days = 7)
         {
             try

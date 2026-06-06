@@ -51,6 +51,7 @@ public class FinanceRepository : IFinanceRepository
     {
         var query = _ctx.WithdrawalRequests
             .Include(w => w.Store)
+            .Include(w => w.User)
             .AsQueryable();
 
         if (status.HasValue)
@@ -66,8 +67,9 @@ public class FinanceRepository : IFinanceRepository
         var dtos = items.Select(w => new WithdrawalRequestDTO
         {
             Id = w.Id,
-            StoreId = w.StoreId,
-            StoreName = w.Store.Name,
+            RequesterId = w.StoreId ?? w.UserId ?? Guid.Empty,
+            RequesterName = w.Store != null ? w.Store.Name : (w.User != null ? w.User.FullName : "Unknown"),
+            RequesterType = w.StoreId.HasValue ? "Store" : "Customer",
             Amount = w.Amount,
             Status = w.Status,
             BankName = w.BankName,
@@ -85,54 +87,12 @@ public class FinanceRepository : IFinanceRepository
     {
         return await _ctx.WithdrawalRequests
             .Include(w => w.Store)
-            .ThenInclude(s => s.StoreWallet)
+                .ThenInclude(s => s.StoreWallet)
+            .Include(w => w.User)
+                .ThenInclude(u => u.CustomerWallet)
             .FirstOrDefaultAsync(w => w.Id == id, ct);
     }
 
-    public async Task<(IEnumerable<RefundRequestDTO> Items, int TotalCount)> GetRefundsAsync(int pageNumber, int pageSize, byte? status = null, CancellationToken ct = default)
-    {
-        var query = _ctx.RefundRequests
-            .Include(r => r.RequestedByNavigation)
-            .AsQueryable();
-
-        if (status.HasValue)
-        {
-            query = query.Where(r => r.Status == status.Value);
-        }
-
-        query = query.OrderByDescending(r => r.CreatedAt);
-
-        var totalCount = await query.CountAsync(ct);
-        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
-
-        var dtos = items.Select(r => new RefundRequestDTO
-        {
-            Id = r.Id,
-            OrderId = r.OrderId,
-            RequestedBy = r.RequestedBy,
-            CustomerName = r.RequestedByNavigation.FullName,
-            Amount = r.Amount,
-            Reason = r.Reason,
-            Status = r.Status == 1 ? (byte)0 : r.Status,
-            AdminNote = r.AdminNote,
-            CustomerBankName = r.CustomerBankName,
-            CustomerBankAccount = r.CustomerBankAccount,
-            CustomerBankAccountName = r.CustomerBankAccountName,
-            CreatedAt = r.CreatedAt,
-            ProcessedAt = r.ProcessedAt
-        }).ToList();
-
-        return (dtos, totalCount);
-    }
-
-    public async Task<RefundRequest?> GetRefundWithOrderAndWalletAsync(Guid id, CancellationToken ct = default)
-    {
-        return await _ctx.RefundRequests
-            .Include(r => r.Order)
-            .ThenInclude(o => o.Store)
-            .ThenInclude(s => s.StoreWallet)
-            .FirstOrDefaultAsync(r => r.Id == id, ct);
-    }
 
     public async Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default)
     {
@@ -179,6 +139,12 @@ public class FinanceRepository : IFinanceRepository
     {
         return await _ctx.WalletTransactions
             .FirstOrDefaultAsync(t => t.ReferenceId == referenceId && t.Status == (byte)TransactionStatusEnum.Pending, ct);
+    }
+
+    public async Task<CustomerWalletTransaction?> GetPendingCustomerWalletTransactionByReferenceIdAsync(Guid referenceId, CancellationToken ct = default)
+    {
+        return await _ctx.CustomerWalletTransactions
+            .FirstOrDefaultAsync(t => t.ReferenceId == referenceId && t.Status == 0, ct); // 0 = Pending
     }
 
     public void AddWithdrawalRequest(WithdrawalRequest request)

@@ -31,6 +31,10 @@ public partial class Store
 
     public string? CoverCloudinaryId { get; set; }
 
+    public string? StorefrontImageUrl { get; set; }
+
+    public string? ReferenceLink { get; set; }
+
     public byte Status { get; set; }
 
     public byte StoreFlags { get; set; }

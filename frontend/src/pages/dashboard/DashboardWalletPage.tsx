@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Wallet, Clock, XCircle, Plus } from 'lucide-react'
-import { 
-  useStoreWallet, 
-  useStoreTransactions, 
-  useStoreWithdrawals, 
-  useCreateWithdrawal 
+import {
+  useStoreWallet,
+  useStoreTransactions,
+  useStoreWithdrawals,
+  useCreateWithdrawal
 } from '@/hooks/useStoreFinance'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -55,13 +55,13 @@ export default function DashboardWalletPage() {
   const { data: wallet, isLoading: walletLoading } = useStoreWallet()
   const { data: txData, isLoading: txLoading } = useStoreTransactions(1, 20)
   const { data: wdData, isLoading: wdLoading } = useStoreWithdrawals(1, 20)
-  
+
   const createWithdrawal = useCreateWithdrawal()
 
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
-    
+
     const amount = Number(formData.amount)
     if (isNaN(amount) || amount < 50000) {
       setFormError('Số tiền rút tối thiểu là 50,000 VNĐ')
@@ -94,21 +94,19 @@ export default function DashboardWalletPage() {
       {/* Tabs */}
       <div className="flex space-x-4 border-b border-gray-200">
         <button
-          className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'overview' 
-              ? 'border-brand-600 text-brand-700' 
+          className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
+              ? 'border-brand-600 text-brand-700'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
           onClick={() => setActiveTab('overview')}
         >
           Tổng quan ví
         </button>
         <button
-          className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'withdrawals' 
-              ? 'border-brand-600 text-brand-700' 
+          className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'withdrawals'
+              ? 'border-brand-600 text-brand-700'
               : 'border-transparent text-gray-500 hover:text-gray-700'
-          }`}
+            }`}
           onClick={() => setActiveTab('withdrawals')}
         >
           Yêu cầu rút tiền
@@ -129,7 +127,7 @@ export default function DashboardWalletPage() {
               </div>
               <Wallet className="absolute right-4 bottom-4 w-24 h-24 text-gray-50 opacity-50 transform translate-y-4" />
             </div>
-            
+
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm relative overflow-hidden">
               <div className="relative z-10">
                 <p className="text-sm font-medium text-gray-500 mb-1">Số dư chờ duyệt</p>
@@ -213,14 +211,14 @@ export default function DashboardWalletPage() {
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-xl font-bold text-gray-900">Thông tin rút tiền</h3>
-                <button 
+                <button
                   onClick={() => setShowWithdrawForm(false)}
                   className="text-gray-400 hover:text-gray-600"
                 >
                   <XCircle className="w-6 h-6" />
                 </button>
               </div>
-              
+
               <div className="bg-brand-50 rounded-lg p-4 mb-6">
                 <p className="text-sm text-brand-800">
                   Số dư khả dụng: <span className="font-bold text-brand-900 text-lg">{formatVND(wallet?.availableBalance || 0)}</span>
@@ -236,9 +234,9 @@ export default function DashboardWalletPage() {
               <form onSubmit={handleWithdrawSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số tiền cần rút (VNĐ)</label>
-                  <Input 
-                    type="number" 
-                    required 
+                  <Input
+                    type="number"
+                    required
                     min="50000"
                     placeholder="VD: 500000"
                     value={formData.amount}
@@ -247,8 +245,8 @@ export default function DashboardWalletPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Ngân hàng thụ hưởng</label>
-                  <Input 
-                    required 
+                  <Input
+                    required
                     placeholder="VD: Vietcombank"
                     value={formData.bankName}
                     onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
@@ -256,8 +254,8 @@ export default function DashboardWalletPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Số tài khoản</label>
-                  <Input 
-                    required 
+                  <Input
+                    required
                     placeholder="VD: 0123456789"
                     value={formData.bankAccountNumber}
                     onChange={(e) => setFormData({ ...formData, bankAccountNumber: e.target.value })}
@@ -265,8 +263,8 @@ export default function DashboardWalletPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tên chủ tài khoản</label>
-                  <Input 
-                    required 
+                  <Input
+                    required
                     placeholder="VD: NGUYEN VAN A"
                     className="uppercase"
                     value={formData.bankAccountName}

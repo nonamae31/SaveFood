@@ -34,11 +34,13 @@ public class StoreRepository : IStoreRepository
             {
                 Id = s.Id,
                 Name = s.Name,
-                DetailedAddress = s.DetailedAddress,
+                AddressLine = s.DetailedAddress + ", " + s.Ward + ", " + s.City,
                 PhoneNumber = s.PhoneNumber,
                 CreatedAt = s.CreatedAt,
                 OwnerName = s.StoreStaffs.Where(ss => ss.StaffRole == ownerStaffRole).Select(ss => ss.User.FullName).FirstOrDefault(),
-                OwnerEmail = s.StoreStaffs.Where(ss => ss.StaffRole == ownerStaffRole).Select(ss => ss.User.Email).FirstOrDefault()
+                OwnerEmail = s.StoreStaffs.Where(ss => ss.StaffRole == ownerStaffRole).Select(ss => ss.User.Email).FirstOrDefault(),
+                ReferenceLink = s.ReferenceLink,
+                StorefrontImageUrl = s.StorefrontImageUrl
             })
             .OrderBy(s => s.CreatedAt)
             .ToListAsync(ct);
@@ -91,5 +93,13 @@ public class StoreRepository : IStoreRepository
             .ToDictionaryAsync(x => x.StoreId, x => x.AvgRating, ct);
             
         return ratings;
+    }
+
+    public async Task<IEnumerable<Store>> GetMyStoreRegistrationsAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _ctx.Stores
+            .Where(s => s.StoreStaffs.Any(ss => ss.UserId == userId && ss.StaffRole == 1))
+            .OrderByDescending(s => s.CreatedAt)
+            .ToListAsync(ct);
     }
 }

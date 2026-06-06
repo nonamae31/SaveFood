@@ -35,6 +35,16 @@ export interface StoreAnalyticsDTO {
   analyticsLevel: number;
   weeklyRevenue: number[];
   topSellingProducts: { name: string; sales: number }[];
+  returnCustomerRate: number;
+}
+
+export interface MyStoreRegistrationDTO {
+  id: string;
+  name: string;
+  detailedAddress: string;
+  status: number;
+  rejectReason: string | null;
+  createdAt: string;
 }
 
 export const storeApi = {
@@ -63,11 +73,16 @@ export const storeApi = {
       body: JSON.stringify(data),
     })
   },
-  
   createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string): Promise<{ checkoutUrl: string }> => {
     return await apiClient(`/stores/${storeId}/subscriptions/checkout`, {
       method: 'POST',
       body: JSON.stringify({ planId, billingCycle })
+    })
+  },
+
+  getMyRegistrations: async (): Promise<MyStoreRegistrationDTO[]> => {
+    return await apiClient(`/stores/my-registrations`, {
+      method: 'GET'
     })
   },
 }

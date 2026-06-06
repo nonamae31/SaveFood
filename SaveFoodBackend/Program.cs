@@ -50,6 +50,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBack
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
 
 // Admin Repositories
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();
@@ -94,10 +95,7 @@ var app = builder.Build();
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // ─── 8. Swagger UI (chỉ bật khi Development) ──────────────────────────────────
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwaggerWithUI();
-}
+app.UseSwaggerWithUI();
 
 // ─── 9. HTTPS Redirect ────────────────────────────────────────────────────────
 app.UseHttpsRedirection();
@@ -119,66 +117,5 @@ app.MapControllers();
 app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
 // ─────────────────────────────────────────────────────────────────────────────
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
-    // Auto-migrate schema for new columns Username and NormalizedEmail
-    var sql = @"
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Username')
-        BEGIN
-            ALTER TABLE Users ADD Username nvarchar(50) NULL;
-            ALTER TABLE Users ADD NormalizedEmail nvarchar(255) NULL;
-        END
-        
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'IsDeleted')
-        BEGIN
-            ALTER TABLE Categories ADD IsDeleted bit NOT NULL DEFAULT 0;
-        END
-
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'LogoCloudinaryId')
-        BEGIN
-            ALTER TABLE Stores ADD LogoCloudinaryId nvarchar(max) NULL;
-        END
-
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverUrl')
-        BEGIN
-            ALTER TABLE Stores ADD CoverUrl nvarchar(max) NULL;
-        END
-
-        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverCloudinaryId')
-        BEGIN
-            ALTER TABLE Stores ADD CoverCloudinaryId nvarchar(max) NULL;
-        END
-    ";
-    db.Database.ExecuteSqlRaw(sql);
-    
-    // Update existing records properly using AuthUtils
-    var usersToUpdate = db.Users.ToList();
-    bool anyChanges = false;
-    foreach (var u in usersToUpdate)
-    {
-        var correctNormalized = SaveFoodBackend.Utils.AuthUtils.NormalizeEmail(u.Email);
-        if (u.NormalizedEmail != correctNormalized)
-        {
-            u.NormalizedEmail = correctNormalized;
-            anyChanges = true;
-        }
-        
-        if (string.IsNullOrEmpty(u.Username))
-        {
-            var username = u.Email.Split('@')[0];
-            username = new string(username.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
-            if (username.Length < 3) username = username.PadRight(3, 'a');
-            if (username.Length > 20) username = username.Substring(0, 20);
-            u.Username = username;
-            anyChanges = true;
-        }
-    }
-    
-    if (anyChanges)
-    {
-        db.SaveChanges();
-    }
-}
 
 app.Run();

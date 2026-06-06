@@ -278,6 +278,7 @@ namespace SaveFoodBackend.Services
 
             List<decimal> weeklyRevenue = new();
             List<TopSellingProductDTO> topProducts = new();
+            double returnCustomerRate = 0;
             
             if (analyticsLevel >= 1)
             {
@@ -286,6 +287,11 @@ namespace SaveFoodBackend.Services
                 weeklyRevenue = await _orderRepo.GetWeeklyRevenueAsync(storeId, weekStart, weekEnd, ct);
                 
                 topProducts = await _orderRepo.GetTopSellingProductsAsync(storeId, 3, ct);
+            }
+
+            if (analyticsLevel >= 2)
+            {
+                returnCustomerRate = await _orderRepo.GetReturnCustomerRateAsync(storeId, ct);
             }
 
             return new StoreAnalyticsDTO
@@ -297,7 +303,8 @@ namespace SaveFoodBackend.Services
                 PlanName = planName,
                 AnalyticsLevel = analyticsLevel,
                 WeeklyRevenue = weeklyRevenue,
-                TopSellingProducts = topProducts
+                TopSellingProducts = topProducts,
+                ReturnCustomerRate = returnCustomerRate
             };
         }
 
@@ -370,6 +377,7 @@ namespace SaveFoodBackend.Services
                 PhoneNumber = request.PhoneNumber,
                 Latitude = request.Latitude,
                 Longitude = request.Longitude,
+                ReferenceLink = request.ReferenceLink,
                 Status = (byte)StoreStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
                 TrustScore = 100, // Default trust score
@@ -391,6 +399,12 @@ namespace SaveFoodBackend.Services
                 StaffFlags = (byte)StaffFlagsEnum.IsActive,
                 JoinedAt = DateTime.UtcNow
             });
+
+            if (request.StorefrontImage != null)
+            {
+                var (imageUrl, _) = await _cloudinaryService.UploadImageAsync(request.StorefrontImage);
+                store.StorefrontImageUrl = imageUrl;
+            }
 
             if (request.SubscriptionPlanId.HasValue)
             {
@@ -421,6 +435,20 @@ namespace SaveFoodBackend.Services
                 City = store.City,
                 PhoneNumber = store.PhoneNumber
             };
+        }
+
+        public async Task<IEnumerable<MyStoreRegistrationDTO>> GetMyStoreRegistrationsAsync(Guid userId, CancellationToken ct = default)
+        {
+            var userStores = await _storeRepo.GetMyStoreRegistrationsAsync(userId, ct);
+            return userStores.Select(s => new MyStoreRegistrationDTO
+            {
+                Id = s.Id,
+                Name = s.Name,
+                DetailedAddress = s.DetailedAddress,
+                Status = s.Status,
+                RejectReason = s.ReviewNotes,
+                CreatedAt = s.CreatedAt
+            });
         }
     }
 }

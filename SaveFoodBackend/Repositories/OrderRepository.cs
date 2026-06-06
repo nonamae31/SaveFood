@@ -68,7 +68,7 @@ public class OrderRepository : IOrderRepository
         // Status = 3 is Completed
         var query = _set.Where(o => o.StoreId == storeId && o.OrderStatus == 3 && o.CreatedAt >= startDate && o.CreatedAt <= endDate);
         var count = await query.CountAsync(ct);
-        var revenue = await query.SumAsync(o => o.TotalAmount, ct);
+        var revenue = await query.SumAsync(o => o.TotalAmount * 0.95m, ct); // Deduct 5% platform fee
         return (count, revenue);
     }
 
@@ -77,7 +77,7 @@ public class OrderRepository : IOrderRepository
         var orders = await _set
             .Where(o => o.StoreId == storeId && o.OrderStatus == 3 && o.CreatedAt >= startDate && o.CreatedAt <= endDate)
             .GroupBy(o => o.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Revenue = g.Sum(o => o.TotalAmount) })
+            .Select(g => new { Date = g.Key, Revenue = g.Sum(o => o.TotalAmount * 0.95m) }) // Deduct 5% platform fee
             .ToListAsync(ct);
 
         var result = new List<decimal>();
@@ -111,5 +111,21 @@ public class OrderRepository : IOrderRepository
     {
         // 0: Pending, 1: Confirmed, 2: AwaitingPickup
         return await _set.AnyAsync(o => o.UserId == userId && (o.OrderStatus == 0 || o.OrderStatus == 1 || o.OrderStatus == 2), ct);
+    }
+
+    public async Task<double> GetReturnCustomerRateAsync(Guid storeId, CancellationToken ct = default)
+    {
+        var userOrders = await _set
+            .Where(o => o.StoreId == storeId && o.OrderStatus == 3) // Only completed orders
+            .GroupBy(o => o.UserId)
+            .Select(g => new { UserId = g.Key, OrderCount = g.Count() })
+            .ToListAsync(ct);
+
+        if (!userOrders.Any()) return 0;
+
+        var totalCustomers = userOrders.Count;
+        var returningCustomers = userOrders.Count(u => u.OrderCount > 1);
+
+        return Math.Round((double)returningCustomers / totalCustomers * 100, 1);
     }
 }

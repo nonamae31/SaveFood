@@ -10,6 +10,7 @@ public class StoreAnalyticsDTO
     public int AnalyticsLevel { get; set; } = 0;
     public List<decimal> WeeklyRevenue { get; set; } = new();
     public List<TopSellingProductDTO> TopSellingProducts { get; set; } = new();
+    public double ReturnCustomerRate { get; set; }
 }
 
 public class TopSellingProductDTO

@@ -47,9 +47,6 @@ public class ExtendPickupRequestDTO
 
 public class CancelOrderRequestDTO
 {
-    public string BankName { get; set; } = string.Empty;
-    public string BankAccount { get; set; } = string.Empty;
-    public string BankAccountName { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
 }
 

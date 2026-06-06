@@ -7,6 +7,7 @@ using SaveFoodBackend.DTOs.Store.Orders;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Models;
 
 namespace SaveFoodBackend.Services;
 
@@ -14,11 +15,13 @@ public class StoreOrderService : IStoreOrderService
 {
     private readonly IOrderRepository _orderRepo;
     private readonly IStoreRepository _storeRepo;
+    private readonly IFinanceRepository _financeRepo;
 
-    public StoreOrderService(IOrderRepository orderRepo, IStoreRepository storeRepo)
+    public StoreOrderService(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
+        _financeRepo = financeRepo;
     }
 
     private static string GetStatusLabel(byte status) => (OrderStatusEnum)status switch
@@ -118,8 +121,31 @@ public class StoreOrderService : IStoreOrderService
             throw new InvalidOperationException($"Chỉ có thể hoàn thành đơn hàng đang ở trạng thái 'Chờ lấy hàng'. Trạng thái hiện tại: {GetStatusLabel(order.OrderStatus)}.");
 
         order.OrderStatus = (byte)OrderStatusEnum.Completed;
+
+        // Process store wallet (add money to store - minus 5% platform fee)
+        var storeWallet = await _financeRepo.GetStoreWalletByStoreIdAsync(storeId, ct);
+        if (storeWallet != null)
+        {
+            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal storeIncome = order.TotalAmount - platformFee;
+
+            storeWallet.AvailableBalance += storeIncome;
+            
+            _financeRepo.AddWalletTransaction(new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                StoreWalletId = storeWallet.Id,
+                OrderId = order.Id,
+                Amount = storeIncome,
+                Type = 1, // Income
+                Status = 1, // Completed
+                Description = $"Thu nhập từ đơn hàng {order.OrderCode ?? 0} (Đã trừ 5% phí nền tảng)"
+            });
+        }
+
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
+        await _financeRepo.SaveChangesAsync(ct);
     }
 
     public async Task CancelOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default)

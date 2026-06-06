@@ -327,31 +327,21 @@ namespace SaveFoodBackend.Controllers
         /// <summary>
         /// Lấy thông tin cá nhân (Profile) của User đang đăng nhập
         /// </summary>
-        /// <param name="overrideUserId">Truyền ID thủ công để test bỏ qua luồng Auth (Bypass Authentication)</param>
         /// <returns>Đối tượng UserProfileDTO chứa thông tin user an toàn</returns>
         /// <response code="200">Lấy profile thành công</response>
         /// <response code="401">Chưa đăng nhập hoặc token đã hết hạn / bị thu hồi</response>
         /// <response code="404">Không tìm thấy thông tin user trong hệ thống</response>
-        // [Authorize(Roles = "Admin,StoreOwner,Customer")] // Vô hiệu hóa tạm thời theo yêu cầu để dev khác bypass
+        [Authorize]
         [HttpGet("profile")]
-        public async Task<ActionResult<DTOs.User.UserProfileDTO>> GetProfile([FromQuery] Guid? overrideUserId = null)
+        public async Task<ActionResult<DTOs.User.UserProfileDTO>> GetProfile()
         {
-            // Lấy ID từ token, hoặc dùng overrideUserId nếu đang bypass Auth để test
+            // Lấy ID từ token
             var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            Guid userId;
             
-            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
-                userId = parsedId;
-            }
-            else if (overrideUserId.HasValue)
-            {
-                userId = overrideUserId.Value;
-            }
-            else
-            {
-                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+                return Unauthorized(new { message = "User not logged in." });
             }
 
             try
@@ -369,15 +359,14 @@ namespace SaveFoodBackend.Controllers
         /// Cập nhật thông tin cá nhân
         /// </summary>
         /// <param name="request">Các trường thông tin cá nhân cần sửa (FullName, PhoneNumber, Address, AvatarUrl)</param>
-        /// <param name="overrideUserId">Truyền ID thủ công để test bỏ qua luồng Auth (Bypass Authentication)</param>
         /// <returns>Thông báo cập nhật thành công</returns>
         /// <response code="200">Cập nhật thành công</response>
         /// <response code="400">Dữ liệu gửi lên không hợp lệ</response>
         /// <response code="401">Chưa đăng nhập</response>
         /// <response code="404">Không tìm thấy user</response>
-        // [Authorize] // Vô hiệu hóa tạm thời theo yêu cầu
+        [Authorize]
         [HttpPut("profile")]
-        public async Task<IActionResult> UpdateProfile([FromForm] DTOs.User.UpdateProfileRequest request, [FromQuery] Guid? overrideUserId = null)
+        public async Task<IActionResult> UpdateProfile([FromForm] DTOs.User.UpdateProfileRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -386,19 +375,10 @@ namespace SaveFoodBackend.Controllers
 
             var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            Guid userId;
 
-            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
-                userId = parsedId;
-            }
-            else if (overrideUserId.HasValue)
-            {
-                userId = overrideUserId.Value;
-            }
-            else
-            {
-                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+                return Unauthorized(new { message = "User not logged in." });
             }
 
             try
@@ -415,8 +395,9 @@ namespace SaveFoodBackend.Controllers
         /// <summary>
         /// Đổi mật khẩu cho User đang đăng nhập
         /// </summary>
+        [Authorize]
         [HttpPut("change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] DTOs.User.ChangePasswordRequest request, [FromQuery] Guid? overrideUserId = null)
+        public async Task<IActionResult> ChangePassword([FromBody] DTOs.User.ChangePasswordRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -425,19 +406,10 @@ namespace SaveFoodBackend.Controllers
 
             var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            Guid userId;
 
-            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
-                userId = parsedId;
-            }
-            else if (overrideUserId.HasValue)
-            {
-                userId = overrideUserId.Value;
-            }
-            else
-            {
-                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+                return Unauthorized(new { message = "User not logged in." });
             }
 
             try
@@ -454,8 +426,9 @@ namespace SaveFoodBackend.Controllers
         /// <summary>
         /// Cập nhật tọa độ vị trí hiện tại
         /// </summary>
+        [Authorize]
         [HttpPut("location")]
-        public async Task<IActionResult> UpdateLocation([FromBody] DTOs.User.UpdateLocationRequest request, [FromQuery] Guid? overrideUserId = null)
+        public async Task<IActionResult> UpdateLocation([FromBody] DTOs.User.UpdateLocationRequest request)
         {
             if (!ModelState.IsValid)
             {
@@ -464,19 +437,10 @@ namespace SaveFoodBackend.Controllers
 
             var userIdStr = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value
                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            Guid userId;
 
-            if (!string.IsNullOrEmpty(userIdStr) && Guid.TryParse(userIdStr, out var parsedId))
+            if (string.IsNullOrEmpty(userIdStr) || !Guid.TryParse(userIdStr, out var userId))
             {
-                userId = parsedId;
-            }
-            else if (overrideUserId.HasValue)
-            {
-                userId = overrideUserId.Value;
-            }
-            else
-            {
-                return Unauthorized(new { message = "User not logged in or missing overrideUserId parameter (for bypass)." });
+                return Unauthorized(new { message = "User not logged in." });
             }
 
             try

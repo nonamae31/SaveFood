@@ -17,4 +17,5 @@ public interface IOrderRepository
     Task<List<SaveFoodBackend.DTOs.Store.TopSellingProductDTO>> GetTopSellingProductsAsync(Guid storeId, int count, CancellationToken ct = default);
     Task<Order?> GetOrderByPickupCodeAsync(Guid storeId, string pickupCode, CancellationToken ct = default);
     Task<bool> HasActiveOrdersAsync(Guid userId, CancellationToken ct = default);
+    Task<double> GetReturnCustomerRateAsync(Guid storeId, CancellationToken ct = default);
 }

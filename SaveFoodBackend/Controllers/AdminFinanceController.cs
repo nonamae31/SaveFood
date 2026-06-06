@@ -49,25 +49,4 @@ public class AdminFinanceController : ControllerBase
         }
     }
 
-    [HttpGet("refunds")]
-    public async Task<ActionResult<PaginatedList<RefundRequestDTO>>> GetRefunds([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] byte? status = null)
-    {
-        var result = await _adminFinanceService.GetRefundsAsync(pageNumber, pageSize, status);
-        return Ok(result);
-    }
-
-    [HttpPut("refunds/{id}/process")]
-    public async Task<ActionResult> ProcessRefund(Guid id, [FromBody] ProcessFinanceRequestDTO request)
-    {
-        try
-        {
-            var message = await _adminFinanceService.ProcessRefundAsync(id, request);
-            return Ok(new { message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            if (ex.Message.Contains("not found")) return NotFound(ex.Message);
-            return BadRequest(ex.Message);
-        }
-    }
 }

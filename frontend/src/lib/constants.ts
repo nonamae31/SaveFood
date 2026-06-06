@@ -58,10 +58,12 @@ export const ROUTES = {
   STORE:          (id: string) => `/stores/${id}`,
   STORES:         '/stores',
   STORE_REGISTER: '/stores/register',
+  POLICY:         '/policy',
   CART:           '/cart',
   CHECKOUT:       '/checkout',
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
   MY_ORDERS:      '/my-orders',
+  MY_WALLET:      '/my-wallet',
 
   // Auth
   LOGIN:          '/login',

@@ -19,8 +19,8 @@ const FOOTER_LINKS = {
     support: [
         { label: "Câu hỏi thường gặp", href: "#faq" },
         { label: "Liên hệ hỗ trợ", href: "#contact" },
-        { label: "Điều khoản dịch vụ", href: "#terms" },
-        { label: "Chính sách bảo mật", href: "#privacy" },
+        { label: "Điều khoản dịch vụ", href: ROUTES.POLICY, isRouter: true },
+        { label: "Chính sách bảo mật", href: ROUTES.POLICY, isRouter: true },
     ],
 };
 
@@ -105,13 +105,22 @@ export function Footer() {
                         <h3 className="text-[--text-body-md] font-semibold mb-4">Hỗ trợ</h3>
                         <ul className="space-y-2.5">
                             {FOOTER_LINKS.support.map((link) => (
-                                <li key={link.href}>
-                                    <a
-                                        href={link.href}
-                                        className="text-[--text-body-sm] text-gray-400 hover:text-[--color-brand-400] transition-colors"
-                                    >
-                                        {link.label}
-                                    </a>
+                                <li key={link.label}>
+                                    {link.isRouter ? (
+                                        <Link
+                                            to={link.href}
+                                            className="text-[--text-body-sm] text-gray-400 hover:text-[--color-brand-400] transition-colors"
+                                        >
+                                            {link.label}
+                                        </Link>
+                                    ) : (
+                                        <a
+                                            href={link.href}
+                                            className="text-[--text-body-sm] text-gray-400 hover:text-[--color-brand-400] transition-colors"
+                                        >
+                                            {link.label}
+                                        </a>
+                                    )}
                                 </li>
                             ))}
                         </ul>

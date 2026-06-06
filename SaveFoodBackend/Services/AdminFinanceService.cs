@@ -38,91 +38,61 @@ public class AdminFinanceService : IAdminFinanceService
         if (withdrawal.Status != (byte)WithdrawalStatusEnum.Pending && withdrawal.Status != (byte)WithdrawalStatusEnum.Processing)
             throw new InvalidOperationException("Withdrawal request has already been processed.");
 
-        var wallet = withdrawal.Store.StoreWallet;
-        if (wallet == null) throw new InvalidOperationException("Store wallet not found.");
-
         withdrawal.AdminNote = request.AdminNote;
         withdrawal.ProcessedAt = DateTime.UtcNow;
 
-        var pendingTx = await _financeRepo.GetPendingWalletTransactionByReferenceIdAsync(withdrawal.Id);
-        if (pendingTx == null) throw new InvalidOperationException("Pending wallet transaction not found.");
-
-        if (request.IsApproved)
+        if (withdrawal.StoreId.HasValue)
         {
-            withdrawal.Status = (byte)WithdrawalStatusEnum.Paid;
-            // The money was already deducted from AvailableBalance when request was created.
-            // Update the pending WalletTransaction to Completed
-            pendingTx.Status = (byte)TransactionStatusEnum.Completed;
-            pendingTx.Description = "Withdrawal Processed";
+            var wallet = withdrawal.Store?.StoreWallet;
+            if (wallet == null) throw new InvalidOperationException("Store wallet not found.");
+
+            var pendingTx = await _financeRepo.GetPendingWalletTransactionByReferenceIdAsync(withdrawal.Id);
+            if (pendingTx == null) throw new InvalidOperationException("Pending store wallet transaction not found.");
+
+            if (request.IsApproved)
+            {
+                withdrawal.Status = (byte)WithdrawalStatusEnum.Paid;
+                pendingTx.Status = (byte)TransactionStatusEnum.Completed;
+                pendingTx.Description = "Withdrawal Processed";
+            }
+            else
+            {
+                withdrawal.Status = (byte)WithdrawalStatusEnum.Rejected;
+                wallet.AvailableBalance += withdrawal.Amount;
+                pendingTx.Status = (byte)TransactionStatusEnum.Failed;
+                pendingTx.Description = "Withdrawal Rejected";
+            }
+        }
+        else if (withdrawal.UserId.HasValue)
+        {
+            var customerWallet = withdrawal.User?.CustomerWallet;
+            if (customerWallet == null) throw new InvalidOperationException("Customer wallet not found.");
+
+            var pendingTx = await _financeRepo.GetPendingCustomerWalletTransactionByReferenceIdAsync(withdrawal.Id);
+            if (pendingTx == null) throw new InvalidOperationException("Pending customer wallet transaction not found.");
+
+            if (request.IsApproved)
+            {
+                withdrawal.Status = (byte)WithdrawalStatusEnum.Paid;
+                pendingTx.Status = 1; // Completed
+                pendingTx.Description = "Rút tiền thành công";
+            }
+            else
+            {
+                withdrawal.Status = (byte)WithdrawalStatusEnum.Rejected;
+                customerWallet.Balance += withdrawal.Amount;
+                pendingTx.Status = 2; // Failed
+                pendingTx.Description = "Rút tiền bị từ chối: " + request.AdminNote;
+            }
         }
         else
         {
-            withdrawal.Status = (byte)WithdrawalStatusEnum.Rejected;
-            // Refund the money back to AvailableBalance
-            wallet.AvailableBalance += withdrawal.Amount;
-
-            // Update the pending WalletTransaction to Failed
-            pendingTx.Status = (byte)TransactionStatusEnum.Failed;
-            pendingTx.Description = "Withdrawal Rejected";
-            
-            // Note: If withdrawal was rejected, technically it was 'Failed', 
-            // but we might want the amount to be positive to indicate a refund?
-            // Usually, if it's a failed withdrawal, the amount stays negative but status is Failed,
-            // and the balance is just restored. Let's keep Amount as is (-dto.Amount).
+            throw new InvalidOperationException("Invalid withdrawal request type.");
         }
 
         await _financeRepo.SaveChangesAsync();
         return request.IsApproved ? "Withdrawal paid successfully." : "Withdrawal rejected.";
     }
 
-    public async Task<PaginatedList<RefundRequestDTO>> GetRefundsAsync(int pageNumber, int pageSize, byte? status)
-    {
-        var (items, totalCount) = await _financeRepo.GetRefundsAsync(pageNumber, pageSize, status);
-        return new PaginatedList<RefundRequestDTO>(items.ToList(), totalCount, pageNumber, pageSize);
-    }
 
-    public async Task<string> ProcessRefundAsync(Guid id, ProcessFinanceRequestDTO request)
-    {
-        var refund = await _financeRepo.GetRefundWithOrderAndWalletAsync(id);
-
-        if (refund == null) throw new InvalidOperationException("Refund request not found.");
-        if (refund.Status != (byte)RefundStatusEnum.Pending && refund.Status != 1)
-            throw new InvalidOperationException("Refund request has already been processed.");
-
-        var wallet = refund.Order.Store.StoreWallet;
-        if (wallet == null) throw new InvalidOperationException("Store wallet not found.");
-
-        refund.AdminNote = request.AdminNote;
-        refund.ProcessedAt = DateTime.UtcNow;
-
-        if (request.IsApproved)
-        {
-            if (wallet.PendingBalance < refund.Amount)
-                throw new InvalidOperationException("Insufficient Pending Balance to process refund.");
-
-            refund.Status = (byte)RefundStatusEnum.Refunded;
-            wallet.PendingBalance -= refund.Amount;
-
-            _financeRepo.AddWalletTransaction(new WalletTransaction
-            {
-                Id = Guid.NewGuid(),
-                StoreWalletId = wallet.Id,
-                Amount = -refund.Amount,
-                Type = (byte)TransactionTypeEnum.Refund,
-                Status = (byte)TransactionStatusEnum.Completed,
-                OrderId = refund.OrderId,
-                ReferenceId = refund.Id,
-                Description = "Refund to Customer",
-                CreatedAt = DateTime.UtcNow
-            });
-        }
-        else
-        {
-            refund.Status = (byte)RefundStatusEnum.Rejected;
-            // No wallet changes needed if rejected (pending balance stays pending until order completes)
-        }
-
-        await _financeRepo.SaveChangesAsync();
-        return request.IsApproved ? "Refund completed successfully." : "Refund rejected.";
-    }
 }

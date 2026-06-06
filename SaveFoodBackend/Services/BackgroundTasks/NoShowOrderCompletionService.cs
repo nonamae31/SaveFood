@@ -61,7 +61,7 @@ public class NoShowOrderCompletionService : BackgroundService
         {
             foreach (var order in lateOrders)
             {
-                order.OrderStatus = 2; // Completed / Delivered
+                order.OrderStatus = 3; // Completed / Delivered
 
                 // Process store wallet (add money to store - minus 5% platform fee)
                 if (order.Store?.StoreWallet != null)

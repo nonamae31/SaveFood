@@ -82,7 +82,7 @@ export default function StoreApprovalPage() {
                     Chờ duyệt
                   </span>
                 </div>
-                
+
                 <div className="space-y-3 text-[14px] text-mint-steel mb-6">
                   <div className="flex items-start gap-2">
                     <MapPin className="w-4 h-4 mt-0.5 text-mint-stone shrink-0" />
@@ -99,19 +99,38 @@ export default function StoreApprovalPage() {
                       <span className="text-mint-stone ml-2">{store.ownerEmail}</span>
                     </div>
                   </div>
+                  {/* Trust Info */}
+                  <div className="flex flex-col gap-2 pt-4 border-t border-mint-hairline-soft mt-4">
+                    {store.referenceLink && (
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4 text-mint-brand-green shrink-0" />
+                        <a href={store.referenceLink} target="_blank" rel="noreferrer" className="text-mint-primary hover:underline font-medium">
+                          Link tham chiếu (Maps/Fanpage)
+                        </a>
+                      </div>
+                    )}
+                    {store.storefrontImageUrl && (
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-mint-brand-green shrink-0" />
+                        <a href={store.storefrontImageUrl} target="_blank" rel="noreferrer" className="text-mint-primary hover:underline font-medium">
+                          Xem Ảnh mặt tiền cửa hàng
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                
+
                 <div className="text-[13px] text-mint-stone font-medium">
                   Đăng ký vào {new Date(store.createdAt).toLocaleDateString()}
                 </div>
               </div>
-              
+
               <div className="bg-mint-surface p-[24px] border-t border-mint-hairline-soft">
                 {rejectingId === store.id ? (
                   <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
                     <div className="relative">
                       <MessageSquare className="w-4 h-4 absolute left-3 top-3 text-mint-stone" />
-                      <textarea 
+                      <textarea
                         autoFocus
                         placeholder="Lý do từ chối..."
                         value={reviewNotes}
@@ -120,13 +139,13 @@ export default function StoreApprovalPage() {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button 
+                      <button
                         onClick={() => handleReject(store.id)}
                         className="flex-1 bg-mint-brand-error text-mint-on-primary py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors hover:bg-red-600"
                       >
                         Xác nhận Từ chối
                       </button>
-                      <button 
+                      <button
                         onClick={() => { setRejectingId(null); setReviewNotes(''); }}
                         className="bg-transparent hover:bg-mint-hairline-soft text-mint-ink border border-mint-hairline px-[16px] py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors"
                       >
@@ -136,14 +155,14 @@ export default function StoreApprovalPage() {
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <button 
+                    <button
                       onClick={() => handleApprove(store.id)}
                       className="flex-1 bg-mint-primary hover:bg-mint-charcoal text-mint-on-primary py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors flex items-center justify-center gap-2"
                     >
                       <Check className="w-4 h-4" />
                       Duyệt
                     </button>
-                    <button 
+                    <button
                       onClick={() => setRejectingId(store.id)}
                       className="flex-1 bg-transparent hover:bg-[#d45656]/5 text-[#d45656] border border-mint-hairline hover:border-[#d45656] py-[10px] rounded-[9999px] text-[14px] font-medium transition-colors flex items-center justify-center gap-2"
                     >

@@ -228,7 +228,7 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hạn sử dụng *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Hạn lấy hàng (Hạn chót) *</label>
               <input
                 required
                 type="datetime-local"

@@ -4,8 +4,11 @@ import { useUpdateProfile, useChangePassword, useForgotPassword, useResetPasswor
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Wallet, ClipboardList, Store, Clock, XCircle, CheckCircle } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
+import { useQuery } from '@tanstack/react-query';
+import { storeApi } from '@/api/store.api';
+import dayjs from 'dayjs';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -35,6 +38,12 @@ export function ProfilePage() {
   const [passErrorMsg, setPassErrorMsg] = useState('');
   
   const [showOtpForm, setShowOtpForm] = useState(false);
+
+  // Fetch Store Registrations
+  const { data: myRegistrations, isLoading: isLoadingRegistrations } = useQuery({
+    queryKey: ['myStoreRegistrations'],
+    queryFn: storeApi.getMyRegistrations
+  });
 
   useEffect(() => {
     if (user) {
@@ -199,6 +208,22 @@ export function ProfilePage() {
           </div>
         </div>
 
+        {/* QUICK ACTIONS */}
+        <div className="px-8 py-4 bg-white border-b border-gray-100 flex gap-4">
+          <button 
+            onClick={() => navigate(ROUTES.MY_WALLET)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-50 text-brand-700 font-bold rounded-xl hover:bg-brand-100 transition-colors"
+          >
+            <Wallet size={18} /> Ví SaveFood
+          </button>
+          <button 
+            onClick={() => navigate(ROUTES.MY_ORDERS)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gray-50 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <ClipboardList size={18} /> Đơn mua của tôi
+          </button>
+        </div>
+
         <div className="p-8">
           <h2 className="text-heading-md font-bold mb-6">Thông tin cá nhân</h2>
           
@@ -247,6 +272,65 @@ export function ProfilePage() {
               </Button>
             </div>
           </form>
+        </div>
+      </div>
+
+      {/* SECTION: ĐƠN ĐĂNG KÝ CỬA HÀNG */}
+      <div className="bg-[--color-surface-base] shadow-[--shadow-card] rounded-[1.5rem] overflow-hidden">
+        <div className="p-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-heading-md font-bold flex items-center gap-2">
+              <Store className="text-brand-600" /> Cửa hàng của tôi
+            </h2>
+            <button 
+              onClick={() => navigate(ROUTES.STORE_REGISTER)}
+              className="px-4 py-2 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors text-sm"
+            >
+              + Đăng ký mới
+            </button>
+          </div>
+
+          {isLoadingRegistrations ? (
+            <div className="text-center text-gray-500 py-4">Đang tải...</div>
+          ) : !myRegistrations || myRegistrations.length === 0 ? (
+            <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
+              <p className="text-gray-500 mb-2">Bạn chưa đăng ký cửa hàng nào.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {myRegistrations.map((reg) => (
+                <div key={reg.id} className="border border-gray-100 rounded-xl p-5 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">{reg.name}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{reg.detailedAddress}</p>
+                    </div>
+                    <div>
+                      {reg.status === 0 && <span className="flex items-center gap-1 text-orange-600 bg-orange-50 px-3 py-1 rounded-full text-sm font-bold"><Clock size={16} /> Chờ duyệt</span>}
+                      {reg.status === 1 && <span className="flex items-center gap-1 text-green-600 bg-green-50 px-3 py-1 rounded-full text-sm font-bold"><CheckCircle size={16} /> Đã duyệt</span>}
+                      {reg.status === 2 && <span className="flex items-center gap-1 text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm font-bold"><XCircle size={16} /> Bị từ chối</span>}
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-end mt-4">
+                    <span className="text-xs text-gray-400">Đăng ký lúc: {dayjs(reg.createdAt).format('HH:mm DD/MM/YYYY')}</span>
+                    {reg.status === 1 && (
+                      <button 
+                        onClick={() => window.location.href = ROUTES.DASHBOARD_STORES(reg.id)}
+                        className="text-sm text-brand-600 font-bold hover:underline"
+                      >
+                        Vào Dashboard &rarr;
+                      </button>
+                    )}
+                  </div>
+                  {reg.status === 2 && reg.rejectReason && (
+                    <div className="mt-3 p-3 bg-red-50 text-red-700 text-sm rounded-lg">
+                      <strong>Lý do từ chối:</strong> {reg.rejectReason}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

@@ -12,6 +12,7 @@ namespace SaveFoodBackend.DTOs.Store
     /// <summary>Dữ liệu hồ sơ cửa hàng trả về cho Dashboard.</summary>
     public class StoreProfileDTO
     {
+        public Guid Id { get; set; }
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public string DetailedAddress { get; set; } = null!;
@@ -81,5 +82,21 @@ namespace SaveFoodBackend.DTOs.Store
         // BillingCycle can be added if needed, let's keep it simple or add it if they pay upfront.
         // For now SubscriptionPlanId is enough to identify which plan they selected.
         public string? BillingCycle { get; set; } // e.g., 'monthly', 'semiannual', 'annual'
+
+        [MaxLength(1000)]
+        public string? ReferenceLink { get; set; }
+
+        public IFormFile? StorefrontImage { get; set; }
+    }
+
+    /// <summary>Dữ liệu danh sách đơn đăng ký cửa hàng của user.</summary>
+    public class MyStoreRegistrationDTO
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string DetailedAddress { get; set; } = null!;
+        public int Status { get; set; }
+        public string? RejectReason { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

@@ -44,8 +44,8 @@ public class OrderService : IOrderService
         if (cartItems.Count != req.CartItemIds.Count)
             throw new Exception("Có sản phẩm không hợp lệ trong giỏ hàng.");
 
-        if (req.PaymentMethod != 1)
-            throw new Exception("Chỉ hỗ trợ thanh toán online qua PayOS.");
+        if (req.PaymentMethod != 0 && req.PaymentMethod != 1)
+            throw new Exception("Phương thức thanh toán không hợp lệ.");
 
         var storeIds = cartItems.Select(ci => ci.Listing.Product.StoreId).Distinct().ToList();
         if (storeIds.Count > 1)
@@ -153,9 +153,35 @@ public class OrderService : IOrderService
             }
             catch (Exception ex)
             {
-                // If PayOS fails, we should probably revert the transaction or return an error.
                 throw new Exception("Lỗi khi tạo link thanh toán PayOS: " + ex.Message);
             }
+        }
+        else if (req.PaymentMethod == 0) // Wallet
+        {
+            var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
+            if (customerWallet == null || customerWallet.Balance < totalAmount)
+            {
+                throw new Exception("Số dư trong Ví SaveFood không đủ để thanh toán.");
+            }
+
+            customerWallet.Balance -= totalAmount;
+            
+            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                CustomerWalletId = customerWallet.Id,
+                Amount = totalAmount,
+                Type = 2, // Payment
+                Status = 1, // Completed
+                OrderId = order.Id,
+                Description = $"Thanh toán đơn hàng DH {orderCode}"
+            });
+
+            payment.Status = 1; // Completed
+            payment.PaidAt = DateTime.UtcNow;
+            order.OrderStatus = 1; // PendingConfirmation
+            
+            await _ctx.SaveChangesAsync(ct);
         }
 
         return new CheckoutResponseDTO
@@ -185,7 +211,7 @@ public class OrderService : IOrderService
 
         if (order.OrderStatus == 4)
             throw new Exception("Đơn hàng đã bị huỷ.");
-        if (order.OrderStatus == 2)
+        if (order.OrderStatus == 3)
             throw new Exception("Đơn hàng đã được xác nhận lấy hàng trước đó.");
         
         if (order.PickupCode != pickupCode)
@@ -196,7 +222,7 @@ public class OrderService : IOrderService
             throw new Exception("Đơn hàng thanh toán online chưa hoàn tất thanh toán. Vui lòng kiểm tra lại.");
         }
 
-        order.OrderStatus = 2; // Completed / Delivered
+        order.OrderStatus = 3; // Completed / Delivered
         order.ConfirmedById = userId;
 
         // Process store wallet (add money to store - minus 5% platform fee)
@@ -331,53 +357,36 @@ public class OrderService : IOrderService
         if (order.OrderStatus != 1) // 1 = Confirmed/Paid Wait for pickup
             throw new Exception("Chỉ có thể hủy đơn hàng đang chờ lấy hàng.");
 
-        decimal refundAmount = order.TotalAmount;
-        
         if (order.ConfirmedById.HasValue)
+            throw new Exception("Không thể hủy đơn hàng đã được quán xác nhận hoặc đang chuẩn bị.");
+
+        // Refund 100% to Customer Wallet
+        var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
+        if (customerWallet == null)
         {
-            // Case 2: Store has confirmed -> Refund 80%, Platform 5%, Store 15%
-            refundAmount = order.TotalAmount * 0.8m;
-            decimal storeCompensation = order.TotalAmount * 0.15m;
-            
-            var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
-            if (storeWallet != null)
+            customerWallet = new CustomerWallet
             {
-                storeWallet.AvailableBalance += storeCompensation;
-                
-                var tx = new WalletTransaction
-                {
-                    Id = Guid.NewGuid(),
-                    StoreWalletId = storeWallet.Id,
-                    Type = 1, // 1 = Deposit/Income
-                    Amount = storeCompensation,
-                    Description = $"Đền bù hủy đơn {order.OrderCode} (15%)",
-                    CreatedAt = DateTime.UtcNow,
-                    OrderId = order.Id,
-                    Status = 1 // 1 = Completed
-                };
-                _ctx.WalletTransactions.Add(tx);
-            }
-        }
-        else
-        {
-            // Case 1: Store hasn't confirmed -> Refund 100%
-            refundAmount = order.TotalAmount;
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Balance = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _ctx.CustomerWallets.Add(customerWallet);
         }
 
-        var refundReq = new RefundRequest
+        customerWallet.Balance += order.TotalAmount;
+        
+        _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
         {
             Id = Guid.NewGuid(),
+            CustomerWalletId = customerWallet.Id,
+            Amount = order.TotalAmount,
+            Type = 3, // Refund
+            Status = 1, // Completed
             OrderId = order.Id,
-            RequestedBy = userId,
-            Amount = refundAmount,
-            Reason = req.Reason,
-            Status = 0, // Pending
-            CreatedAt = DateTime.UtcNow,
-            CustomerBankName = req.BankName,
-            CustomerBankAccount = req.BankAccount,
-            CustomerBankAccountName = req.BankAccountName
-        };
-        _ctx.RefundRequests.Add(refundReq);
+            Description = $"Hoàn tiền đơn hàng {order.OrderCode ?? 0}"
+        });
 
         // Return stock
         foreach (var item in order.OrderItems)

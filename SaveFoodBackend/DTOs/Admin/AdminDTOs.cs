@@ -64,10 +64,12 @@ namespace SaveFoodBackend.DTOs.Admin
     {
         public Guid Id { get; set; }
         public string Name { get; set; } = null!;
-        public string DetailedAddress { get; set; } = null!;
+        public string AddressLine { get; set; } = null!;
         public string? PhoneNumber { get; set; }
         public string? OwnerName { get; set; }
         public string? OwnerEmail { get; set; }
+        public string? ReferenceLink { get; set; }
+        public string? StorefrontImageUrl { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 

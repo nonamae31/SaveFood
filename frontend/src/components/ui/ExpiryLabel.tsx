@@ -35,7 +35,7 @@ export function ExpiryLabel({ expiresAt, size = 'md', showIcon = true }: ExpiryL
         textSize,
         statusStyles[status],
       ].join(' ')}
-      title={`Hạn sử dụng: ${new Date(expiresAt).toLocaleDateString('vi-VN')}`}
+      title={`Hạn lấy hàng: ${new Date(expiresAt).toLocaleDateString('vi-VN')} ${new Date(expiresAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}`}
     >
       {showIcon && (
         <Clock

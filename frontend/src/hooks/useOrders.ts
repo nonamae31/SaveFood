@@ -74,7 +74,7 @@ export function useExtendPickup(orderId: string) {
 
 export function useCancelOrder(orderId: string) {
   return useMutation({
-    mutationFn: async (req: { bankName: string; bankAccount: string; bankAccountName: string; reason: string }) => {
+    mutationFn: async (req: { reason: string }) => {
       return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/cancel`, {
         method: 'POST',
         body: JSON.stringify(req)
