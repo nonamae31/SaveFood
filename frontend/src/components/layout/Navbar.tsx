@@ -25,9 +25,9 @@ function CartBadge() {
 // Đồng bộ style "glass pills" cho tất cả các trang, tuỳ biến dark/light tuỳ vị trí scroll.
 
 const NAV_LINKS = [
-  { label: 'Trang chủ (🚧)',   href: ROUTES.HOME },
-  { label: 'Đồ ăn cận date (🚧)', href: ROUTES.PRODUCTS },
-  { label: 'Cửa hàng (🚧)',    href: ROUTES.STORES },
+  { label: 'Trang chủ',   href: ROUTES.HOME },
+  { label: 'Đồ ăn cận date', href: ROUTES.PRODUCTS },
+  { label: 'Cửa hàng',    href: ROUTES.STORES },
 ]
 
 export function Navbar() {
@@ -75,7 +75,8 @@ export function Navbar() {
   const isStores = location.pathname === ROUTES.STORES || (location.pathname.startsWith('/stores/') && location.pathname !== ROUTES.STORE_REGISTER)
   
   // Các trang có Hero Banner nền tối ở đầu trang
-  const isDarkHeroPage = isHome || isProducts || isStores
+  // Tạm thời tắt isDarkHeroPage vì các trang này đang hiển thị PlaceholderPage nền sáng
+  const isDarkHeroPage = false 
   const isDark = isDarkHeroPage && !isScrolled && !isMobileMenuOpen
 
   // Pill styles: Luôn giữ layout 3 block (pills), chỉ đổi màu theo nền
