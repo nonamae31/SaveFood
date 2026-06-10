@@ -25,9 +25,9 @@ function CartBadge() {
 // Đồng bộ style "glass pills" cho tất cả các trang, tuỳ biến dark/light tuỳ vị trí scroll.
 
 const NAV_LINKS = [
-  { label: 'Trang chủ',   href: ROUTES.HOME },
-  { label: 'Đồ ăn cận date', href: ROUTES.PRODUCTS },
-  { label: 'Cửa hàng',    href: ROUTES.STORES },
+  { label: 'Trang chủ (🚧)',   href: ROUTES.HOME },
+  { label: 'Đồ ăn cận date (🚧)', href: ROUTES.PRODUCTS },
+  { label: 'Cửa hàng (🚧)',    href: ROUTES.STORES },
 ]
 
 export function Navbar() {

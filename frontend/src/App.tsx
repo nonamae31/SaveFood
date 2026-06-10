@@ -88,13 +88,13 @@ function App() {
             <Routes>
               {/* ── Public Pages ── */}
               <Route element={<MainLayout />}>
-                <Route path={ROUTES.HOME}            element={<HomePage />} />
-                <Route path={ROUTES.PRODUCTS}        element={<ProductListPage />} />
-                <Route path="/products/:id"          element={<ProductDetailPage />} />
-                <Route path={ROUTES.STORES}          element={<StoreListPage />} />
-                <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
+                <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ" />} />
+                <Route path={ROUTES.PRODUCTS}        element={<PlaceholderPage title="Đồ ăn cận date" />} />
+                <Route path="/products/:id"          element={<PlaceholderPage title="Chi tiết sản phẩm" />} />
+                <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
+                <Route path={ROUTES.STORE_REGISTER}  element={<PlaceholderPage title="Đăng ký cửa hàng mới" />} />
                 <Route path={ROUTES.POLICY}          element={<PolicyPage />} />
-                <Route path="/stores/:id"            element={<StoreDetailPage />} />
+                <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
 
                 {/* ── Protected Customer Routes ── */}
                 <Route element={<CustomerProtectedRoute />}>
