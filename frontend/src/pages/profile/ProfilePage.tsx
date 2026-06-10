@@ -214,7 +214,7 @@ export function ProfilePage() {
             onClick={() => navigate(ROUTES.MY_WALLET)}
             className="flex items-center gap-2 px-5 py-2.5 bg-brand-50 text-brand-700 font-bold rounded-xl hover:bg-brand-100 transition-colors"
           >
-            <Wallet size={18} /> Ví SaveFood
+            <Wallet size={18} /> Ví SaveFood (🚧)
           </button>
           <button 
             onClick={() => navigate(ROUTES.MY_ORDERS)}
@@ -315,7 +315,7 @@ export function ProfilePage() {
                     <span className="text-xs text-gray-400">Đăng ký lúc: {dayjs(reg.createdAt).format('HH:mm DD/MM/YYYY')}</span>
                     {reg.status === 1 && (
                       <button 
-                        onClick={() => window.location.href = ROUTES.DASHBOARD_STORES(reg.id)}
+                        onClick={() => navigate(ROUTES.DASHBOARD)}
                         className="text-sm text-brand-600 font-bold hover:underline"
                       >
                         Vào Dashboard &rarr;

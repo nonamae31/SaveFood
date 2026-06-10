@@ -65,7 +65,7 @@ function PlaceholderPage({ title }: { title: string }) {
           {title}
         </h1>
         <p className="text-[--text-body-md] text-[--color-ink-secondary]">
-          Trang này đang được phát triển. Sprint 0 hoàn thành — sẵn sàng nhận code từ nhóm!
+          Chức năng này đang trong quá trình phát triển. Vui lòng quay lại sau!
         </p>
       </div>
     </div>
@@ -108,8 +108,8 @@ function App() {
 
                   {/* Profile nested in MainLayout for now */}
                   <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
-                  <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
-                  <Route path={ROUTES.MY_WALLET}       element={<CustomerWalletPage />} />
+                  <Route path={ROUTES.WISHLIST}        element={<PlaceholderPage title="Danh sách yêu thích" />} />
+                  <Route path={ROUTES.MY_WALLET}       element={<PlaceholderPage title="Ví của tôi" />} />
                 </Route>
               </Route>
 
@@ -126,27 +126,27 @@ function App() {
                 <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
                 <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
                 <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
-                <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
+                <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Quản lý đơn hàng" />} />
                 <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
-                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
+                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
                 <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
-                <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
-                <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
-                <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
-                <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
+                <Route path={ROUTES.DASHBOARD_PICKUP}    element={<PlaceholderPage title="Quản lý lấy hàng" />} />
+                <Route path={ROUTES.DASHBOARD_STAFF}     element={<PlaceholderPage title="Quản lý nhân viên" />} />
+                <Route path={ROUTES.DASHBOARD_WALLET}    element={<PlaceholderPage title="Ví cửa hàng" />} />
+                <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<PlaceholderPage title="Đánh giá cửa hàng" />} />
               </Route>
             </Route>
 
             {/* ── Admin (Người 5) ── */}
             <Route element={<AdminProtectedRoute />}>
               <Route element={<AdminLayout />}>
-                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
-                <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
+                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_ACCOUNTS} replace />} />
+                <Route path={ROUTES.ADMIN_DASHBOARD} element={<PlaceholderPage title="Bảng điều khiển Admin" />} />
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
-                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
-                <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
-                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
-                <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS} element={<PlaceholderPage title="Phê duyệt cửa hàng" />} />
+                <Route path={ROUTES.ADMIN_FINANCE} element={<PlaceholderPage title="Quản lý tài chính" />} />
+                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<PlaceholderPage title="Quản lý các gói dịch vụ" />} />
+                <Route path={ROUTES.ADMIN_CATEGORIES} element={<PlaceholderPage title="Quản lý danh mục" />} />
               </Route>
             </Route>
 
