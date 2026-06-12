@@ -131,7 +131,7 @@ function App() {
                 <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
                 <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
                 <Route path={ROUTES.DASHBOARD_PICKUP}    element={<PlaceholderPage title="Quản lý lấy hàng" />} />
-                <Route path={ROUTES.DASHBOARD_STAFF}     element={<PlaceholderPage title="Quản lý nhân viên" />} />
+                <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
                 <Route path={ROUTES.DASHBOARD_WALLET}    element={<PlaceholderPage title="Ví cửa hàng" />} />
                 <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<PlaceholderPage title="Đánh giá cửa hàng" />} />
               </Route>
