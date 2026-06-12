@@ -59,7 +59,7 @@ export function DashboardLayout() {
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
     { name: 'Đơn hàng (🚧)', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
     { name: 'Nhận hàng (🚧)', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
-    { name: 'Nhân viên (🚧)', href: ROUTES.DASHBOARD_STAFF, icon: Users },
+    { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
     { name: 'Ví & Doanh thu (🚧)', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
     { name: 'Đánh giá (🚧)', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
     { name: 'Cài đặt cửa hàng (🚧)', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
