@@ -91,10 +91,10 @@ function App() {
                 <Route path={ROUTES.HOME}            element={<PlaceholderPage title="Trang chủ" />} />
                 <Route path={ROUTES.PRODUCTS}        element={<PlaceholderPage title="Đồ ăn cận date" />} />
                 <Route path="/products/:id"          element={<PlaceholderPage title="Chi tiết sản phẩm" />} />
-                <Route path={ROUTES.STORES}          element={<PlaceholderPage title="Cửa hàng" />} />
-                <Route path={ROUTES.STORE_REGISTER}  element={<PlaceholderPage title="Đăng ký cửa hàng mới" />} />
+                <Route path={ROUTES.STORES}          element={<StoreListPage />} />
+                <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
                 <Route path={ROUTES.POLICY}          element={<PolicyPage />} />
-                <Route path="/stores/:id"            element={<PlaceholderPage title="Chi tiết cửa hàng" />} />
+                <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
                 {/* ── Protected Customer Routes ── */}
                 <Route element={<CustomerProtectedRoute />}>
@@ -128,7 +128,7 @@ function App() {
                 <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
                 <Route path={ROUTES.DASHBOARD_ORDERS}    element={<PlaceholderPage title="Quản lý đơn hàng" />} />
                 <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
-                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<PlaceholderPage title="Cài đặt cửa hàng" />} />
+                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
                 <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
                 <Route path={ROUTES.DASHBOARD_PICKUP}    element={<PlaceholderPage title="Quản lý lấy hàng" />} />
                 <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />

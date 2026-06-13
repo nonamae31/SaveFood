@@ -286,7 +286,7 @@ export function ProfilePage() {
               onClick={() => navigate(ROUTES.STORE_REGISTER)}
               className="px-4 py-2 bg-brand-600 text-white font-bold rounded-xl hover:bg-brand-700 transition-colors text-sm"
             >
-              + Đăng ký mới (🚧)
+              + Đăng ký mới
             </button>
           </div>
 
