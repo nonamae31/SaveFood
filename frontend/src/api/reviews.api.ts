@@ -48,7 +48,6 @@ export function createReview(orderItemId: string, data: { rating: number; commen
   }
   return apiClient<ReviewDTO>(`/customer/reviews/${orderItemId}`, {
     method: 'POST',
-    headers: { 'Content-Type': '' },
     body: formData,
   })
 }
@@ -63,7 +62,6 @@ export function updateReview(reviewId: string, data: { rating: number; comment?:
   }
   return apiClient<ReviewDTO>(`/customer/reviews/${reviewId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': '' },
     body: formData,
   })
 }

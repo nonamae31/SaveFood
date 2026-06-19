@@ -3,10 +3,20 @@ import { useMyOrders } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, ChevronRight } from 'lucide-react'
 import dayjs from 'dayjs'
+import { useEffect } from 'react'
+import { queryClient } from '@/lib/queryClient'
 
 export function MyOrdersPage() {
   const { data: orders, isLoading, error } = useMyOrders()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const handleStatusUpdate = () => {
+      queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+    };
+    window.addEventListener('order-status-updated', handleStatusUpdate);
+    return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
+  }, []);
 
   if (isLoading) {
     return <div className="max-w-4xl mx-auto p-8 text-center mt-20">Đang tải danh sách đơn hàng...</div>
@@ -33,9 +43,10 @@ export function MyOrdersPage() {
 
   const getStatusText = (status: number) => {
     switch (status) {
-      case 0: return { text: 'Chờ lấy hàng', color: 'text-orange-600 bg-orange-50' }
-      case 1: return { text: 'Đã thanh toán', color: 'text-blue-600 bg-blue-50' }
-      case 2: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-50' }
+      case 0: return { text: 'Chờ xác nhận', color: 'text-orange-600 bg-orange-50' }
+      case 1: return { text: 'Đã xác nhận', color: 'text-blue-600 bg-blue-50' }
+      case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-50' }
+      case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-50' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-50' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-50' }
     }

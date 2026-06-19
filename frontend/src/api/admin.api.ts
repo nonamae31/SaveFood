@@ -77,6 +77,46 @@ export interface AdminStoreApprovalDTO {
   createdAt: string;
 }
 
+export interface AdminStoreListDTO {
+  id: string;
+  name: string;
+  addressLine: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  status: number;
+  availableBalance: number;
+  createdAt: string;
+}
+
+export interface AdminStoreDetailsDTO {
+  id: string;
+  name: string;
+  addressLine: string;
+  phoneNumber?: string;
+  description?: string;
+  status: number;
+  storefrontImageUrl?: string;
+  referenceLink?: string;
+  createdAt: string;
+  
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerPhone?: string;
+
+  availableBalance: number;
+  pendingBalance: number;
+
+  currentPlanName?: string;
+  planExpiryDate?: string;
+}
+
+export interface GetAdminStoresRequest {
+  search?: string;
+  status?: number;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
 export interface MonthlyRevenue {
   year: number;
   month: number;
@@ -179,6 +219,30 @@ export const adminApi = {
     apiClient(`/admin/stores/${id}/reject`, {
       method: 'PUT',
       body: JSON.stringify({ reviewNotes }),
+    }),
+
+  getStores: (params?: GetAdminStoresRequest) => {
+    let url = '/admin/stores';
+    const queryParams = new URLSearchParams();
+    if (params) {
+      if (params.search) queryParams.append('search', params.search);
+      if (params.status !== undefined) queryParams.append('status', params.status.toString());
+      if (params.pageNumber) queryParams.append('pageNumber', params.pageNumber.toString());
+      if (params.pageSize) queryParams.append('pageSize', params.pageSize.toString());
+    }
+    const queryString = queryParams.toString();
+    if (queryString) {
+      url += `?${queryString}`;
+    }
+    return apiClient<PaginatedList<AdminStoreListDTO>>(url);
+  },
+
+  getStoreDetails: (id: string) => apiClient<AdminStoreDetailsDTO>(`/admin/stores/${id}`),
+
+  updateStoreStatus: (id: string, newStatus: number) =>
+    apiClient(`/admin/stores/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ newStatus }),
     }),
 
   getRevenueStats: () => apiClient<AdminRevenueStatsResponse>('/admin/stats/revenue'),

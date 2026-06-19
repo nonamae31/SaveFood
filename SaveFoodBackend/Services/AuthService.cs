@@ -176,15 +176,14 @@ public class AuthService : IAuthService
         _context.UserSessions.Add(session);
         await _context.SaveChangesAsync();
 
-        // 3. Generate Token
-        var token = GenerateJwtToken(user, session.Id.ToString());
-
-        // Extract primary role code (Prioritize ADMIN, then STORE, then default)
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
         var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id);
+
+        // 3. Generate Token
+        var token = GenerateJwtToken(user, session.Id.ToString(), storeStaff?.StoreId);
 
         return new LoginResponse
         {
@@ -198,7 +197,7 @@ public class AuthService : IAuthService
         };
     }
 
-    private string GenerateJwtToken(Models.User user, string sessionId)
+    private string GenerateJwtToken(Models.User user, string sessionId, Guid? storeId)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var keyStr = jwtSettings["Key"];
@@ -209,11 +208,17 @@ public class AuthService : IAuthService
 
         var claims = new[]
         {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim("fullName", user.FullName),
             new Claim("sessionId", sessionId)
         }.ToList();
+
+        if (storeId.HasValue)
+        {
+            claims.Add(new Claim("storeId", storeId.Value.ToString()));
+        }
 
         // Add roles to claims
         foreach (var userRole in user.UserRoles)
@@ -457,12 +462,13 @@ public class AuthService : IAuthService
         _context.UserSessions.Add(session);
         await _context.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user, session.Id.ToString());
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
 
         var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id);
+
+        var token = GenerateJwtToken(user, session.Id.ToString(), storeStaff?.StoreId);
 
         return new LoginResponse
         {

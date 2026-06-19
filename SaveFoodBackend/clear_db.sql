@@ -1,0 +1,10 @@
+USE SaveFoodDB_MVP;
+DELETE FROM ReviewImages;
+DELETE FROM Reviews;
+DELETE FROM CustomerWalletTransactions;
+DELETE FROM WalletTransactions;
+DELETE FROM CustomerWallets;
+DELETE FROM StoreWallets;
+DELETE FROM Payments;
+DELETE FROM OrderItems;
+DELETE FROM Orders;

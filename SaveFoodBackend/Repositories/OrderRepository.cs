@@ -38,6 +38,7 @@ public class OrderRepository : IOrderRepository
         return await _set
             .Include(o => o.User)
             .Include(o => o.OrderItems)
+            .Include(o => o.Payment)
             .Include(o => o.Store)
                 .ThenInclude(s => s.StoreStaffs)
             .FirstOrDefaultAsync(o => o.Id == orderId, ct);
@@ -127,5 +128,16 @@ public class OrderRepository : IOrderRepository
         var returningCustomers = userOrders.Count(u => u.OrderCount > 1);
 
         return Math.Round((double)returningCustomers / totalCustomers * 100, 1);
+    }
+
+    public async Task<decimal> GetPendingRevenueAsync(Guid storeId, CancellationToken ct = default)
+    {
+        // Active orders: 0 (Pending), 1 (Confirmed), 2 (ReadyForPickup)
+        var query = _set.Include(o => o.Payment)
+                        .Where(o => o.StoreId == storeId 
+                                 && (o.OrderStatus == 0 || o.OrderStatus == 1 || o.OrderStatus == 2)
+                                 && o.Payment != null && o.Payment.Status == 1);
+        var revenue = await query.SumAsync(o => o.TotalAmount * 0.95m, ct); // Deduct 5% platform fee
+        return revenue;
     }
 }

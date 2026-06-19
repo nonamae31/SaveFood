@@ -13,7 +13,7 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { WishlistPage } from '@/pages/profile/WishlistPage'
 import AccountManagementPage from '@/pages/admin/AccountManagementPage'
-import StoreApprovalPage from '@/pages/admin/StoreApprovalPage'
+import StoreManagementPage from '@/pages/admin/StoreManagementPage'
 import SubscriptionManagementPage from '@/pages/admin/SubscriptionManagementPage'
 import AdminFinancePage from '@/pages/admin/AdminFinancePage'
 import { AdminLayout } from '@/components/layout/AdminLayout'
@@ -51,6 +51,7 @@ import DashboardReviewsPage from '@/pages/dashboard/DashboardReviewsPage'
 import { CartPage } from '@/pages/cart/CartPage'
 import { CheckoutPage } from '@/pages/cart/CheckoutPage'
 import { OrderDetailPage } from '@/pages/cart/OrderDetailPage'
+import { PaymentReturnPage } from '@/pages/cart/PaymentReturnPage'
 import { MyOrdersPage } from '@/pages/cart/MyOrdersPage'
 import { CustomerWalletPage } from '@/pages/profile/CustomerWalletPage'
 
@@ -77,6 +78,8 @@ function PlaceholderPage({ title }: { title: string }) {
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
+import { Toaster } from 'react-hot-toast'
+import { GlobalNotificationListener } from '@/components/layout/GlobalNotificationListener'
 
 function App() {
   return (
@@ -85,6 +88,8 @@ function App() {
         <LocationProvider>
           <BrowserRouter>
             <ScrollToTop />
+            <Toaster position="top-right" />
+            <GlobalNotificationListener />
             <Routes>
               {/* ── Public Pages ── */}
               <Route element={<MainLayout />}>
@@ -101,8 +106,8 @@ function App() {
                   {/* ── Cart & Orders (Người 4) ── */}
                   <Route path={ROUTES.CART}            element={<CartPage />} />
                   <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
-                  <Route path="/checkout/success"      element={<OrderDetailPage />} />
-                  <Route path="/checkout/cancel"       element={<OrderDetailPage />} />
+                  <Route path="/checkout/success"      element={<PaymentReturnPage />} />
+                  <Route path="/checkout/cancel"       element={<PaymentReturnPage />} />
                   <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
                   <Route path="/orders/:id"            element={<OrderDetailPage />} />
 
@@ -143,7 +148,7 @@ function App() {
                 <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
-                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreManagementPage />} />
                 <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />

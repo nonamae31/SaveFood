@@ -47,85 +47,96 @@ public class OrderService : IOrderService
         if (req.PaymentMethod != 0 && req.PaymentMethod != 1)
             throw new Exception("Phương thức thanh toán không hợp lệ.");
 
-        var storeIds = cartItems.Select(ci => ci.Listing.Product.StoreId).Distinct().ToList();
-        if (storeIds.Count > 1)
-            throw new Exception("Chỉ được thanh toán các sản phẩm của cùng 1 cửa hàng trong 1 lần thanh toán.");
-
-        var storeId = storeIds.First();
-
-        decimal totalAmount = 0;
-        foreach (var item in cartItems)
-        {
-            if (item.Listing.ExpiryDate <= DateTime.UtcNow)
-                throw new Exception($"Sản phẩm '{item.Listing.Title}' đã hết hạn.");
-
-            totalAmount += item.Listing.SalePrice * item.Quantity;
-        }
-
-        // Generate Codes
-        string pickupCode = GenerateRandomCode(6);
+        // Generate shared Codes
         long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+        
+        var storeGroups = cartItems.GroupBy(ci => ci.Listing.Product.StoreId).ToList();
+        decimal grandTotalAmount = 0;
+        var createdOrders = new List<Order>();
+        var firstOrderId = Guid.Empty;
+        string firstPickupCode = "";
 
-        // Calculate MaxPickupTime (min of EndOfDay or Earliest ExpiryDate)
-        var now = DateTime.UtcNow;
-        // In Vietnam Time, "End of Today" would be today at 23:59:59 local, but for simplicity let's use +14 hours or similar.
-        // Actually, since ExpiryDate is stored in UTC, we can just take End Of UTC Day + 7 hours, or just take the exact UTC representation of end of day local.
-        var localNow = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
-        var localEndOfDay = new DateTime(localNow.Year, localNow.Month, localNow.Day, 23, 59, 59);
-        var utcEndOfDay = TimeZoneInfo.ConvertTimeToUtc(localEndOfDay, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
-
-        var minExpiryDate = cartItems.Min(ci => ci.Listing.ExpiryDate);
-        var maxPickupTime = minExpiryDate < utcEndOfDay ? minExpiryDate : utcEndOfDay;
-
-        var order = new Order
+        foreach (var group in storeGroups)
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            StoreId = storeId,
-            TotalAmount = totalAmount,
-            OrderStatus = 0, // PendingPayment (assuming 0 is Pending)
-            PickupCode = pickupCode,
-            OrderCode = orderCode,
-            ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
-            ExpectedPickupTime = req.ExpectedPickupTime,
-            MaxPickupTime = maxPickupTime,
-            AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy
-        };
+            var storeId = group.Key;
+            var storeItems = group.ToList();
 
-        foreach (var item in cartItems)
-        {
-            // Deduct stock atomically
-            var rowsAffected = await _ctx.ClearanceListings
-                .Where(l => l.Id == item.ListingId && l.QuantityAvailable >= item.Quantity)
-                .ExecuteUpdateAsync(s => s.SetProperty(l => l.QuantityAvailable, l => l.QuantityAvailable - item.Quantity), ct);
+            decimal storeTotalAmount = 0;
+            foreach (var item in storeItems)
+            {
+                if (item.Listing.ExpiryDate <= DateTime.UtcNow)
+                    throw new Exception($"Sản phẩm '{item.Listing.Title}' đã hết hạn.");
 
-            if (rowsAffected == 0)
-                throw new Exception($"Sản phẩm '{item.Listing.Title}' không đủ số lượng trong kho hoặc đã có người khác đặt mua.");
+                storeTotalAmount += item.Listing.SalePrice * item.Quantity;
+            }
+            grandTotalAmount += storeTotalAmount;
 
-            order.OrderItems.Add(new OrderItem
+            string pickupCode = GenerateRandomCode(6);
+
+            // Calculate MaxPickupTime (min of EndOfDay or Earliest ExpiryDate)
+            var now = DateTime.UtcNow;
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(now, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+            var localEndOfDay = new DateTime(localNow.Year, localNow.Month, localNow.Day, 23, 59, 59);
+            var utcEndOfDay = TimeZoneInfo.ConvertTimeToUtc(localEndOfDay, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"));
+
+            var minExpiryDate = storeItems.Min(ci => ci.Listing.ExpiryDate);
+            var maxPickupTime = minExpiryDate < utcEndOfDay ? minExpiryDate : utcEndOfDay;
+
+            var order = new Order
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                StoreId = storeId,
+                TotalAmount = storeTotalAmount,
+                OrderStatus = 0, // PendingPayment
+                PickupCode = pickupCode,
+                OrderCode = orderCode, // SHARING ORDER CODE ACROSS STORES
+                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                ExpectedPickupTime = req.ExpectedPickupTime,
+                MaxPickupTime = maxPickupTime,
+                AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy
+            };
+
+            if (firstOrderId == Guid.Empty)
+            {
+                firstOrderId = order.Id;
+                firstPickupCode = pickupCode;
+            }
+
+            foreach (var item in storeItems)
+            {
+                // Deduct stock atomically
+                var rowsAffected = await _ctx.ClearanceListings
+                    .Where(l => l.Id == item.ListingId && l.QuantityAvailable >= item.Quantity)
+                    .ExecuteUpdateAsync(s => s.SetProperty(l => l.QuantityAvailable, l => l.QuantityAvailable - item.Quantity), ct);
+
+                if (rowsAffected == 0)
+                    throw new Exception($"Sản phẩm '{item.Listing.Title}' không đủ số lượng trong kho hoặc đã có người khác đặt mua.");
+
+                order.OrderItems.Add(new OrderItem
+                {
+                    Id = Guid.NewGuid(),
+                    OrderId = order.Id,
+                    ListingId = item.ListingId,
+                    Quantity = item.Quantity,
+                    UnitPriceSnapshot = item.Listing.SalePrice,
+                    ProductNameSnapshot = item.Listing.Title
+                });
+            }
+
+            _ctx.Orders.Add(order);
+            createdOrders.Add(order);
+
+            var payment = new Payment
             {
                 Id = Guid.NewGuid(),
                 OrderId = order.Id,
-                ListingId = item.ListingId,
-                Quantity = item.Quantity,
-                UnitPriceSnapshot = item.Listing.SalePrice,
-                ProductNameSnapshot = item.Listing.Title
-            });
+                Amount = storeTotalAmount,
+                PaymentMethod = req.PaymentMethod,
+                Status = 0 // Pending
+            };
+            _ctx.Payments.Add(payment);
         }
-
-        // Add Order
-        _ctx.Orders.Add(order);
-
-        // Add Payment record
-        var payment = new Payment
-        {
-            Id = Guid.NewGuid(),
-            OrderId = order.Id,
-            Amount = totalAmount,
-            PaymentMethod = req.PaymentMethod,
-            Status = 0 // Pending
-        };
-        _ctx.Payments.Add(payment);
 
         // Remove from cart
         _ctx.CartItems.RemoveRange(cartItems);
@@ -133,14 +144,17 @@ public class OrderService : IOrderService
         await _ctx.SaveChangesAsync(ct);
 
         // Notify Store Staff & Owner via SignalR
-        var staffIds = await _ctx.StoreStaffs
-            .Where(s => s.StoreId == storeId)
-            .Select(s => s.UserId)
-            .ToListAsync(ct);
-
-        foreach (var uid in staffIds.Distinct())
+        foreach (var order in createdOrders)
         {
-            await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: ct);
+            var staffIds = await _ctx.StoreStaffs
+                .Where(s => s.StoreId == order.StoreId)
+                .Select(s => s.UserId)
+                .ToListAsync(ct);
+
+            foreach (var uid in staffIds.Distinct())
+            {
+                await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: ct);
+            }
         }
 
         string? checkoutUrl = null;
@@ -148,7 +162,8 @@ public class OrderService : IOrderService
         {
             try
             {
-                var payOSResult = await _payOSService.CreatePaymentLink(orderCode, totalAmount, $"DH {orderCode}", order.Id.ToString());
+                // Note: we just pass OrderCode, don't pass specific order.Id to ReturnUrl since we might have multiple
+                var payOSResult = await _payOSService.CreatePaymentLink(orderCode, grandTotalAmount, $"DH {orderCode}", orderCode.ToString());
                 checkoutUrl = payOSResult.CheckoutUrl;
             }
             catch (Exception ex)
@@ -159,37 +174,59 @@ public class OrderService : IOrderService
         else if (req.PaymentMethod == 0) // Wallet
         {
             var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
-            if (customerWallet == null || customerWallet.Balance < totalAmount)
+            if (customerWallet == null || customerWallet.Balance < grandTotalAmount)
             {
                 throw new Exception("Số dư trong Ví SaveFood không đủ để thanh toán.");
             }
 
-            customerWallet.Balance -= totalAmount;
+            customerWallet.Balance -= grandTotalAmount;
             
-            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+            foreach (var order in createdOrders)
             {
-                Id = Guid.NewGuid(),
-                CustomerWalletId = customerWallet.Id,
-                Amount = totalAmount,
-                Type = 2, // Payment
-                Status = 1, // Completed
-                OrderId = order.Id,
-                Description = $"Thanh toán đơn hàng DH {orderCode}"
-            });
+                _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerWalletId = customerWallet.Id,
+                    Amount = order.TotalAmount,
+                    Type = 2, // Payment
+                    Status = 1, // Completed
+                    OrderId = order.Id,
+                    Description = $"Thanh toán đơn hàng DH {orderCode}"
+                });
 
-            payment.Status = 1; // Completed
-            payment.PaidAt = DateTime.UtcNow;
-            order.OrderStatus = 1; // PendingConfirmation
-            
+                var p = await _ctx.Payments.FirstOrDefaultAsync(x => x.OrderId == order.Id, ct);
+                if (p != null)
+                {
+                    p.Status = 1; // Completed
+                    p.PaidAt = DateTime.UtcNow;
+                    order.ReservationExpiresAt = null; // Clear payment timer
+
+                    var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
+                    if (storeWallet == null)
+                    {
+                        storeWallet = new StoreWallet
+                        {
+                            Id = Guid.NewGuid(),
+                            StoreId = order.StoreId,
+                            AvailableBalance = 0,
+                            PendingBalance = 0,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        _ctx.StoreWallets.Add(storeWallet);
+                    }
+                    decimal platformFee = order.TotalAmount * 0.05m;
+                    storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+                }
+            }
             await _ctx.SaveChangesAsync(ct);
         }
 
         return new CheckoutResponseDTO
         {
-            OrderId = order.Id,
-            PickupCode = pickupCode,
+            OrderId = firstOrderId, // We just return the first order ID for backward compatibility, though Return URL now uses orderCode
+            PickupCode = firstPickupCode,
             CheckoutUrl = checkoutUrl,
-            ReservationExpiresAt = order.ReservationExpiresAt
+            ReservationExpiresAt = createdOrders.FirstOrDefault()?.ReservationExpiresAt
         };
     }
 
@@ -234,15 +271,31 @@ public class OrderService : IOrderService
 
             storeWallet.AvailableBalance += storeIncome;
             
+            if (order.Payment != null && order.Payment.Status == 1) // Paid
+            {
+                storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+            }
+            
             _ctx.WalletTransactions.Add(new WalletTransaction
             {
                 Id = Guid.NewGuid(),
                 StoreWalletId = storeWallet.Id,
                 OrderId = order.Id,
-                Amount = storeIncome,
+                Amount = order.TotalAmount,
                 Type = 1, // Income
                 Status = 1, // Completed
-                Description = $"Thu nhập từ đơn hàng {order.OrderCode ?? 0} (Đã trừ 5% phí nền tảng)"
+                Description = $"Doanh thu từ đơn hàng {order.OrderCode ?? 0}"
+            });
+            
+            _ctx.WalletTransactions.Add(new WalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                StoreWalletId = storeWallet.Id,
+                OrderId = order.Id,
+                Amount = platformFee,
+                Type = 2, // PlatformFee
+                Status = 1, // Completed
+                Description = $"Phí nền tảng (5%) từ đơn hàng {order.OrderCode ?? 0}"
             });
         }
 
@@ -377,6 +430,14 @@ public class OrderService : IOrderService
 
         customerWallet.Balance += order.TotalAmount;
         
+        var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
+        if (storeWallet != null)
+        {
+            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal storeIncome = order.TotalAmount - platformFee;
+            storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+        }
+        
         _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
         {
             Id = Guid.NewGuid(),
@@ -401,6 +462,16 @@ public class OrderService : IOrderService
         order.OrderStatus = 4; // Cancelled
         await _ctx.SaveChangesAsync(ct);
         
+        var staffIds = await _ctx.StoreStaffs
+            .Where(s => s.StoreId == order.StoreId)
+            .Select(s => s.UserId)
+            .ToListAsync(ct);
+            
+        foreach (var staffId in staffIds)
+        {
+            await _hubContext.Clients.Group($"User_{staffId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
+        }
+
         return true;
     }
 

@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SaveFoodBackend.Data;
+using SaveFoodBackend.Models;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFoodBackend.Services.BackgroundTasks;
 
@@ -52,6 +54,7 @@ public class ExpiredOrderCleanupService : BackgroundService
         var expiredOrders = await ctx.Orders
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Listing)
+            .Include(o => o.Payment)
             .Where(o => o.OrderStatus == 0 && o.ReservationExpiresAt.HasValue && o.ReservationExpiresAt.Value < now)
             .ToListAsync(cancellationToken);
 
@@ -69,6 +72,39 @@ public class ExpiredOrderCleanupService : BackgroundService
                     {
                         item.Listing.QuantityAvailable += item.Quantity;
                     }
+                }
+
+                // Process Refund if paid
+                if (order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
+                {
+                    var customerWallet = await ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, cancellationToken);
+                    if (customerWallet == null)
+                    {
+                        customerWallet = new CustomerWallet
+                        {
+                            Id = Guid.NewGuid(),
+                            UserId = order.UserId,
+                            Balance = 0,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        ctx.CustomerWallets.Add(customerWallet);
+                    }
+
+                    customerWallet.Balance += order.TotalAmount;
+                    customerWallet.UpdatedAt = DateTime.UtcNow;
+
+                    ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        CustomerWalletId = customerWallet.Id,
+                        Amount = order.TotalAmount,
+                        Type = 0, // Refund / Deposit
+                        Status = 1, // Completed
+                        OrderId = order.Id,
+                        CreatedAt = DateTime.UtcNow,
+                        Description = $"Hoàn tiền tự động cho đơn hàng hết hạn {order.OrderCode ?? 0}"
+                    });
                 }
             }
 

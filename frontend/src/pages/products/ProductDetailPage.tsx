@@ -8,7 +8,7 @@
 // 3. Nếu vẫn không tìm thấy → hiển thị Not Found
 
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ChevronRight, ChevronLeft, Store, ShoppingCart, ShoppingBag,
@@ -27,6 +27,7 @@ import { toast } from 'react-hot-toast'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const addToCartMutation = useAddToCart()
@@ -129,10 +130,10 @@ export function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
           {/* ── Ảnh sản phẩm ── */}
-          <div className="flex flex-col gap-3">
-            <div className="relative rounded-[--radius-card] overflow-hidden
+          <div className="flex flex-col gap-4 w-full">
+            <div className="relative rounded-[2rem] shadow-sm overflow-hidden
                               bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100]
-                              flex items-center justify-center min-h-64 lg:min-h-80 group">
+                              flex items-center justify-center h-[400px] lg:h-[500px] w-full shrink-0 group">
               {listing!.images && listing!.images.length > 0 ? (
                 <>
                   <img
@@ -168,7 +169,7 @@ export function ProductDetailPage() {
                   )}
                 </>
               ) : listing!.imageUrl ? (
-                <img src={listing!.imageUrl} alt={listing!.title} className="w-full h-full object-cover" />
+                <img src={listing!.imageUrl} alt={listing!.title} className="w-full h-full object-contain p-4" />
               ) : listing!.isSurpriseBag ? (
                 <div className="flex flex-col items-center gap-3 text-[--color-brand-600] py-12">
                   <ShoppingBag size={80} strokeWidth={1} />
@@ -218,7 +219,7 @@ export function ProductDetailPage() {
           </div>
 
           {/* ── Thông tin chi tiết ── */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 w-full">
 
             {/* Tên + cửa hàng */}
             <div>
@@ -228,7 +229,7 @@ export function ProductDetailPage() {
                   🎁 Surprise Bag
                 </span>
               )}
-              <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] leading-tight mb-1">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[--color-ink-primary] font-[--font-display] leading-tight mb-2">
                 {listing!.title}
               </h1>
               <div className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]">
@@ -301,29 +302,52 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {/* CTA Button */}
-            <button
-              onClick={() => {
-                addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
-                  onSuccess: () => {
-                    toast.success('Đã thêm vào giỏ hàng')
-                  },
-                  onError: (err: any) => {
-                    toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
-                  }
-                })
-              }}
-              disabled={isSoldOut || addToCartMutation.isPending}
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full
-                           text-[--text-body-md] font-bold transition-all duration-300
-                           bg-brand-500 text-white hover:bg-brand-600
-                           hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
-                           disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
-              aria-disabled={isSoldOut || addToCartMutation.isPending}
-            >
-              <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
-              {isSoldOut ? 'Đã hết hàng' : 'Thêm vào giỏ hàng'}
-            </button>
+            {/* CTA Buttons */}
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => {
+                  addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+                    onSuccess: () => {
+                      toast.success('Đã thêm vào giỏ hàng')
+                    },
+                    onError: (err: any) => {
+                      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+                    }
+                  })
+                }}
+                disabled={isSoldOut || addToCartMutation.isPending}
+                className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                             text-[--text-body-md] font-bold transition-all duration-300
+                             bg-brand-100 text-brand-700 border border-brand-200 hover:bg-brand-200
+                             disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-disabled={isSoldOut || addToCartMutation.isPending}
+              >
+                <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
+                {isSoldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
+              </button>
+
+              <button
+                onClick={() => {
+                  addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+                    onSuccess: (cartItem) => {
+                      navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: [cartItem.id] } })
+                    },
+                    onError: (err: any) => {
+                      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+                    }
+                  })
+                }}
+                disabled={isSoldOut || addToCartMutation.isPending}
+                className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                             text-[--text-body-md] font-bold transition-all duration-300
+                             bg-brand-500 text-white hover:bg-brand-600
+                             hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
+                             disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
+                aria-disabled={isSoldOut || addToCartMutation.isPending}
+              >
+                {isSoldOut ? 'Hết hàng' : 'Mua ngay'}
+              </button>
+            </div>
           </div>
         </div>
 

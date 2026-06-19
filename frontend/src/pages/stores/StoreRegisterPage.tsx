@@ -4,6 +4,7 @@ import { Check, Star, Zap, Shield, ArrowRight, ArrowLeft, Store, MapPin, Package
 import toast from 'react-hot-toast';
 import { ROUTES } from '@/lib/constants';
 import { LocationPickerMap } from '@/components/map/LocationPickerMap';
+import { Select } from '@/components/ui/Select';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
@@ -43,21 +44,23 @@ export default function StoreRegisterPage() {
 
   const [searchTriggerAddress, setSearchTriggerAddress] = useState('');
 
-  // Fetch Provinces on Mount (v2)
+  // Fetch Provinces on Mount (using provinces.open-api.vn)
   useEffect(() => {
-    fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+    fetch('https://provinces.open-api.vn/api/v2/p/')
       .then(res => res.json())
-      .then(data => { if (data.error === 0) setProvinces(data.data); })
+      .then((data: any[]) => {
+        setProvinces(data.map(p => ({ id: String(p.code), name: p.name, full_name: p.name })));
+      })
       .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
-  // Fetch Wards (Districts in Esgoo API) when Province changes
+  // Fetch Wards (All wards for the province, v2 API)
   useEffect(() => {
     if (selectedProvinceId) {
-      fetch(`https://esgoo.net/api-tinhthanh/2/${selectedProvinceId}.htm`)
+      fetch(`https://provinces.open-api.vn/api/v2/w/?province_code=${selectedProvinceId}`)
         .then(res => res.json())
-        .then(data => {
-          if (data.error === 0) setWards(data.data || []);
+        .then((data: any[]) => {
+          setWards(data.map(w => ({ id: String(w.code), name: w.name, full_name: w.name })));
         })
         .catch(err => console.error('Error fetching wards:', err));
     } else {
@@ -221,8 +224,8 @@ export default function StoreRegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Link xác minh cửa hàng (Tùy chọn)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     name="referenceLink"
                     value={formData.referenceLink}
                     onChange={handleChange}
@@ -233,8 +236,8 @@ export default function StoreRegisterPage() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Ảnh mặt tiền cửa hàng (Tùy chọn)</label>
-                  <input 
-                    type="file" 
+                  <input
+                    type="file"
                     accept="image/*"
                     onChange={handleFileChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
@@ -273,43 +276,35 @@ export default function StoreRegisterPage() {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Thành phố / Tỉnh <span className="text-red-500">*</span></label>
-                  <select
-                    name="city"
+                  <Select
+                    searchable={true}
                     value={selectedProvinceId}
-                    onChange={(e) => {
-                      const id = e.target.value;
+                    onChange={(val) => {
+                      const id = String(val);
                       setSelectedProvinceId(id);
                       setSelectedWardId('');
-                      const name = e.target.options[e.target.selectedIndex].text;
-                      setFormData(prev => ({ ...prev, city: id ? name : '', ward: '' }));
+                      const province = provinces.find(p => p.id === id);
+                      setFormData(prev => ({ ...prev, city: province ? province.full_name : '', ward: '' }));
                     }}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900"
-                  >
-                    <option className="text-gray-900 bg-white" value="">-- Chọn Thành phố / Tỉnh --</option>
-                    {provinces.map(p => (
-                      <option className="text-gray-900 bg-white" key={p.id} value={p.id}>{p.full_name}</option>
-                    ))}
-                  </select>
+                    options={provinces.map(p => ({ value: p.id, label: p.full_name }))}
+                    placeholder="-- Chọn Thành phố / Tỉnh --"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Phường / Xã <span className="text-red-500">*</span></label>
-                  <select
-                    name="ward"
+                  <Select
+                    searchable={true}
                     value={selectedWardId}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedWardId(id);
-                      const name = e.target.options[e.target.selectedIndex].text;
-                      setFormData(prev => ({ ...prev, ward: id ? name : '' }));
-                    }}
                     disabled={!selectedProvinceId}
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors bg-white text-gray-900 disabled:bg-gray-50 disabled:text-gray-400"
-                  >
-                    <option className="text-gray-900 bg-white" value="">-- Chọn Phường / Xã --</option>
-                    {wards.map(w => (
-                      <option className="text-gray-900 bg-white" key={w.id} value={w.id}>{w.full_name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => {
+                      const id = String(val);
+                      setSelectedWardId(id);
+                      const ward = wards.find(w => w.id === id);
+                      setFormData(prev => ({ ...prev, ward: ward ? ward.full_name : '' }));
+                    }}
+                    options={wards.map(w => ({ value: w.id, label: w.full_name }))}
+                    placeholder="-- Chọn Phường / Xã --"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Số nhà, Tên đường <span className="text-red-500">*</span></label>
@@ -376,8 +371,8 @@ export default function StoreRegisterPage() {
                   <button
                     onClick={() => setBillingCycle('monthly')}
                     className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 ${formData.billingCycle === 'monthly'
-                        ? 'bg-gray-900 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
                       }`}
                   >
                     1 Tháng
@@ -385,8 +380,8 @@ export default function StoreRegisterPage() {
                   <button
                     onClick={() => setBillingCycle('semiannual')}
                     className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${formData.billingCycle === 'semiannual'
-                        ? 'bg-gray-900 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
                       }`}
                   >
                     6 Tháng
@@ -394,8 +389,8 @@ export default function StoreRegisterPage() {
                   <button
                     onClick={() => setBillingCycle('annual')}
                     className={`px-5 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${formData.billingCycle === 'annual'
-                        ? 'bg-gray-900 text-white shadow-sm'
-                        : 'text-gray-500 hover:text-gray-900'
+                      ? 'bg-gray-900 text-white shadow-sm'
+                      : 'text-gray-500 hover:text-gray-900'
                       }`}
                   >
                     12 Tháng

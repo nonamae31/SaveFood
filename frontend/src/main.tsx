@@ -15,14 +15,14 @@ const queryClient = new QueryClient({
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '';
 
-import { Toaster } from 'react-hot-toast'
+
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
       <QueryClientProvider client={queryClient}>
         <App />
-        <Toaster position="bottom-center" />
+
       </QueryClientProvider>
     </GoogleOAuthProvider>
   </StrictMode>,

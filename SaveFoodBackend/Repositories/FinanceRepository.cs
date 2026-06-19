@@ -152,6 +152,11 @@ public class FinanceRepository : IFinanceRepository
         _ctx.WithdrawalRequests.Add(request);
     }
 
+    public void AddStoreWallet(StoreWallet storeWallet)
+    {
+        _ctx.StoreWallets.Add(storeWallet);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

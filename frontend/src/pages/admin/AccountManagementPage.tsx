@@ -5,6 +5,7 @@ import type { AdminUserListDTO, AdminUserDetailsDTO, PaginatedList, GetUsersRequ
 import { Shield, AlertCircle, CheckCircle, Search, X, Store, User as UserIcon, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Select } from '@/components/ui/Select';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -246,12 +247,16 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
           </div>
           <div>
             <label className="block text-[13px] font-medium text-mint-ink mb-1">Vai trò</label>
-            <select value={formData.roleCode} onChange={e => setFormData({ ...formData, roleCode: e.target.value })}
-              className="w-full px-3 py-2 bg-mint-canvas border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green focus:border-2">
-              <option value="Customer">Khách hàng</option>
-              <option value="STORE">Cửa hàng</option>
-              <option value="ADMIN">Quản trị viên</option>
-            </select>
+            <Select 
+              value={formData.roleCode} 
+              onChange={(val) => setFormData({ ...formData, roleCode: val.toString() })}
+              options={[
+                { label: "Khách hàng", value: "Customer" },
+                { label: "Cửa hàng", value: "STORE" },
+                { label: "Quản trị viên", value: "ADMIN" }
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div className="pt-4 flex justify-end gap-3">

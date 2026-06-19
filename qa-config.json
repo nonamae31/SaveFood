@@ -1,0 +1,17 @@
+{
+  "_readme": "QA Agent Configuration — Điền thông tin dự án của bạn vào đây. Các skill qa-engineer, e2e-flow-writer, role-test-planner sẽ đọc file này thay vì hardcode.",
+
+  "backendDir": "SaveFoodBackend",
+  "backendStartCommand": "dotnet run",
+  "backendPort": 5555,
+  "backendHealthPath": "/health",
+
+  "frontendDir": "frontend",
+  "frontendStartCommand": "npm run dev",
+  "frontendPort": 5173,
+  "frontendBaseURL": "http://localhost:5173",
+
+  "testFramework": "playwright",
+  "testDir": "frontend/tests/e2e",
+  "testRunCommand": "npx playwright test --reporter=list"
+}
