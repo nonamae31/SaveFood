@@ -73,11 +73,11 @@ export const storeApi = {
       body: JSON.stringify(data),
     })
   },
-  createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string): Promise<{ checkoutUrl: string }> => {
+  createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string, returnUrl?: string, cancelUrl?: string): Promise<{ checkoutUrl: string }> => {
     return await apiClient(`/stores/${storeId}/subscriptions/checkout`, {
       method: 'POST',
-      body: JSON.stringify({ planId, billingCycle })
-    })
+      body: JSON.stringify({ planId, billingCycle, returnUrl, cancelUrl })
+    });
   },
 
   getMyRegistrations: async (): Promise<MyStoreRegistrationDTO[]> => {

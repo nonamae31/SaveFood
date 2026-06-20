@@ -54,7 +54,13 @@ export default function DashboardSubscriptionPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: (planId: string) => storeApi.createSubscriptionCheckout(storeId, planId, billingCycle),
+    mutationFn: (planId: string) => storeApi.createSubscriptionCheckout(
+      storeId, 
+      planId, 
+      billingCycle, 
+      `${window.location.origin}/dashboard/subscription`, 
+      `${window.location.origin}/dashboard/subscription`
+    ),
     onSuccess: (data) => {
       window.location.href = data.checkoutUrl;
     },

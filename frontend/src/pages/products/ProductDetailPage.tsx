@@ -24,6 +24,10 @@ import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import type { CustomerListingDTO } from '@/types/listing.types'
 import { useAddToCart } from '@/hooks/useCart'
 import { toast } from 'react-hot-toast'
+import { MapPin } from 'lucide-react'
+import { useStoreDetail } from '@/hooks/useStores'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { calculateDistance } from '@/utils/distance'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -58,6 +62,46 @@ export function ProductDetailPage() {
   const discount = listing ? calcDiscountPercent(listing.originalPrice, listing.salePrice) : 0
   const isLowStock = listing && listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut = listing && listing.quantityAvailable === 0
+  
+  const { location } = useLocationContext()
+  const { data: store } = useStoreDetail(listing?.storeId)
+  
+  const isFar = listing && store && store.latitude && store.longitude && location
+    ? calculateDistance(location.lat, location.lng, store.latitude, store.longitude) > 5
+    : false;
+
+  const [showDistanceModal, setShowDistanceModal] = useState<{ isOpen: boolean; action?: 'add_to_cart' | 'buy_now' }>({ isOpen: false });
+
+  const handleAddToCart = () => {
+    addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+      onSuccess: () => {
+        toast.success('Đã thêm vào giỏ hàng')
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+      }
+    })
+  }
+
+  const handleBuyNow = () => {
+    addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+      onSuccess: (cartItem) => {
+        navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: [cartItem.id] } })
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+      }
+    })
+  }
+
+  const onActionClick = (action: 'add_to_cart' | 'buy_now') => {
+    if (isFar) {
+      setShowDistanceModal({ isOpen: true, action });
+    } else {
+      if (action === 'add_to_cart') handleAddToCart();
+      else handleBuyNow();
+    }
+  }
 
   // ── Loading state ──
   if (isLoading && !cachedListing) {
@@ -221,6 +265,16 @@ export function ProductDetailPage() {
           {/* ── Thông tin chi tiết ── */}
           <div className="flex flex-col gap-5 w-full">
 
+            {isFar && (
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800">
+                <MapPin className="shrink-0 mt-0.5 text-orange-600" size={20} />
+                <div className="text-sm leading-relaxed">
+                  <p className="font-bold mb-1">Cửa hàng cách xa hơn 5km</p>
+                  <p>Vui lòng cân nhắc khoảng cách. Hãy đảm bảo bạn có thể đến lấy hàng đúng thời gian quy định để tránh bị hủy đơn và mất tiền (không hỗ trợ hoàn tiền).</p>
+                </div>
+              </div>
+            )}
+
             {/* Tên + cửa hàng */}
             <div>
               {listing!.isSurpriseBag && (
@@ -305,16 +359,7 @@ export function ProductDetailPage() {
             {/* CTA Buttons */}
             <div className="flex gap-3 mt-2">
               <button
-                onClick={() => {
-                  addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
-                    onSuccess: () => {
-                      toast.success('Đã thêm vào giỏ hàng')
-                    },
-                    onError: (err: any) => {
-                      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
-                    }
-                  })
-                }}
+                onClick={() => onActionClick('add_to_cart')}
                 disabled={isSoldOut || addToCartMutation.isPending}
                 className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
                              text-[--text-body-md] font-bold transition-all duration-300
@@ -327,16 +372,7 @@ export function ProductDetailPage() {
               </button>
 
               <button
-                onClick={() => {
-                  addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
-                    onSuccess: (cartItem) => {
-                      navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: [cartItem.id] } })
-                    },
-                    onError: (err: any) => {
-                      toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
-                    }
-                  })
-                }}
+                onClick={() => onActionClick('buy_now')}
                 disabled={isSoldOut || addToCartMutation.isPending}
                 className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
                              text-[--text-body-md] font-bold transition-all duration-300
@@ -377,6 +413,41 @@ export function ProductDetailPage() {
         )}
 
       </div>
+
+      {/* Distance Warning Modal */}
+      {showDistanceModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[--animate-fade-in]">
+            <div className="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-4">
+              <MapPin width={24} height={24} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Khoảng cách xa (&gt; 5km)
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Quán này cách vị trí hiện tại của bạn khá xa. Hãy đảm bảo bạn có thể sắp xếp thời gian đến lấy hàng đúng giờ để tránh rủi ro bị hủy đơn (không hoàn tiền). Bạn có chắc chắn muốn tiếp tục không?
+            </p>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => setShowDistanceModal({ isOpen: false })}
+                className="flex-1 py-2.5 font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={() => {
+                  if (showDistanceModal.action === 'add_to_cart') handleAddToCart();
+                  else if (showDistanceModal.action === 'buy_now') handleBuyNow();
+                  setShowDistanceModal({ isOpen: false });
+                }}
+                className="flex-1 py-2.5 font-bold text-white bg-brand-500 rounded-xl hover:bg-brand-600 transition-colors"
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

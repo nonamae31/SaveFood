@@ -163,7 +163,7 @@ public class OrderService : IOrderService
             try
             {
                 // Note: we just pass OrderCode, don't pass specific order.Id to ReturnUrl since we might have multiple
-                var payOSResult = await _payOSService.CreatePaymentLink(orderCode, grandTotalAmount, $"DH {orderCode}", orderCode.ToString());
+                var payOSResult = await _payOSService.CreatePaymentLink(orderCode, grandTotalAmount, $"DH {orderCode}", orderCode.ToString(), req.ReturnUrl, req.CancelUrl);
                 checkoutUrl = payOSResult.CheckoutUrl;
             }
             catch (Exception ex)

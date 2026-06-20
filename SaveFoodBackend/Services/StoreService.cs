@@ -347,14 +347,14 @@ namespace SaveFoodBackend.Services
 
             string description = $"Mua goi {plan.Name}".PadRight(0).Substring(0, Math.Min(25, $"Mua goi {plan.Name}".Length));
             
-            string dashboardUrl = "http://localhost:5173/dashboard/subscription";
+            string dashboardUrl = request.ReturnUrl ?? throw new InvalidOperationException("ReturnUrl is required for Store Subscription Checkout.");
             var payOSResponse = await _payOSService.CreatePaymentLink(
                 orderCode, 
                 price, 
                 description, 
                 subscription.Id.ToString(), 
                 dashboardUrl, // returnUrl
-                dashboardUrl  // cancelUrl
+                request.CancelUrl ?? dashboardUrl  // cancelUrl
             );
 
             return new SubscriptionCheckoutResponse

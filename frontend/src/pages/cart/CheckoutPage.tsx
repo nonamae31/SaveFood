@@ -7,10 +7,11 @@ import { ROUTES } from "@/lib/constants";
 import { customerWalletApi } from "@/api/wallet.api";
 import { useLocationContext } from "@/contexts/LocationContext";
 import { ShieldCheckIcon } from "lucide-react";
+import { calculateDistance } from "@/utils/distance";
 
 // Placeholder for API
 const checkoutApi = {
-    checkout: async (data: { cartItemIds: string[]; paymentMethod: number; expectedPickupTime: string; agreedToNoRefundPolicy: boolean }) => {
+    checkout: async (data: { cartItemIds: string[]; paymentMethod: number; expectedPickupTime: string; agreedToNoRefundPolicy: boolean; returnUrl?: string; cancelUrl?: string; }) => {
         return apiClient<{ orderId: string; pickupCode: string; checkoutUrl?: string; reservationExpiresAt?: string }>(
             "/orders/checkout",
             {
@@ -86,21 +87,16 @@ export function CheckoutPage() {
         return acc;
     }, {} as Record<string, { storeName: string, storeLat?: number, storeLng?: number, items: typeof checkoutItems }>);
 
-    const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-        const R = 6371; // Radius of the earth in km
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c;
-    };
+    // Distance calculation is now imported from utils
 
     const proceedToCheckout = () => {
         checkoutMutation.mutate({
-            cartItemIds: selectedItemIds,
-            paymentMethod,
-            expectedPickupTime,
-            agreedToNoRefundPolicy: agreedToPolicy
+            cartItemIds: checkoutItems.map(item => item.id),
+            paymentMethod: paymentMethod,
+            expectedPickupTime: expectedPickupTime,
+            agreedToNoRefundPolicy: agreedToPolicy,
+            returnUrl: `${window.location.origin}/checkout/success`,
+            cancelUrl: `${window.location.origin}/checkout/cancel`
         });
     };
 
@@ -325,7 +321,7 @@ export function CheckoutPage() {
                             Cảnh báo khoảng cách xa
                         </h3>
                         <p className="text-gray-600 mb-6">
-                            Trong đơn hàng của bạn có cửa hàng cách xa vị trí hiện tại của bạn hơn 5km. Nếu bạn đặt hàng và không đến lấy, đơn hàng sẽ không được hoàn tiền. Bạn có chắc chắn muốn tiếp tục không?
+                            Trong đơn hàng của bạn có cửa hàng cách xa vị trí hiện tại hơn 5km. Hãy đảm bảo bạn có thể đến lấy hàng đúng thời gian dự kiến để tránh rủi ro bị hủy đơn (không hỗ trợ hoàn tiền). Bạn có chắc chắn muốn tiếp tục không?
                         </p>
                         <div className="flex justify-end gap-3">
                             <button 
