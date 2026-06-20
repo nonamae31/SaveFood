@@ -40,11 +40,26 @@ export interface OrderDetailDTO {
   }>
 }
 
-export function useMyOrders() {
+export interface PagedResult<T> {
+  data: T[]
+  totalRecords: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+}
+
+export function useMyOrders(status?: number | null, page: number = 1, pageSize: number = 5) {
   return useQuery({
-    queryKey: ['myOrders'],
+    queryKey: ['myOrders', status, page, pageSize],
     queryFn: async () => {
-      const res = await apiClient<OrderHistoryDTO[]>('/orders')
+      const params = new URLSearchParams()
+      if (status !== undefined && status !== null) {
+        params.append('status', status.toString())
+      }
+      params.append('page', page.toString())
+      params.append('pageSize', pageSize.toString())
+      
+      const res = await apiClient<PagedResult<OrderHistoryDTO>>(`/orders?${params.toString()}`)
       return res
     }
   })

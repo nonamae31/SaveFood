@@ -79,7 +79,7 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
   const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
-    if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn') {
+    if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn' && searchTriggerAddress !== 'Vị trí') {
       setSearchQuery(searchTriggerAddress);
     }
   }, [searchTriggerAddress]);

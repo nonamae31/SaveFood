@@ -155,17 +155,17 @@ export function ProductDetailPage() {
       <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
 
         {/* ── Breadcrumb ── */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]">
-          <Link to={ROUTES.HOME} className="hover:text-[--color-brand-600] transition-colors flex items-center gap-1">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary] overflow-x-auto whitespace-nowrap pb-2 hide-scrollbar">
+          <Link to={ROUTES.HOME} className="hover:text-[--color-brand-600] transition-colors flex items-center gap-1 shrink-0">
             <Leaf size={13} aria-hidden="true" />
             Trang chủ
           </Link>
-          <ChevronRight size={13} aria-hidden="true" />
-          <Link to={ROUTES.PRODUCTS} className="hover:text-[--color-brand-600] transition-colors">
+          <ChevronRight size={13} aria-hidden="true" className="shrink-0" />
+          <Link to={ROUTES.PRODUCTS} className="hover:text-[--color-brand-600] transition-colors shrink-0">
             Đồ ăn cận date
           </Link>
-          <ChevronRight size={13} aria-hidden="true" />
-          <span className="text-[--color-ink-primary] font-medium truncate max-w-[200px]">
+          <ChevronRight size={13} aria-hidden="true" className="shrink-0" />
+          <span className="text-[--color-ink-primary] font-medium truncate max-w-[200px] shrink-0">
             {listing!.title}
           </span>
         </nav>
@@ -390,10 +390,10 @@ export function ProductDetailPage() {
         {/* ── Related Listings ── */}
         {relatedListings.length > 0 && (
           <section aria-labelledby="related-heading">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-2 sm:gap-0">
               <h2
                 id="related-heading"
-                className="text-[--text-heading-sm] font-bold text-[--color-ink-primary]"
+                className="text-[--text-heading-sm] font-bold text-[--color-ink-primary] pr-2"
               >
                 Sản phẩm khác từ {listing!.storeName}
               </h2>
@@ -404,7 +404,7 @@ export function ProductDetailPage() {
                 Xem tất cả →
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {relatedListings.map(l => (
                 <ListingCard key={l.id} listing={l} />
               ))}

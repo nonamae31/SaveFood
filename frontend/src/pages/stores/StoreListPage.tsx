@@ -132,7 +132,7 @@ export function StoreListPage() {
 
         {/* Grid */}
         {isLoading && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             <SkeletonCard count={4} />
           </div>
         )}
@@ -154,12 +154,12 @@ export function StoreListPage() {
 
         {!isLoading && !isError && paginatedStores.length > 0 && (
           <div className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
               {paginatedStores.map(store => (
                 <Link
                   key={store.id}
                   to={`/stores/${store.id}`}
-                  className="relative bg-white rounded-[1.5rem] p-4 flex flex-col sm:flex-row gap-5 shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] hover:-translate-y-1 transition-all duration-300 border border-[--color-surface-border] group overflow-hidden"
+                  className="relative bg-white rounded-[1.5rem] p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-5 shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] hover:-translate-y-1 transition-all duration-300 border border-[--color-surface-border] group overflow-hidden"
                 >
                   {/* Featured Badge */}
                   {store.hasFeaturedBadge && (
@@ -172,24 +172,24 @@ export function StoreListPage() {
                   )}
 
                   {/* Image */}
-                  <div className="w-full sm:w-32 h-40 sm:h-auto rounded-[1rem] overflow-hidden shrink-0 bg-gray-100 relative">
+                  <div className="w-full sm:w-32 h-24 sm:h-auto rounded-[1rem] overflow-hidden shrink-0 bg-gray-100 relative">
                     <img src={store.imageUrl} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
 
                   {/* Content */}
                   <div className="flex flex-col flex-1 py-1">
-                    <div className="flex justify-between items-start mb-1">
-                      <span className="text-xs font-bold text-[--color-brand-600] bg-[--color-brand-50] px-2 py-0.5 rounded-md">{store.category}</span>
-                      <div className="flex items-center gap-1 bg-[#fff8e1] px-2 py-0.5 rounded-md text-[#f59e0b]">
+                    <div className="flex justify-between items-start mb-1 flex-col sm:flex-row gap-1 sm:gap-0">
+                      <span className="text-[10px] sm:text-xs font-bold text-[--color-brand-600] bg-[--color-brand-50] px-1.5 sm:px-2 py-0.5 rounded-md">{store.category}</span>
+                      <div className="flex items-center gap-1 bg-[#fff8e1] px-1.5 sm:px-2 py-0.5 rounded-md text-[#f59e0b]">
                         <Star size={12} fill="currentColor" strokeWidth={2} />
-                        <span className="text-xs font-bold">{store.rating != null ? `${store.rating} / 5` : '___'}</span>
+                        <span className="text-[10px] sm:text-xs font-bold">{store.rating != null ? `${store.rating} / 5` : '___'}</span>
                       </div>
                     </div>
 
-                    <h3 className="font-bold text-lg text-[--color-ink-primary] mb-1 group-hover:text-[--color-brand-600] transition-colors">{store.name}</h3>
+                    <h3 className="font-bold text-sm sm:text-lg text-[--color-ink-primary] mb-1 group-hover:text-[--color-brand-600] transition-colors line-clamp-2">{store.name}</h3>
 
-                    <div className="flex items-start gap-1.5 text-[--color-ink-secondary] text-sm mb-3">
-                      <MapPin size={14} className="mt-0.5 shrink-0" />
+                    <div className="flex items-start gap-1 sm:gap-1.5 text-[--color-ink-secondary] text-xs sm:text-sm mb-2 sm:mb-3">
+                      <MapPin size={12} className="mt-0.5 shrink-0 hidden sm:block" />
                       {store.latitude && store.longitude ? (
                         <button
                           onClick={(e) => {
@@ -207,20 +207,20 @@ export function StoreListPage() {
                       )}
                     </div>
 
-                    <div className="mt-auto flex items-center justify-between">
-                      <div className="flex flex-wrap gap-2">
+                    <div className="mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+                      <div className="flex flex-wrap gap-1 sm:gap-2">
                         {store.distance !== undefined && store.distance !== null && (
-                          <span className="text-sm text-brand-700 bg-brand-100 px-2.5 py-1 rounded-full font-bold shadow-sm">
+                          <span className="text-xs sm:text-sm text-brand-700 bg-brand-100 px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-bold shadow-sm">
                             {store.distance} km
                           </span>
                         )}
                         {store.tags.map(tag => (
-                          <span key={tag} className="text-[11px] text-[--color-ink-tertiary] border border-[--color-surface-border] px-2 py-0.5 rounded-full">
+                          <span key={tag} className="text-[9px] sm:text-[11px] text-[--color-ink-tertiary] border border-[--color-surface-border] px-1.5 sm:px-2 py-0.5 rounded-full line-clamp-1">
                             {tag}
                           </span>
                         ))}
                       </div>
-                      <div className="w-8 h-8 rounded-full bg-green-600 text-white flex items-center justify-center opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
+                      <div className="hidden sm:flex w-8 h-8 rounded-full bg-green-600 text-white items-center justify-center opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 shrink-0">
                         <ArrowRight size={16} />
                       </div>
                     </div>

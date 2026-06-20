@@ -52,8 +52,8 @@ import { CartPage } from '@/pages/cart/CartPage'
 import { CheckoutPage } from '@/pages/cart/CheckoutPage'
 import { OrderDetailPage } from '@/pages/cart/OrderDetailPage'
 import { PaymentReturnPage } from '@/pages/cart/PaymentReturnPage'
-import { MyOrdersPage } from '@/pages/cart/MyOrdersPage'
 import { CustomerWalletPage } from '@/pages/profile/CustomerWalletPage'
+import { HelpCenterPage } from '@/pages/profile/HelpCenterPage'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -108,13 +108,14 @@ function App() {
                   <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
                   <Route path="/checkout/success"      element={<PaymentReturnPage />} />
                   <Route path="/checkout/cancel"       element={<PaymentReturnPage />} />
-                  <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
                   <Route path="/orders/:id"            element={<OrderDetailPage />} />
 
-                  {/* Profile nested in MainLayout for now */}
+                  {/* Profile Routes */}
                   <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
                   <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
                   <Route path={ROUTES.MY_WALLET}       element={<CustomerWalletPage />} />
+                  <Route path={ROUTES.HELP_CENTER}     element={<HelpCenterPage />} />
+                  <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
                 </Route>
               </Route>
 

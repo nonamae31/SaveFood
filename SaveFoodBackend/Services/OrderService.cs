@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Customer.Orders;
+using SaveFoodBackend.DTOs;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
@@ -307,18 +308,30 @@ public class OrderService : IOrderService
         return true;
     }
 
-    public async Task<List<OrderHistoryDTO>> GetMyOrdersAsync(Guid userId, CancellationToken ct = default)
+    public async Task<PagedResult<OrderHistoryDTO>> GetMyOrdersAsync(Guid userId, int? status = null, int page = 1, int pageSize = 5, CancellationToken ct = default)
     {
-        var orders = await _ctx.Orders
+        var query = _ctx.Orders
             .Include(o => o.Store)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Listing)
                     .ThenInclude(l => l.ListingImages)
-            .Where(o => o.UserId == userId)
+            .Where(o => o.UserId == userId);
+
+        if (status.HasValue)
+        {
+            query = query.Where(o => o.OrderStatus == status.Value);
+        }
+
+        var totalRecords = await query.CountAsync(ct);
+        var totalPages = (int)Math.Ceiling(totalRecords / (double)pageSize);
+
+        var orders = await query
             .OrderByDescending(o => o.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync(ct);
 
-        return orders.Select(o => new OrderHistoryDTO
+        var data = orders.Select(o => new OrderHistoryDTO
         {
             Id = o.Id,
             StoreId = o.StoreId,
@@ -329,6 +342,15 @@ public class OrderService : IOrderService
             TotalItems = o.OrderItems.Sum(oi => oi.Quantity),
             FirstItemImageUrl = o.OrderItems.FirstOrDefault()?.Listing?.ListingImages.FirstOrDefault()?.ImageUrl
         }).ToList();
+
+        return new PagedResult<OrderHistoryDTO>
+        {
+            Data = data,
+            TotalRecords = totalRecords,
+            TotalPages = totalPages,
+            CurrentPage = page,
+            PageSize = pageSize
+        };
     }
 
     public async Task<OrderDetailDTO> GetOrderByIdAsync(Guid id, Guid userId, CancellationToken ct = default)

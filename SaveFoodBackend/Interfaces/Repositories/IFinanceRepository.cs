@@ -15,6 +15,7 @@ public interface IFinanceRepository
 
     Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default);
     void AddWalletTransaction(WalletTransaction transaction);
+    void AddCustomerWalletTransaction(CustomerWalletTransaction transaction);
     
     Task<StoreWallet?> GetStoreWalletByStoreIdAsync(Guid storeId, CancellationToken ct = default);
     Task<(IEnumerable<WalletTransaction> Items, int TotalCount)> GetStoreTransactionsAsync(Guid storeWalletId, int pageNumber, int pageSize, CancellationToken ct = default);

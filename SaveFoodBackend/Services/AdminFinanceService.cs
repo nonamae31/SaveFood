@@ -60,7 +60,20 @@ public class AdminFinanceService : IAdminFinanceService
                 withdrawal.Status = (byte)WithdrawalStatusEnum.Rejected;
                 wallet.AvailableBalance += withdrawal.Amount;
                 pendingTx.Status = (byte)TransactionStatusEnum.Failed;
-                pendingTx.Description = "Withdrawal Rejected";
+                pendingTx.Description = "Rút tiền bị từ chối: " + request.AdminNote;
+
+                var refundTx = new WalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    StoreWalletId = wallet.Id,
+                    Amount = withdrawal.Amount,
+                    Type = (byte)TransactionTypeEnum.Refund,
+                    Status = (byte)TransactionStatusEnum.Completed,
+                    ReferenceId = withdrawal.Id,
+                    Description = "Hoàn tiền rút tiền bị từ chối: " + request.AdminNote,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _financeRepo.AddWalletTransaction(refundTx);
             }
         }
         else if (withdrawal.UserId.HasValue)
@@ -83,6 +96,19 @@ public class AdminFinanceService : IAdminFinanceService
                 customerWallet.Balance += withdrawal.Amount;
                 pendingTx.Status = 2; // Failed
                 pendingTx.Description = "Rút tiền bị từ chối: " + request.AdminNote;
+
+                var refundTx = new CustomerWalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerWalletId = customerWallet.Id,
+                    Amount = withdrawal.Amount,
+                    Type = 3, // Refund
+                    Status = 1, // Completed
+                    ReferenceId = withdrawal.Id,
+                    Description = "Hoàn tiền rút tiền bị từ chối: " + request.AdminNote,
+                    CreatedAt = DateTime.UtcNow
+                };
+                _financeRepo.AddCustomerWalletTransaction(refundTx);
             }
         }
         else

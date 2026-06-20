@@ -113,7 +113,7 @@ export function StoreDetailPage() {
           
           {/* Listings State */}
           {isListingsLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-5">
               <SkeletonCard count={4} />
             </div>
           )}
@@ -131,7 +131,7 @@ export function StoreDetailPage() {
           )}
 
           {!isListingsLoading && !isListingsError && listings && listings.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-5">
               {listings.map(listing => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
