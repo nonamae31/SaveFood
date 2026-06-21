@@ -21,6 +21,10 @@ export function ProfileOrdersTab() {
   const pageSize = 5;
 
   const { data: pageResult, isLoading, error } = useMyOrders(activeStatus, currentPage, pageSize)
+  
+  const dataArray = Array.isArray(pageResult) ? pageResult : (pageResult as any)?.data || (pageResult as any)?.Data;
+  const totalPages = (pageResult as any)?.totalPages || (pageResult as any)?.TotalPages || (Array.isArray(pageResult) ? 1 : 0);
+
   const navigate = useNavigate()
 
   useEffect(() => {
