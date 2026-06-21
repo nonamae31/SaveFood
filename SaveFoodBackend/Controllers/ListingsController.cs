@@ -17,7 +17,7 @@ public class ListingsController : ControllerBase
     {
         _listingService = listingService;
     }
-
+    
     [HttpGet]
     public async Task<IActionResult> GetListings(Guid storeId, CancellationToken ct)
     {
