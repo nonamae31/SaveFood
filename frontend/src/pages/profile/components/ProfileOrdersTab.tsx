@@ -76,7 +76,7 @@ export function ProfileOrdersTab() {
         <div className="p-8 text-center text-red-500 mt-10">Lỗi khi tải đơn hàng.</div>
       )}
 
-      {!isLoading && !error && (!pageResult || pageResult.data.length === 0) && (
+      {!isLoading && !error && (!dataArray || dataArray.length === 0) && (
         <div className="p-8 text-center mt-10">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-12">
             <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -89,9 +89,9 @@ export function ProfileOrdersTab() {
         </div>
       )}
 
-      {!isLoading && !error && pageResult && pageResult.data.length > 0 && (
+      {!isLoading && !error && dataArray && dataArray.length > 0 && (
         <div className="space-y-4">
-          {pageResult.data.map((order) => {
+          {dataArray.map((order: any) => {
             const status = getStatusText(order.orderStatus)
             
             return (
@@ -143,37 +143,39 @@ export function ProfileOrdersTab() {
           })}
 
           {/* Pagination Controls */}
-          {pageResult.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 mt-8 pt-4">
-              <button 
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
-              {Array.from({ length: pageResult.totalPages }).map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i + 1)}
-                  className={`w-8 h-8 rounded-full font-bold text-sm flex items-center justify-center transition-colors ${
-                    currentPage === i + 1 
-                      ? 'bg-brand-500 text-white' 
-                      : 'hover:bg-gray-100 text-gray-600'
-                  }`}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
                 >
-                  {i + 1}
+                  <ChevronLeft className="w-5 h-5" />
                 </button>
-              ))}
-
-              <button 
-                onClick={() => setCurrentPage(p => Math.min(pageResult.totalPages, p + 1))}
-                disabled={currentPage === pageResult.totalPages}
-                className="p-2 rounded-full hover:bg-gray-100 disabled:opacity-50 disabled:hover:bg-transparent"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentPage(i + 1)}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-bold transition-colors ${
+                        currentPage === i + 1 
+                          ? 'bg-brand-500 text-white' 
+                          : 'text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 transition-colors"
+                >
+                  <ChevronLeft className="w-5 h-5 rotate-180" />
+                </button>
+              </div>
             </div>
           )}
         </div>

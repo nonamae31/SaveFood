@@ -242,7 +242,7 @@ function OrderRow({
         {/* Customer */}
         <div className="flex-1 min-w-0">
           <p className="font-semibold text-gray-900 text-sm truncate">{order.customerName}</p>
-          <p className="text-xs text-gray-400 truncate">{order.items.length} sản phẩm</p>
+          <p className="text-xs text-gray-400 truncate">{order.items?.length || 0} sản phẩm</p>
         </div>
 
         {/* Amount */}
@@ -389,7 +389,7 @@ export default function DashboardOrdersPage() {
           <Loader2 className="w-8 h-8 animate-spin mb-3" />
           <p className="text-sm">Đang tải đơn hàng...</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : !filtered || filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <ClipboardList className="w-12 h-12 text-gray-200 mx-auto mb-4" />
           <h3 className="font-semibold text-gray-600 mb-1">Không có đơn hàng nào</h3>
