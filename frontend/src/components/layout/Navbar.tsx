@@ -75,8 +75,7 @@ export function Navbar() {
   const isStores = location.pathname === ROUTES.STORES || (location.pathname.startsWith('/stores/') && location.pathname !== ROUTES.STORE_REGISTER)
   
   // Các trang có Hero Banner nền tối ở đầu trang
-  // Tạm thời tắt isDarkHeroPage vì các trang này đang hiển thị PlaceholderPage nền sáng
-  const isDarkHeroPage = false 
+  const isDarkHeroPage = isHome || isProducts || isStores 
   const isDark = isDarkHeroPage && !isScrolled && !isMobileMenuOpen
 
   // Pill styles: Luôn giữ layout 3 block (pills), chỉ đổi màu theo nền

@@ -62,7 +62,7 @@ export function DashboardLayout() {
     { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
     { name: 'Ví & Doanh thu (🚧)', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
     { name: 'Đánh giá (🚧)', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
-    { name: 'Cài đặt cửa hàng (🚧)', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
+    { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
 
   const navItems = isStaffOnly ? staffNavItems : ownerNavItems
