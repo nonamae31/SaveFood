@@ -30,7 +30,7 @@ jobs:
     - name: Take Site Offline
       run: |
         echo "<html><body><h1>Website is being updated. Please check back in a minute.</h1></body></html>" > app_offline.htm
-        curl -T app_offline.htm ftp://${{ secrets.FTP_SERVER }}/savefood/app_offline.htm --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+        curl -T app_offline.htm ftp://${{ secrets.FTP_SERVER }}/site1/app_offline.htm --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
 
     - name: Deploy via FTP
       uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -39,10 +39,10 @@ jobs:
         username: ${{ secrets.FTP_USERNAME }}
         password: ${{ secrets.FTP_PASSWORD }}
         local-dir: ./publish/
-        server-dir: /savefood/
+        server-dir: /site1/
 
     - name: Bring Site Online
       if: always()
       run: |
-        curl -Q "-DELE /savefood/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
+        curl -Q "-DELE /site1/app_offline.htm" ftp://${{ secrets.FTP_SERVER }}/ --user ${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}
 
