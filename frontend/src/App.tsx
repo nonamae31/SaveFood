@@ -145,7 +145,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS} element={<PlaceholderPage title="Phê duyệt cửa hàng" />} />
                 <Route path={ROUTES.ADMIN_FINANCE} element={<PlaceholderPage title="Quản lý tài chính" />} />
-                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<PlaceholderPage title="Quản lý các gói dịch vụ" />} />
+                <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<PlaceholderPage title="Quản lý danh mục" />} />
               </Route>
             </Route>
