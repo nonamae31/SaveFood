@@ -44,6 +44,7 @@ public class ProductsController : ControllerBase
         var product = await _productService.CreateProductAsync(storeId, dto, ct);
         return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
     }
+    //
 
     [HttpPut("{productId}")]
     public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromBody] UpdateProductDTO dto, CancellationToken ct)
