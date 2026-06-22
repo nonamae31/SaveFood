@@ -97,6 +97,7 @@ export const ROUTES = {
   ADMIN_APPROVALS:     '/admin/approvals',
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
   ADMIN_CATEGORIES:    '/admin/categories',
+  ADMIN_AUDIT:         '/admin/audit',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────

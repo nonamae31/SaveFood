@@ -178,7 +178,7 @@ export default function AdminFinancePage() {
                 {activeTab === 'ledger' && transactions.length === 0 && (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
-                {activeTab === 'ledger' && transactions.map(t => (
+                {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).map(t => (
                   <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(t.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Wallet, Clock, XCircle, Plus, TrendingUp, TrendingDown, Percent, FileText } from 'lucide-react'
+import { Wallet, Clock, XCircle, Plus, TrendingUp, TrendingDown, Percent, FileText, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   useStoreWallet,
   useStoreTransactions,
@@ -64,15 +64,71 @@ const getWithdrawalStatusLabel = (status: number) => {
   }
 }
 
+const renderPagination = (currentPage: number, totalPages: number, setPage: (p: number) => void, totalCount: number = 0, pageSize: number = 10, label: string = 'mục') => {
+  if (totalPages <= 1) return null;
+  
+  const pages = [];
+  const maxPagesToShow = 5;
+  let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
+  let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+  
+  if (endPage - startPage + 1 < maxPagesToShow) {
+    startPage = Math.max(1, endPage - maxPagesToShow + 1);
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    pages.push(
+      <button
+        key={i}
+        onClick={() => setPage(i)}
+        className={`w-7 h-7 rounded-[6px] text-[13px] font-medium transition-colors flex items-center justify-center ${currentPage === i ? "bg-white border border-gray-200 text-gray-900 shadow-sm" : "text-gray-500 hover:bg-gray-100 hover:text-gray-900 border border-transparent"}`}
+      >
+        {i}
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center justify-between w-full">
+      <span className="text-[13px] text-gray-500">
+        Hiển thị {(currentPage - 1) * pageSize + 1} đến {Math.min(currentPage * pageSize, totalCount)} trên tổng số {totalCount} {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={() => setPage(Math.max(1, currentPage - 1))}
+          disabled={currentPage <= 1}
+          className="p-1 rounded-[6px] hover:bg-white border border-transparent hover:border-gray-200 text-gray-400 hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <div className="flex gap-1">
+          {startPage > 1 && <span className="px-1 text-gray-400 text-[13px] flex items-center">...</span>}
+          {pages}
+          {endPage < totalPages && <span className="px-1 text-gray-400 text-[13px] flex items-center">...</span>}
+        </div>
+        <button
+          onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+          disabled={currentPage >= totalPages}
+          className="p-1 rounded-[6px] hover:bg-white border border-transparent hover:border-gray-200 text-gray-400 hover:text-gray-900 disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
 export default function DashboardWalletPage() {
   const [activeTab, setActiveTab] = useState<'overview' | 'withdrawals'>('overview')
   const [showWithdrawForm, setShowWithdrawForm] = useState(false)
   const [formData, setFormData] = useState({ amount: '', bankName: '', bankAccountNumber: '', bankAccountName: '' })
   const [formError, setFormError] = useState('')
+  const [txPage, setTxPage] = useState(1)
+  const [wdPage, setWdPage] = useState(1)
 
   const { data: wallet, isLoading: walletLoading } = useStoreWallet()
-  const { data: txData, isLoading: txLoading } = useStoreTransactions(1, 20)
-  const { data: wdData, isLoading: wdLoading } = useStoreWithdrawals(1, 20)
+  const { data: txData, isLoading: txLoading } = useStoreTransactions(txPage, 10)
+  const { data: wdData, isLoading: wdLoading } = useStoreWithdrawals(wdPage, 10)
 
   const createWithdrawal = useCreateWithdrawal()
 
@@ -175,7 +231,7 @@ export default function DashboardWalletPage() {
                   <p className="text-gray-500 font-medium">Chưa có giao dịch nào</p>
                 </div>
               ) : (
-                txData?.items.map(tx => (
+                txData?.items.filter(tx => tx.type !== 2).map(tx => (
                   <div key={tx.id} className="p-5 hover:bg-gray-50/80 transition-colors flex items-center gap-4">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${getTxIconBg(tx.type)}`}>
                       {getTxIcon(tx.type)}
@@ -194,35 +250,24 @@ export default function DashboardWalletPage() {
                       {tx.description && (
                         <p className="text-sm text-gray-500 mt-1.5 truncate">{tx.description}</p>
                       )}
-                      {tx.type === 1 && (
-                        <div className="mt-3 flex gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm text-sm">
-                           <div className="flex-1">
-                              <p className="text-gray-400 text-xs">Tiền đơn hàng</p>
-                              <p className="font-semibold text-gray-700">{formatVND(tx.amount)}</p>
-                           </div>
-                           <div className="flex-1">
-                              <p className="text-gray-400 text-xs">Phí nền tảng (5%)</p>
-                              <p className="font-semibold text-red-500">-{formatVND(tx.amount * 0.05)}</p>
-                           </div>
-                           <div className="flex-1">
-                              <p className="text-brand-600 text-xs font-bold">Thực nhận</p>
-                              <p className="font-bold text-brand-600">+{formatVND(tx.amount * 0.95)}</p>
-                           </div>
-                        </div>
-                      )}
                     </div>
                     
                     <div className="text-right shrink-0">
-                      {tx.type !== 1 && (
-                        <div className={`text-xl font-bold tracking-tight ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                          {tx.amount > 0 ? '+' : ''}{formatVND(tx.amount)}
-                        </div>
-                      )}
+                      <div className={`text-xl font-bold tracking-tight ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatVND(tx.amount)}
+                      </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
+            
+            {/* Transactions Pagination */}
+            {txData && txData.totalPages >= 1 && (
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+                {renderPagination(txData.pageNumber, txData.totalPages, setTxPage, txData.totalCount, 10, 'giao dịch')}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -366,6 +411,13 @@ export default function DashboardWalletPage() {
                 </tbody>
               </table>
             </div>
+            
+            {/* Withdrawals Pagination */}
+            {wdData && wdData.totalPages >= 1 && (
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+                {renderPagination(wdData.pageNumber, wdData.totalPages, setWdPage, wdData.totalCount, 10, 'yêu cầu')}
+              </div>
+            )}
           </div>
         </div>
       )}

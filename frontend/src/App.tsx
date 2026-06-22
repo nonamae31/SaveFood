@@ -16,6 +16,7 @@ import AccountManagementPage from '@/pages/admin/AccountManagementPage'
 import StoreManagementPage from '@/pages/admin/StoreManagementPage'
 import SubscriptionManagementPage from '@/pages/admin/SubscriptionManagementPage'
 import AdminFinancePage from '@/pages/admin/AdminFinancePage'
+import AdminAuditPage from '@/pages/admin/AdminAuditPage'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
 import { CustomerProtectedRoute } from '@/components/layout/CustomerProtectedRoute'
@@ -153,6 +154,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+                <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
               </Route>
             </Route>
 

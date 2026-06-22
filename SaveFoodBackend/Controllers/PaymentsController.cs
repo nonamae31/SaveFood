@@ -48,6 +48,12 @@ public class PaymentsController : ControllerBase
                             order.Payment.PaidAt = DateTime.UtcNow;
                             order.ReservationExpiresAt = null; // Clear payment timer
 
+                            // --- AUDIT TRAIL: Save PayOS evidence ---
+                            order.Payment.PayOsReference = data.Reference;
+                            order.Payment.PayerAccountNumber = data.CounterAccountNumber;
+                            order.Payment.PayerName = data.CounterAccountName;
+                            order.Payment.PayerBankId = data.CounterAccountBankId;
+
                             var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId);
                             if (storeWallet == null)
                             {
@@ -73,6 +79,12 @@ public class PaymentsController : ControllerBase
                     if (subscription != null && subscription.Status == 0)
                     {
                         subscription.Status = 1; // Active
+
+                        // --- AUDIT TRAIL: Save PayOS evidence ---
+                        subscription.PayOsTransactionId = data.Reference;
+                        subscription.PayerAccountNumber = data.CounterAccountNumber;
+                        subscription.PayerName = data.CounterAccountName;
+                        subscription.PayerBankId = data.CounterAccountBankId;
                         
                         // We must cancel any other active subscriptions for this store to prevent overlap
                         var activeSubs = await _ctx.StoreSubscriptions
@@ -134,6 +146,16 @@ public class PaymentsController : ControllerBase
                             o.Payment.PaidAt = DateTime.UtcNow;
                             o.ReservationExpiresAt = null; // Clear payment timer
                             
+                            // --- AUDIT TRAIL: Save PayOS evidence ---
+                            var tx = payOSInfo.Transactions?.FirstOrDefault();
+                            if (tx != null)
+                            {
+                                o.Payment.PayOsReference = tx.Reference;
+                                o.Payment.PayerAccountNumber = tx.CounterAccountNumber;
+                                o.Payment.PayerName = tx.CounterAccountName;
+                                o.Payment.PayerBankId = tx.CounterAccountBankId;
+                            }
+                            
                             var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == o.StoreId);
                             if (storeWallet == null)
                             {
@@ -164,6 +186,17 @@ public class PaymentsController : ControllerBase
                     if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                     {
                         subscription.Status = 1; // Active
+                        
+                        // --- AUDIT TRAIL: Save PayOS evidence ---
+                        var tx = payOSInfo.Transactions?.FirstOrDefault();
+                        if (tx != null)
+                        {
+                            subscription.PayOsTransactionId = tx.Reference;
+                            subscription.PayerAccountNumber = tx.CounterAccountNumber;
+                            subscription.PayerName = tx.CounterAccountName;
+                            subscription.PayerBankId = tx.CounterAccountBankId;
+                        }
+
                         var activeSubs = await _ctx.StoreSubscriptions
                                                    .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
                                                    .ToListAsync();

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SaveFoodBackend.Data;
 
@@ -11,9 +12,11 @@ using SaveFoodBackend.Data;
 namespace SaveFoodBackend.Migrations
 {
     [DbContext(typeof(SaveFoodDbContext))]
-    partial class SaveFoodDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260622160738_AddPayOsAuditFields")]
+    partial class AddPayOsAuditFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -456,18 +459,6 @@ namespace SaveFoodBackend.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PayOsReference")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerAccountNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerBankId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerName")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<byte>("PaymentMethod")
                         .HasColumnType("tinyint");
 
@@ -790,18 +781,6 @@ namespace SaveFoodBackend.Migrations
 
                     b.Property<long?>("OrderCode")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("PayOsTransactionId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerAccountNumber")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerBankId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PayerName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uniqueidentifier");
