@@ -14,4 +14,5 @@ public interface IStoreOrderService
     Task CompleteOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default);
     Task CancelOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default);
     Task<StoreOrderDTO> LookupOrderByPickupCodeAsync(Guid storeId, string pickupCode, Guid userId, CancellationToken ct = default);
+    Task<byte[]> ExportOrdersCsvAsync(Guid storeId, Guid userId, DateTime? fromDate, DateTime? toDate, CancellationToken ct = default);
 }

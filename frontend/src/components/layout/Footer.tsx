@@ -8,18 +8,16 @@ import toast from 'react-hot-toast';
 
 const FOOTER_LINKS = {
     product: [
-        { label: "Đồ ăn cận date", href: ROUTES.PRODUCTS },
-        { label: "Danh sách cửa hàng", href: ROUTES.STORES },
-        { label: "Đặt hàng", href: ROUTES.CART },
+        { label: "Khám phá món ăn", href: ROUTES.PRODUCTS },
+        { label: "Cửa hàng đối tác", href: ROUTES.STORES },
+        { label: "Giỏ hàng của bạn", href: ROUTES.CART },
     ],
     partner: [
-        { label: "Đăng ký cửa hàng", href: ROUTES.REGISTER },
-        { label: "Bảng giá", href: "#pricing" },
-        { label: "Dashboard", href: ROUTES.DASHBOARD },
+        { label: "Mở cửa hàng trực tuyến", href: ROUTES.STORE_REGISTER },
     ],
     support: [
-        { label: "Câu hỏi thường gặp", href: "#faq" },
-        { label: "Liên hệ hỗ trợ", href: "#contact" },
+        { label: "Trung tâm hỗ trợ", href: ROUTES.HELP_CENTER, isRouter: true },
+        { label: "Câu hỏi thường gặp (FAQ)", href: "#faq" },
         { label: "Điều khoản dịch vụ", href: ROUTES.POLICY, isRouter: true },
         { label: "Chính sách bảo mật", href: ROUTES.POLICY, isRouter: true },
     ],

@@ -18,6 +18,7 @@ import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { useListings } from '@/hooks/useListings'
+import { useStoreDetail } from '@/hooks/useStores'
 import { LISTING_QUERY_KEYS } from '@/hooks/useListings'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
@@ -25,8 +26,8 @@ import type { CustomerListingDTO } from '@/types/listing.types'
 import { useAddToCart } from '@/hooks/useCart'
 import { toast } from 'react-hot-toast'
 import { MapPin } from 'lucide-react'
-import { useStoreDetail } from '@/hooks/useStores'
 import { useLocationContext } from '@/contexts/LocationContext'
+import { useAuthContext } from '@/contexts/AuthContext'
 import { calculateDistance } from '@/utils/distance'
 
 export function ProductDetailPage() {
@@ -62,6 +63,10 @@ export function ProductDetailPage() {
   const discount = listing ? calcDiscountPercent(listing.originalPrice, listing.salePrice) : 0
   const isLowStock = listing && listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut = listing && listing.quantityAvailable === 0
+  
+  const { user } = useAuthContext()
+  const isMyStore = user?.storeId === listing?.storeId
+  const isStoreClosed = listing?.storeStatus !== 0
   
   const { location } = useLocationContext()
   const { data: store } = useStoreDetail(listing?.storeId)
@@ -231,15 +236,15 @@ export function ProductDetailPage() {
 
               {/* Discount badge */}
               {discount > 0 && (
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-10">
                   <DiscountTag percent={discount} size="lg" />
                 </div>
               )}
 
-              {isSoldOut && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+              {(isSoldOut || isStoreClosed) && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
                   <span className="text-[--text-heading-sm] font-bold text-[--color-ink-tertiary]">
-                    Đã hết hàng
+                    {isStoreClosed ? 'Tạm đóng cửa' : 'Đã hết hàng'}
                   </span>
                 </div>
               )}
@@ -323,10 +328,10 @@ export function ProductDetailPage() {
               </span>
               <span className={[
                 'text-[--text-body-sm] font-bold',
-                isSoldOut ? 'text-[--color-ink-tertiary]'
+                isStoreClosed || isSoldOut ? 'text-[--color-ink-tertiary]'
                   : isLowStock ? 'text-red-600' : 'text-[--color-brand-700]',
               ].join(' ')}>
-                {isSoldOut ? 'Đã hết hàng' : `${listing!.quantityAvailable} phần`}
+                {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Đã hết hàng' : `${listing!.quantityAvailable} phần`}
               </span>
             </div>
 
@@ -358,31 +363,39 @@ export function ProductDetailPage() {
 
             {/* CTA Buttons */}
             <div className="flex gap-3 mt-2">
-              <button
-                onClick={() => onActionClick('add_to_cart')}
-                disabled={isSoldOut || addToCartMutation.isPending}
-                className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
-                             text-[--text-body-md] font-bold transition-all duration-300
-                             bg-brand-100 text-brand-700 border border-brand-200 hover:bg-brand-200
-                             disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-disabled={isSoldOut || addToCartMutation.isPending}
-              >
-                <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
-                {isSoldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
-              </button>
+              {isMyStore ? (
+                <div className="w-full py-4 text-center rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100">
+                  Đây là sản phẩm thuộc cửa hàng của bạn
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => onActionClick('add_to_cart')}
+                    disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                    className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                                 text-[--text-body-md] font-bold transition-all duration-300
+                                 bg-brand-100 text-brand-700 border border-brand-200 hover:bg-brand-200
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                  >
+                    <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
+                    {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
+                  </button>
 
-              <button
-                onClick={() => onActionClick('buy_now')}
-                disabled={isSoldOut || addToCartMutation.isPending}
-                className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
-                             text-[--text-body-md] font-bold transition-all duration-300
-                             bg-brand-500 text-white hover:bg-brand-600
-                             hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
-                             disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
-                aria-disabled={isSoldOut || addToCartMutation.isPending}
-              >
-                {isSoldOut ? 'Hết hàng' : 'Mua ngay'}
-              </button>
+                  <button
+                    onClick={() => onActionClick('buy_now')}
+                    disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                    className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                                 text-[--text-body-md] font-bold transition-all duration-300
+                                 bg-brand-500 text-white hover:bg-brand-600
+                                 hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
+                                 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    aria-disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                  >
+                    {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Hết hàng' : 'Mua ngay'}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

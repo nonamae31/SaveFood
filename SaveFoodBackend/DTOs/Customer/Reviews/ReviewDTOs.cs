@@ -32,5 +32,8 @@ namespace SaveFoodBackend.DTOs.Customer.Reviews
         
         public string CustomerName { get; set; } = string.Empty;
         public string? CustomerAvatar { get; set; }
+
+        public string? SentimentLabel { get; set; }
+        public decimal? SentimentScore { get; set; }
     }
 }

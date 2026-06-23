@@ -75,7 +75,7 @@ public class ListingRepository : IListingRepository
         var query = _set
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
-                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
                         .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)

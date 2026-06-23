@@ -64,7 +64,8 @@ public class StoreRepository : IStoreRepository
             .Include(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
                 .ThenInclude(sub => sub.Plan)
             .Include(s => s.Products)
-            .Where(s => s.Status == (byte)StoreStatus.Active)
+            .Where(s => (s.Status == (byte)StoreStatus.Active || s.Status == (byte)StoreStatus.Closed) 
+                     && ((s.StoreFlags & (byte)StoreFlagsEnum.IsDeleted) == 0))
             .AsNoTracking()
             .ToListAsync(ct);
     }

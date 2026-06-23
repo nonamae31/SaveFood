@@ -17,19 +17,22 @@ namespace SaveFoodBackend.Services
         private readonly IOrderRepository _orderRepo;
         private readonly ISubscriptionRepository _subscriptionRepo;
         private readonly IPayOSService _payOSService;
+        private readonly SaveFoodBackend.Interfaces.Repositories.IReviewRepository _reviewRepo;
 
         public StoreService(
             IStoreRepository storeRepo, 
             ICloudinaryService cloudinaryService, 
             IOrderRepository orderRepo,
             ISubscriptionRepository subscriptionRepo,
-            IPayOSService payOSService)
+            IPayOSService payOSService,
+            SaveFoodBackend.Interfaces.Repositories.IReviewRepository reviewRepo)
         {
             _storeRepo = storeRepo;
             _cloudinaryService = cloudinaryService;
             _orderRepo = orderRepo;
             _subscriptionRepo = subscriptionRepo;
             _payOSService = payOSService;
+            _reviewRepo = reviewRepo;
         }
 
         public async Task<StoreProfileDTO?> GetStoreDashboardProfileAsync(Guid storeId, Guid userId, CancellationToken ct = default)
@@ -59,8 +62,40 @@ namespace SaveFoodBackend.Services
                 PlanName = planName,
                 HasCustomBanner = hasCustomBanner,
                 Latitude = store.Latitude,
-                Longitude = store.Longitude
+                Longitude = store.Longitude,
+                Status = store.Status,
+                IsDeleted = (store.StoreFlags & (byte)StoreFlagsEnum.IsDeleted) != 0
             };
+        }
+
+        public async Task UpdateStoreStatusAsync(Guid storeId, Guid userId, string action)
+        {
+            var store = await _storeRepo.GetStoreWithStaffsAsync(storeId);
+            if (store == null)
+                throw new InvalidOperationException("Cửa hàng không tồn tại.");
+
+            var isOwner = store.StoreStaffs.Any(s => s.UserId == userId && s.StaffRole == (byte)StaffRole.Owner);
+            if (!isOwner)
+                throw new UnauthorizedAccessException("Chỉ Chủ cửa hàng mới có quyền thay đổi trạng thái cửa hàng.");
+
+            switch (action.ToLower())
+            {
+                case "pause":
+                    store.Status = (byte)StoreStatus.Closed;
+                    break;
+                case "resume":
+                    store.Status = (byte)StoreStatus.Active;
+                    break;
+                case "delete":
+                    store.StoreFlags |= (byte)StoreFlagsEnum.IsDeleted;
+                    store.Status = (byte)StoreStatus.Closed; // Also close it
+                    break;
+                default:
+                    throw new ArgumentException("Hành động không hợp lệ.");
+            }
+
+            _storeRepo.Update(store);
+            await _storeRepo.SaveChangesAsync();
         }
 
         public async Task UpdateStoreProfileAsync(Guid storeId, Guid userId, UpdateStoreProfileRequest request, CancellationToken ct = default)
@@ -186,7 +221,8 @@ namespace SaveFoodBackend.Services
                     HasFeaturedBadge = plan?.HasFeaturedBadge ?? false,
                     Distance = distance,
                     Latitude = s.Latitude != null ? (double)s.Latitude.Value : null,
-                    Longitude = s.Longitude != null ? (double)s.Longitude.Value : null
+                    Longitude = s.Longitude != null ? (double)s.Longitude.Value : null,
+                    Status = s.Status
                 };
             }).ToList();
 
@@ -207,7 +243,7 @@ namespace SaveFoodBackend.Services
         public async Task<SaveFoodBackend.DTOs.Customer.Stores.CustomerStoreDetailDTO?> GetCustomerStoreByIdAsync(Guid storeId, System.Threading.CancellationToken ct = default)
         {
             var store = await _storeRepo.GetByIdAsync(storeId, ct);
-            if (store == null || store.Status != (byte)StoreStatus.Active)
+            if (store == null || (store.Status != (byte)StoreStatus.Active && store.Status != (byte)StoreStatus.Closed) || (store.StoreFlags & (byte)StoreFlagsEnum.IsDeleted) != 0)
             {
                 return null;
             }
@@ -236,7 +272,8 @@ namespace SaveFoodBackend.Services
                 CoverImage = store.CoverUrl ?? "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80",
                 Description = store.Description ?? string.Empty,
                 Latitude = store.Latitude != null ? (double)store.Latitude.Value : null,
-                Longitude = store.Longitude != null ? (double)store.Longitude.Value : null
+                Longitude = store.Longitude != null ? (double)store.Longitude.Value : null,
+                Status = store.Status
             };
         }
 
@@ -279,6 +316,21 @@ namespace SaveFoodBackend.Services
             List<decimal> weeklyRevenue = new();
             List<TopSellingProductDTO> topProducts = new();
             double returnCustomerRate = 0;
+            int cancelledOrders = 0;
+            int expiredOrders = 0;
+            List<int> weeklyCompletedOrders = new();
+            List<int> weeklyCancelledOrders = new();
+            List<double> weeklyAverageRating = new();
+            
+            decimal currentMonthRevenue = 0;
+            decimal previousMonthRevenue = 0;
+            
+            int totalCustomers = 0;
+            int returningCustomers = 0;
+
+            int positiveReviews = 0;
+            int neutralReviews = 0;
+            int negativeReviews = 0;
             
             if (analyticsLevel >= 1)
             {
@@ -287,11 +339,32 @@ namespace SaveFoodBackend.Services
                 weeklyRevenue = await _orderRepo.GetWeeklyRevenueAsync(storeId, weekStart, weekEnd, ct);
                 
                 topProducts = await _orderRepo.GetTopSellingProductsAsync(storeId, 3, ct);
+                
+                cancelledOrders = await _orderRepo.GetOrdersCountByStatusAsync(storeId, 4, currentStart, currentEnd, ct); // 4 = Cancelled
+                expiredOrders = await _orderRepo.GetOrdersCountByStatusAsync(storeId, 5, currentStart, currentEnd, ct); // 5 = Expired (or 6?)
+                
+                weeklyCompletedOrders = await _orderRepo.GetWeeklyOrdersCountByStatusAsync(storeId, 3, weekStart, weekEnd, ct); // 3 = Completed
+                weeklyCancelledOrders = await _orderRepo.GetWeeklyOrdersCountByStatusAsync(storeId, 4, weekStart, weekEnd, ct);
+                
+                weeklyAverageRating = await _orderRepo.GetWeeklyAverageRatingAsync(storeId, weekStart, weekEnd, ct);
             }
 
             if (analyticsLevel >= 2)
             {
                 returnCustomerRate = await _orderRepo.GetReturnCustomerRateAsync(storeId, ct);
+                
+                var customerMetrics = await _orderRepo.GetCustomerMetricsAsync(storeId, currentStart, currentEnd, ct);
+                totalCustomers = customerMetrics.TotalCustomers;
+                returningCustomers = customerMetrics.ReturningCustomers;
+                
+                // Compare previous 30 days vs current 30 days
+                currentMonthRevenue = currentRevenue;
+                previousMonthRevenue = previousRevenue;
+
+                var reviews = await _reviewRepo.GetReviewsByStoreIdAsync(storeId, ct);
+                positiveReviews = reviews.Count(r => r.SentimentLabel == "Positive");
+                negativeReviews = reviews.Count(r => r.SentimentLabel == "Negative");
+                neutralReviews = reviews.Count(r => r.SentimentLabel == "Neutral" || string.IsNullOrEmpty(r.SentimentLabel));
             }
 
             return new StoreAnalyticsDTO
@@ -304,7 +377,19 @@ namespace SaveFoodBackend.Services
                 AnalyticsLevel = analyticsLevel,
                 WeeklyRevenue = weeklyRevenue,
                 TopSellingProducts = topProducts,
-                ReturnCustomerRate = returnCustomerRate
+                ReturnCustomerRate = returnCustomerRate,
+                CancelledOrders = cancelledOrders,
+                ExpiredOrders = expiredOrders,
+                WeeklyCompletedOrders = weeklyCompletedOrders,
+                WeeklyCancelledOrders = weeklyCancelledOrders,
+                WeeklyAverageRating = weeklyAverageRating,
+                PreviousMonthRevenue = previousMonthRevenue,
+                CurrentMonthRevenue = currentMonthRevenue,
+                TotalCustomers = totalCustomers,
+                ReturningCustomers = returningCustomers,
+                PositiveReviews = positiveReviews,
+                NeutralReviews = neutralReviews,
+                NegativeReviews = negativeReviews
             };
         }
 

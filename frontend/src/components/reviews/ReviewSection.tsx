@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Star, User, MessageCircle, ChevronDown, ChevronUp, ImageIcon } from 'lucide-react'
-import { useStoreReviews, type ReviewDTO } from '@/hooks/useReviews'
+import { useStoreReviews, useCustomerStoreReviewStats, type ReviewDTO, type StoreReviewStatsDTO } from '@/hooks/useReviews'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/vi'
 
 dayjs.extend(relativeTime)
+dayjs.locale('vi')
 
 /* ─── Star Rating hiển thị ─────────────────────────────────────────────────── */
 function StarRating({ rating }: { rating: number }) {
@@ -42,7 +44,7 @@ function ReviewCard({ review }: { review: ReviewDTO }) {
               {review.customerName}
             </span>
             <span className="text-xs text-gray-400 whitespace-nowrap">
-              {dayjs(review.createdAt).fromNow()}
+              {dayjs(review.createdAt.endsWith('Z') ? review.createdAt : review.createdAt + 'Z').fromNow()}
             </span>
           </div>
           <div className="flex items-center gap-2 mt-0.5">
@@ -96,7 +98,7 @@ function ReviewCard({ review }: { review: ReviewDTO }) {
             <span className="text-xs font-bold text-brand-700">Phản hồi từ cửa hàng</span>
             {review.storeReplyAt && (
               <span className="text-[10px] text-brand-400">
-                · {dayjs(review.storeReplyAt).fromNow()}
+                · {dayjs(review.storeReplyAt.endsWith('Z') ? review.storeReplyAt : review.storeReplyAt + 'Z').fromNow()}
               </span>
             )}
           </div>
@@ -110,13 +112,12 @@ function ReviewCard({ review }: { review: ReviewDTO }) {
 }
 
 /* ─── Rating Summary Bar ───────────────────────────────────────────────────── */
-function RatingSummary({ reviews }: { reviews: ReviewDTO[] }) {
-  const total = reviews.length
-  if (total === 0) return null
+function RatingSummary({ stats }: { stats?: StoreReviewStatsDTO }) {
+  if (!stats || stats.totalReviews === 0) return null
 
-  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / total
-  const counts = [0, 0, 0, 0, 0]
-  reviews.forEach(r => { counts[r.rating - 1]++ })
+  const total = stats.totalReviews
+  const avg = stats.averageRating
+  const counts = stats.ratingDistribution || {}
 
   return (
     <div className="flex items-start gap-6 mb-6 p-4 bg-gray-50 rounded-2xl">
@@ -130,7 +131,7 @@ function RatingSummary({ reviews }: { reviews: ReviewDTO[] }) {
       {/* Bar chart */}
       <div className="flex-1 space-y-1.5">
         {[5, 4, 3, 2, 1].map(star => {
-          const count = counts[star - 1]
+          const count = counts[star] || 0
           const pct = total > 0 ? (count / total) * 100 : 0
           return (
             <div key={star} className="flex items-center gap-2 text-xs">
@@ -154,6 +155,7 @@ function RatingSummary({ reviews }: { reviews: ReviewDTO[] }) {
 /* ─── Main Component: ReviewSection ────────────────────────────────────────── */
 export function ReviewSection({ storeId }: { storeId: string }) {
   const { data: reviews, isLoading, isError } = useStoreReviews(storeId)
+  const { data: stats } = useCustomerStoreReviewStats(storeId)
   const [filterStar, setFilterStar] = useState<number | null>(null)
 
   if (isLoading) {
@@ -191,32 +193,30 @@ export function ReviewSection({ storeId }: { storeId: string }) {
 
   return (
     <div>
-      <RatingSummary reviews={reviews} />
+      <RatingSummary stats={stats} />
 
       {/* Star filter chips */}
       <div className="flex items-center gap-2 mb-4 flex-wrap">
         <button
           onClick={() => setFilterStar(null)}
-          className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
-            filterStar === null
+          className={`text-xs px-3 py-1.5 rounded-full border transition-all ${filterStar === null
               ? 'bg-brand-500 text-white border-brand-500'
               : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'
-          }`}
+            }`}
         >
           Tất cả ({reviews.length})
         </button>
         {[5, 4, 3, 2, 1].map(star => {
-          const count = reviews.filter(r => r.rating === star).length
+          const count = stats?.ratingDistribution?.[star] ?? 0
           if (count === 0) return null
           return (
             <button
               key={star}
               onClick={() => setFilterStar(star)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${
-                filterStar === star
+              className={`text-xs px-3 py-1.5 rounded-full border transition-all flex items-center gap-1 ${filterStar === star
                   ? 'bg-brand-500 text-white border-brand-500'
                   : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'
-              }`}
+                }`}
             >
               {star} <Star size={10} className="fill-current" /> ({count})
             </button>

@@ -46,6 +46,12 @@ export default function DashboardSettingsPage() {
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // ── Store Status State ───────────────────────────────────────────────────────
+  const [storeStatus, setStoreStatus] = useState<number>(0);
+  const [isDeleted, setIsDeleted] = useState<boolean>(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'pause' | 'resume' | 'delete' | null, message: string }>({ isOpen: false, action: null, message: '' });
+
   // ── Locations State ─────────────────────────────────────────────────────────  // API Locations State (v2 - No Districts)
   const [provinces, setProvinces] = useState<EsgooLocation[]>([]);
   const [wards, setWards] = useState<EsgooLocation[]>([]);
@@ -74,6 +80,8 @@ export default function DashboardSettingsPage() {
           });
           setPlanName(data.planName);
           setHasCustomBanner(data.hasCustomBanner);
+          setStoreStatus(data.status);
+          setIsDeleted(data.isDeleted);
           if (data.logoUrl) setLogoPreview(data.logoUrl);
           if (data.coverUrl) setBannerPreview(data.coverUrl);
           setIsFetchingProfile(false);
@@ -184,6 +192,42 @@ export default function DashboardSettingsPage() {
       toast.error(msg);
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const requestUpdateStatus = (action: 'pause' | 'resume' | 'delete') => {
+    let message = '';
+    if (action === 'pause') message = 'Bạn có chắc chắn muốn Tạm đóng cửa? Khách hàng sẽ không thể đặt hàng mới.';
+    if (action === 'resume') message = 'Bạn có chắc chắn muốn Mở cửa lại? Khách hàng sẽ có thể đặt hàng bình thường.';
+    if (action === 'delete') message = 'CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn Ngừng kinh doanh? Cửa hàng sẽ bị xóa khỏi hệ thống. Thao tác này không thể hoàn tác!';
+
+    setConfirmModal({ isOpen: true, action, message });
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!storeId || !confirmModal.action) return;
+    const action = confirmModal.action;
+    setConfirmModal({ isOpen: false, action: null, message: '' });
+
+    setIsUpdatingStatus(true);
+    try {
+      await storeApi.updateStoreStatus(storeId, action);
+      toast.success('Cập nhật trạng thái thành công!');
+      
+      // Update local state
+      if (action === 'pause') setStoreStatus(2); // Closed
+      if (action === 'resume') setStoreStatus(0); // Active
+      if (action === 'delete') {
+        setStoreStatus(2);
+        setIsDeleted(true);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['store-profile', storeId] });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+      toast.error(msg);
+    } finally {
+      setIsUpdatingStatus(false);
     }
   };
 
@@ -486,6 +530,87 @@ export default function DashboardSettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── SECTION 3: STORE STATUS ────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+          Trạng thái cửa hàng
+        </h2>
+        
+        {isDeleted ? (
+          <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
+            Cửa hàng của bạn đã ngừng kinh doanh và bị xóa khỏi hệ thống. Bạn không thể thay đổi thông tin hay trạng thái nữa.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  {storeStatus === 0 ? 'Tạm đóng cửa' : 'Mở cửa lại'}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {storeStatus === 0 
+                    ? 'Tạm thời ẩn nút đặt hàng với khách hàng. Thích hợp khi nghỉ lễ, hết nguyên liệu.' 
+                    : 'Mở lại cửa hàng để tiếp tục nhận đơn hàng từ khách hàng.'}
+                </p>
+              </div>
+              <button
+                onClick={() => requestUpdateStatus(storeStatus === 0 ? 'pause' : 'resume')}
+                disabled={isUpdatingStatus}
+                className={`px-4 py-2 font-medium rounded-xl transition-colors whitespace-nowrap flex items-center gap-2
+                  ${storeStatus === 0 
+                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+              >
+                {isUpdatingStatus && <Loader2 className="w-4 h-4 animate-spin" />}
+                {storeStatus === 0 ? 'Tạm đóng cửa' : 'Mở cửa lại'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+              <div>
+                <h3 className="font-semibold text-red-700">Ngừng kinh doanh</h3>
+                <p className="text-sm text-red-600/80 mt-1">
+                  Hành động này sẽ xóa cửa hàng của bạn khỏi hệ thống. Không thể hoàn tác!
+                </p>
+              </div>
+              <button
+                onClick={() => requestUpdateStatus('delete')}
+                disabled={isUpdatingStatus}
+                className="px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors whitespace-nowrap flex items-center gap-2"
+              >
+                {isUpdatingStatus && <Loader2 className="w-4 h-4 animate-spin" />}
+                Ngừng kinh doanh
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* ── CUSTOM CONFIRM MODAL ────────────────────────────────────────────── */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm transform transition-all">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận</h3>
+            <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
+            
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, action: null, message: '' })}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleUpdateStatus}
+                className={`flex-1 px-4 py-2 font-medium rounded-xl text-white transition-colors
+                  ${confirmModal.action === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

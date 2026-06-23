@@ -109,6 +109,32 @@ namespace SaveFoodBackend.Controllers
             }
         }
 
+        // PUT: api/stores/{id}/status
+        [HttpPut("{id}/status")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStoreStatus(Guid id, [FromBody] StoreStatusActionRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                await _storeService.UpdateStoreStatusAsync(id, userId, request.Action);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // PUT: api/stores/{id}/images
         [HttpPut("{id}/images")]
         [Authorize] // Store Staff/Owner only

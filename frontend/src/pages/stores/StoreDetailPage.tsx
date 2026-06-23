@@ -66,9 +66,17 @@ export function StoreDetailPage() {
         <div className="absolute bottom-0 inset-x-0 p-6 sm:p-10 max-w-[--spacing-container] mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <span className="text-xs font-bold text-[#8ced7f] bg-[#8ced7f]/20 border border-[#8ced7f]/30 px-3 py-1 rounded-full mb-3 inline-block">
-                {store.category}
-              </span>
+              <div className="flex gap-2 items-center mb-3">
+                <span className="text-xs font-bold text-[#8ced7f] bg-[#8ced7f]/20 border border-[#8ced7f]/30 px-3 py-1 rounded-full inline-block">
+                  {store.category}
+                </span>
+                {/* @ts-ignore */}
+                {store.status === 2 && (
+                  <span className="text-xs font-bold text-gray-200 bg-gray-800/80 border border-gray-600 px-3 py-1 rounded-full inline-block">
+                    Tạm đóng cửa
+                  </span>
+                )}
+              </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-white font-[--font-display] mb-2">{store.name}</h1>
               <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
                 <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">

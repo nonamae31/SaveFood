@@ -95,6 +95,8 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, S
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreStaffRepository, SaveFoodBackend.Repositories.StoreStaffRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFoodBackend.Services.StoreStaffService>();
 
+// Sentiment analysis
+builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();

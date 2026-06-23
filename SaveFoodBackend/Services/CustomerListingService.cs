@@ -107,7 +107,7 @@ public class CustomerListingService : ICustomerListingService
         var recommendedListings = await _ctx.ClearanceListings
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
-                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
                         .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
@@ -145,7 +145,8 @@ public class CustomerListingService : ICustomerListingService
                      ? l.ListingImages.Select(i => i.ImageUrl).ToList()
                      : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
             HasFeaturedBadge = activeSub?.Plan?.HasFeaturedBadge ?? false,
-            PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0
+            PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0,
+            StoreStatus = l.Product.Store.Status
         };
     }
 }

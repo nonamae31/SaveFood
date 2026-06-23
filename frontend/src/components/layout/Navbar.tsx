@@ -1,4 +1,4 @@
-import { Leaf, ShoppingCart, Menu, X, Search, ClipboardList } from 'lucide-react'
+import { Leaf, ShoppingCart, Menu, X, Search, ClipboardList, Store } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { ROUTES } from '@/lib/constants'
@@ -202,6 +202,15 @@ export function Navbar() {
             {!isSearchOpen && (
               isAuthenticated && user ? (
                 <div className="hidden md:flex items-center gap-3 ml-2">
+                  {user.roles?.some(r => r.toUpperCase() === 'STORE') && (
+                    <Link 
+                      to={ROUTES.DASHBOARD} 
+                      className={`relative p-1.5 rounded-full transition-all duration-300 mr-1 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                      title="Quản lý cửa hàng"
+                    >
+                      <Store width={18} height={18} />
+                    </Link>
+                  )}
                   <Link to={ROUTES.PROFILE} className={`flex items-center gap-2 border-l pl-3 transition-colors group ${isDark ? 'border-white/20' : 'border-gray-200'}`} title={user.fullName}>
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.fullName} className="w-7 h-7 rounded-full object-cover" />

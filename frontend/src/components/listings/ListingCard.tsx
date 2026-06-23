@@ -11,6 +11,7 @@ import { DiscountTag } from '@/components/ui/DiscountTag'
 import type { CustomerListingDTO } from '@/types/listing.types'
 import { useAddToCart } from '@/hooks/useCart'
 import { toast } from 'react-hot-toast'
+import { useAuthContext } from '@/contexts/AuthContext'
 
 interface ListingCardProps {
   listing: CustomerListingDTO
@@ -21,13 +22,17 @@ export function ListingCard({ listing }: ListingCardProps) {
   const isLowStock = listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut  = listing.quantityAvailable === 0
   
+  const { user } = useAuthContext()
+  const isMyStore = user?.storeId === listing.storeId
+  const isStoreClosed = listing.storeStatus !== 0
+  
   const addToCartMutation = useAddToCart()
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (isSoldOut || addToCartMutation.isPending) return
+    if (isSoldOut || isMyStore || isStoreClosed || addToCartMutation.isPending) return
     
     addToCartMutation.mutate({ listingId: listing.id, quantity: 1 }, {
       onSuccess: () => {
@@ -71,6 +76,8 @@ export function ListingCard({ listing }: ListingCardProps) {
           </div>
         )}
 
+
+
         {/* Surprise Bag badge — góc trên phải */}
         {listing.isSurpriseBag && (
           <div className="absolute top-2.5 left-2.5 mt-8">
@@ -96,16 +103,8 @@ export function ListingCard({ listing }: ListingCardProps) {
           </button>
         )}
 
-        {/* Featured Badge — góc dưới phải (hoặc góc trên phải nếu không phải Surprise) */}
-        {listing.hasFeaturedBadge && !listing.isSurpriseBag && (
-          <div className="absolute top-2.5 right-2.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
-                             bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
-              ✨ Nổi bật
-            </span>
-          </div>
-        )}
-        {listing.hasFeaturedBadge && listing.isSurpriseBag && (
+        {/* Featured Badge — góc dưới phải */}
+        {listing.hasFeaturedBadge && (
           <div className="absolute bottom-2.5 right-2.5">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
                              bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
@@ -115,10 +114,10 @@ export function ListingCard({ listing }: ListingCardProps) {
         )}
 
         {/* Sold out overlay */}
-        {isSoldOut && (
-          <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+        {(isSoldOut || isStoreClosed) && (
+          <div className="absolute inset-0 bg-white/70 flex items-center justify-center z-10">
             <span className="text-[--text-body-sm] font-bold text-[--color-ink-tertiary] bg-white px-3 py-1 rounded-md shadow">
-              Đã hết hàng
+              {isStoreClosed ? 'Tạm đóng cửa' : 'Đã hết hàng'}
             </span>
           </div>
         )}
@@ -162,13 +161,19 @@ export function ListingCard({ listing }: ListingCardProps) {
 
         {/* Số lượng còn lại */}
         <div className="flex items-center justify-between mt-auto pt-2 sm:pt-3">
-          <span className={`w-full sm:w-auto text-center sm:text-left text-xs sm:text-sm font-bold px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md sm:rounded-md ${
-            isSoldOut ? 'bg-gray-100 text-gray-500' 
-            : isLowStock ? 'bg-red-50 text-red-600' 
-            : 'bg-green-50 text-green-700'
-          }`}>
-            {isSoldOut ? 'Hết hàng' : isLowStock ? `Chỉ còn ${listing.quantityAvailable} phần` : `Còn ${listing.quantityAvailable} phần`}
-          </span>
+          {isMyStore ? (
+            <span className="w-full sm:w-auto text-center sm:text-left text-xs sm:text-sm font-bold px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md sm:rounded-md bg-blue-50 text-blue-700">
+              Cửa hàng của bạn
+            </span>
+          ) : (
+            <span className={`w-full sm:w-auto text-center sm:text-left text-xs sm:text-sm font-bold px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md sm:rounded-md ${
+              isStoreClosed || isSoldOut ? 'bg-gray-100 text-gray-500' 
+              : isLowStock ? 'bg-red-50 text-red-600' 
+              : 'bg-green-50 text-green-700'
+            }`}>
+              {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Hết hàng' : isLowStock ? `Chỉ còn ${listing.quantityAvailable} phần` : `Còn ${listing.quantityAvailable} phần`}
+            </span>
+          )}
 
           {/* Nút xem nhanh */}
           <span

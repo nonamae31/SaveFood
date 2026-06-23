@@ -25,6 +25,14 @@ namespace SaveFoodBackend.DTOs.Store
         public bool HasCustomBanner { get; set; } = false;
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
+        public byte Status { get; set; }
+        public bool IsDeleted { get; set; }
+    }
+
+    public class StoreStatusActionRequest
+    {
+        [Required]
+        public string Action { get; set; } = string.Empty; // "pause", "resume", "delete"
     }
 
     /// <summary>Payload để cập nhật thông tin cơ bản của cửa hàng.</summary>

@@ -161,25 +161,31 @@ export function StoreListPage() {
                   to={`/stores/${store.id}`}
                   className="relative bg-white rounded-[1.5rem] p-3 sm:p-4 flex flex-col sm:flex-row gap-3 sm:gap-5 shadow-[--shadow-card] hover:shadow-[--shadow-card-hover] hover:-translate-y-1 transition-all duration-300 border border-[--color-surface-border] group overflow-hidden"
                 >
-                  {/* Featured Badge */}
-                  {store.hasFeaturedBadge && (
-                    <div className="absolute top-2 left-2 z-10">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
-                                      bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
-                        ✨ Nổi bật
-                      </span>
-                    </div>
-                  )}
-
                   {/* Image */}
                   <div className="w-full sm:w-32 h-24 sm:h-auto rounded-[1rem] overflow-hidden shrink-0 bg-gray-100 relative">
                     <img src={store.imageUrl} alt={store.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    
+                    {/* Featured Badge */}
+                    {store.hasFeaturedBadge && (
+                      <div className="absolute top-2 left-2 z-10">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
+                                        bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
+                          ✨ Nổi bật
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Content */}
                   <div className="flex flex-col flex-1 py-1">
                     <div className="flex justify-between items-start mb-1 flex-col sm:flex-row gap-1 sm:gap-0">
-                      <span className="text-[10px] sm:text-xs font-bold text-[--color-brand-600] bg-[--color-brand-50] px-1.5 sm:px-2 py-0.5 rounded-md">{store.category}</span>
+                      <div className="flex gap-2 items-center">
+                        <span className="text-[10px] sm:text-xs font-bold text-[--color-brand-600] bg-[--color-brand-50] px-1.5 sm:px-2 py-0.5 rounded-md">{store.category}</span>
+                        {/* @ts-ignore - store.status exists after update */}
+                        {store.status === 2 && (
+                          <span className="text-[10px] sm:text-xs font-bold text-gray-500 bg-gray-100 px-1.5 sm:px-2 py-0.5 rounded-md">Tạm đóng cửa</span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-1 bg-[#fff8e1] px-1.5 sm:px-2 py-0.5 rounded-md text-[#f59e0b]">
                         <Star size={12} fill="currentColor" strokeWidth={2} />
                         <span className="text-[10px] sm:text-xs font-bold">{store.rating != null ? `${store.rating} / 5` : '___'}</span>

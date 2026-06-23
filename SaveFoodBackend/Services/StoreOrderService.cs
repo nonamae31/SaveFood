@@ -277,4 +277,53 @@ public class StoreOrderService : IStoreOrderService
             }).ToList()
         };
     }
+
+    public async Task<byte[]> ExportOrdersCsvAsync(Guid storeId, Guid userId, DateTime? fromDate, DateTime? toDate, CancellationToken ct = default)
+    {
+        await EnsureStaffAccess(storeId, userId, ct);
+
+        var query = _ctx.Orders
+            .Include(o => o.User)
+            .Include(o => o.OrderItems)
+            .Include(o => o.Payment)
+            .Where(o => o.StoreId == storeId);
+
+        if (fromDate.HasValue)
+        {
+            var fDate = new DateTimeOffset(fromDate.Value.Year, fromDate.Value.Month, fromDate.Value.Day, 0, 0, 0, TimeSpan.FromHours(7)).UtcDateTime;
+            query = query.Where(o => o.CreatedAt >= fDate);
+        }
+        if (toDate.HasValue)
+        {
+            var tDate = new DateTimeOffset(toDate.Value.Year, toDate.Value.Month, toDate.Value.Day, 23, 59, 59, 999, TimeSpan.FromHours(7)).UtcDateTime;
+            query = query.Where(o => o.CreatedAt <= tDate);
+        }
+
+        var orders = await query.OrderByDescending(o => o.CreatedAt).ToListAsync(ct);
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Ngày tạo,Mã đơn,Khách hàng,Trạng thái,Phương thức TT,Trạng thái TT,Tổng tiền,Nền tảng thu(5%),Thực nhận");
+
+        foreach (var order in orders)
+        {
+            var date = TimeZoneInfo.ConvertTimeFromUtc(order.CreatedAt, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")).ToString("dd/MM/yyyy HH:mm");
+            var statusStr = order.OrderStatus switch { 0 => "Chờ xác nhận", 1 => "Đã xác nhận", 2 => "Chờ lấy", 3 => "Hoàn thành", 4 => "Đã hủy", 5 => "Quá hạn", _ => "Khác" };
+            var payMethod = order.Payment?.PaymentMethod == (byte)SaveFoodBackend.Models.Enums.PaymentMethodEnum.Cash ? "Tiền mặt" : "Chuyển khoản";
+            var payStatus = order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Paid ? "Đã thanh toán" : (order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Pending ? "Chờ thanh toán" : "Hủy/Thất bại");
+            
+            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal storeNet = order.TotalAmount - platformFee;
+
+            if (order.OrderStatus == 4 || order.OrderStatus == 5 || (order.Payment?.Status != (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Paid && payMethod != "Tiền mặt"))
+            {
+                platformFee = 0;
+                storeNet = 0;
+            }
+
+            sb.AppendLine($"{date},{order.OrderCode ?? 0},\"{order.User?.FullName}\",{statusStr},{payMethod},{payStatus},{order.TotalAmount},{platformFee},{storeNet}");
+        }
+
+        var preamble = System.Text.Encoding.UTF8.GetPreamble();
+        return preamble.Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+    }
 }
