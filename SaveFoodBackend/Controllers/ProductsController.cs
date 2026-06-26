@@ -62,7 +62,7 @@ public class ProductsController : ControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
-
+    //
     [HttpDelete("{productId}")]
     public async Task<IActionResult> DeleteProduct(Guid storeId, Guid productId, CancellationToken ct)
     {
