@@ -45,7 +45,7 @@ public class ProductsController : ControllerBase
         return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
     }
     //
-
+    //
     [HttpPut("{productId}")]
     public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromBody] UpdateProductDTO dto, CancellationToken ct)
     {
