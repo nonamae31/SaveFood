@@ -51,7 +51,7 @@ public class ProductsController : ControllerBase
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
+        //
         try
         {
             var product = await _productService.UpdateProductAsync(storeId, productId, dto, ct);
