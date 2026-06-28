@@ -263,9 +263,9 @@ export default function DashboardWalletPage() {
             </div>
             
             {/* Transactions Pagination */}
-            {txData && txData.meta.totalPages >= 1 && (
+            {txData && txData.totalPages >= 1 && (
               <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
-                {renderPagination(txData.meta.pageNumber, txData.meta.totalPages, setTxPage, txData.meta.totalCount, 10, 'giao dịch')}
+                {renderPagination(txData.pageNumber, txData.totalPages, setTxPage, txData.totalCount, 10, 'giao dịch')}
               </div>
             )}
           </div>
@@ -413,9 +413,9 @@ export default function DashboardWalletPage() {
             </div>
             
             {/* Withdrawals Pagination */}
-            {wdData && wdData.meta.totalPages >= 1 && (
+            {wdData && wdData.totalPages >= 1 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-                {renderPagination(wdData.meta.pageNumber, wdData.meta.totalPages, setWdPage, wdData.meta.totalCount, 10, 'yêu cầu')}
+                {renderPagination(wdData.pageNumber, wdData.totalPages, setWdPage, wdData.totalCount, 10, 'yêu cầu')}
               </div>
             )}
           </div>
@@ -424,3 +424,4 @@ export default function DashboardWalletPage() {
     </div>
   )
 }
+
