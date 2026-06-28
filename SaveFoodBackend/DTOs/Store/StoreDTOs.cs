@@ -107,4 +107,16 @@ namespace SaveFoodBackend.DTOs.Store
         public string? RejectReason { get; set; }
         public DateTime CreatedAt { get; set; }
     }
+    public class ExtractMapLinkRequest
+    {
+        [Required, Url]
+        public string Url { get; set; } = string.Empty;
+    }
+
+    public class ExtractMapLinkResponse
+    {
+        public string? Name { get; set; }
+        public decimal? Latitude { get; set; }
+        public decimal? Longitude { get; set; }
+    }
 }

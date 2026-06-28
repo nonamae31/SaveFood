@@ -43,7 +43,58 @@ export default function StoreRegisterPage() {
   });
 
   const [searchTriggerAddress, setSearchTriggerAddress] = useState('');
+  
+  const [mapLink, setMapLink] = useState('');
+  const [extracting, setExtracting] = useState(false);
 
+  const handleExtractMapLink = async () => {
+    if (!mapLink) return;
+    setExtracting(true);
+    try {
+      const { apiClient } = await import('@/api/client');
+      // apiClient already returns the parsed JSON
+      const data = await apiClient<any>('/stores/extract-map-link', {
+        method: 'POST',
+        body: JSON.stringify({ url: mapLink }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      let newDetailedAddress = formData.detailedAddress;
+      
+      if (data.latitude && data.longitude) {
+        try {
+          const geocodeRes = await fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${data.longitude},${data.latitude}`);
+          const geocodeData = await geocodeRes.json();
+          if (geocodeData && geocodeData.address) {
+            const addr = geocodeData.address;
+            if (addr.Address) {
+              newDetailedAddress = addr.Address;
+            } else if (addr.Addr_type !== 'POI' && addr.Match_addr) {
+              newDetailedAddress = addr.Match_addr;
+            } else if (addr.LongLabel) {
+              newDetailedAddress = addr.LongLabel.split(',')[0];
+            }
+          }
+        } catch (geoErr) {
+          console.error("Reverse geocode error:", geoErr);
+        }
+      }
+
+      setFormData(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        latitude: data.latitude || prev.latitude,
+        longitude: data.longitude || prev.longitude,
+        detailedAddress: newDetailedAddress
+      }));
+
+      toast.success('Đã lấy thông tin từ link thành công!');
+    } catch (err: any) {
+      toast.error('Link không hợp lệ, vui lòng kiểm tra lại');
+    } finally {
+      setExtracting(false);
+    }
+  };
   // Fetch Provinces on Mount (using provinces.open-api.vn)
   useEffect(() => {
     fetch('https://provinces.open-api.vn/api/v2/p/')
@@ -200,7 +251,39 @@ export default function StoreRegisterPage() {
               <p className="text-gray-500 mb-8">Hãy bắt đầu bằng cách cho chúng tôi biết về cửa hàng của bạn.</p>
 
               <div className="space-y-6">
+                
+                {/* Google Maps Quick Fill */}
+                <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                    <MapPin className="w-24 h-24 text-blue-500" />
+                  </div>
+                  <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2 relative z-10">
+                    <MapPin className="w-4 h-4 text-blue-600" /> Điền nhanh bằng link Google Maps
+                  </h3>
+                  <div className="flex gap-2 relative z-10">
+                    <input
+                      type="text"
+                      value={mapLink}
+                      onChange={(e) => setMapLink(e.target.value)}
+                      className="flex-1 px-4 py-2.5 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                      placeholder="Dán link Google Maps vào đây (VD: https://maps.app.goo.gl/...)"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleExtractMapLink}
+                      disabled={!mapLink || extracting}
+                      className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 whitespace-nowrap"
+                    >
+                      {extracting ? 'Đang phân tích...' : 'Tự động điền'}
+                    </button>
+                  </div>
+                  <p className="text-xs text-blue-700 mt-2 relative z-10">
+                    Hệ thống sẽ tự động lấy tên quán, địa chỉ và tọa độ trên bản đồ.
+                  </p>
+                </div>
+
                 <div>
+
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Tên cửa hàng <span className="text-red-500">*</span></label>
                   <input
                     type="text"
@@ -331,6 +414,7 @@ export default function StoreRegisterPage() {
                   </div>
                   <LocationPickerMap
                     searchTriggerAddress={searchTriggerAddress}
+                    defaultPosition={formData.latitude && formData.longitude ? { lat: formData.latitude, lng: formData.longitude } : undefined}
                     onLocationChange={(lat, lng) => {
                       setFormData(prev => ({ ...prev, latitude: lat, longitude: lng }));
                     }}

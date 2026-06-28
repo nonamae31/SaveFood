@@ -78,6 +78,16 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
+  // Sync external position changes (e.g. from Google Maps link extraction)
+  useEffect(() => {
+    if (defaultPosition) {
+      const newPos = new L.LatLng(defaultPosition.lat, defaultPosition.lng);
+      if (!position || position.lat !== newPos.lat || position.lng !== newPos.lng) {
+        setPosition(newPos);
+      }
+    }
+  }, [defaultPosition?.lat, defaultPosition?.lng]);
+
   useEffect(() => {
     if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn' && searchTriggerAddress !== 'Vị trí') {
       setSearchQuery(searchTriggerAddress);
