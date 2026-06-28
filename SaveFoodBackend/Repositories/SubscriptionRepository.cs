@@ -52,7 +52,7 @@ public class SubscriptionRepository : ISubscriptionRepository
     public async Task<int> GetTotalActiveStoreSubscriptionsAsync(DateTime currentDate, CancellationToken ct = default)
     {
         return await _ctx.StoreSubscriptions
-            .Where(s => s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .CountAsync(ct);
     }
 
@@ -67,7 +67,7 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return await _ctx.StoreSubscriptions
             .Include(s => s.Plan)
-            .Where(s => s.StoreId == storeId && s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.StoreId == storeId && s.Status == (byte)SubscriptionStatus.Active && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .OrderByDescending(s => s.EndDate)
             .FirstOrDefaultAsync(ct);
     }

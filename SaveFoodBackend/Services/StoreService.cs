@@ -337,7 +337,7 @@ namespace SaveFoodBackend.Services
                 PlanId = request.PlanId,
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(months),
-                Status = 0, // Pending
+                Status = (byte)SubscriptionStatus.Active,
                 CreatedAt = DateTime.UtcNow,
                 OrderCode = orderCode
             };
@@ -417,7 +417,7 @@ namespace SaveFoodBackend.Services
                     PlanId = request.SubscriptionPlanId.Value,
                     StartDate = DateTime.UtcNow,
                     EndDate = DateTime.UtcNow.AddDays(30), // Example: 30 days
-                    Status = 0, // Assuming 0 = Active
+                    Status = (byte)SubscriptionStatus.Active,
                     CreatedAt = DateTime.UtcNow
                 });
             }
