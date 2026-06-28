@@ -35,5 +35,8 @@ export async function apiClient<T>(
 
   // Handle empty responses (like 204 No Content or empty 200 OK)
   const text = await res.text();
-  return text ? JSON.parse(text) : {} as T;
+  if (!text) return {} as T;
+  const json = JSON.parse(text);
+  // Backend dùng ApiResponse<T> wrapper { success, data, message } ở một số endpoint
+  return (json.data ?? json) as T;
 }
