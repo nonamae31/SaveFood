@@ -40,12 +40,20 @@ builder.Services.AddSaveFoodCors(builder.Configuration);
 // ─── 6. HTTP Context Accessor (dùng trong Services nếu cần) ───────────────────
 builder.Services.AddHttpContextAccessor();
 
+// ─── 7. Redis Cache ───────────────────────────────────────────────────────────
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "SaveFood_";
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.
 // Ví dụ:
 // builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBackend.Services.CartService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IRedisService, SaveFoodBackend.Services.RedisService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
@@ -105,9 +113,9 @@ app.UseRouting();
 app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
-// TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
-app.UseAuthentication(); // Vẫn bật Authentication để đọc thông tin user từ Token/Cookie nếu có
-app.UseAuthorization(); // RE-ENABLED: Kiểm tra phân quyền
+app.UseMiddleware<SaveFoodBackend.Middleware.JwtBlacklistMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();

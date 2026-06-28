@@ -1027,39 +1027,6 @@ namespace SaveFoodBackend.Migrations
                     b.ToTable("UserRoles");
                 });
 
-            modelBuilder.Entity("SaveFoodBackend.Models.UserSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("(newid())");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("(sysutcdatetime())");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("RefreshTokenHash")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("UserSessions");
-                });
-
             modelBuilder.Entity("SaveFoodBackend.Models.WalletTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1459,17 +1426,6 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("SaveFoodBackend.Models.UserSession", b =>
-                {
-                    b.HasOne("SaveFoodBackend.Models.User", "User")
-                        .WithMany("UserSessions")
-                        .HasForeignKey("UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_UserSessions_Users");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("SaveFoodBackend.Models.WalletTransaction", b =>
                 {
                     b.HasOne("SaveFoodBackend.Models.Order", "Order")
@@ -1609,8 +1565,6 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("StoreSubscriptions");
 
                     b.Navigation("UserRoles");
-
-                    b.Navigation("UserSessions");
 
                     b.Navigation("WithdrawalRequests");
                 });

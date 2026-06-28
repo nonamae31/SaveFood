@@ -62,7 +62,7 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
-    public virtual DbSet<UserSession> UserSessions { get; set; }
+
 
     public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
 
@@ -461,17 +461,7 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_UserRoles_Users");
         });
 
-        modelBuilder.Entity<UserSession>(entity =>
-        {
-            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.RefreshTokenHash).HasMaxLength(500);
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserSessions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserSessions_Users");
-        });
 
         modelBuilder.Entity<WalletTransaction>(entity =>
         {
