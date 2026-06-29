@@ -13,6 +13,10 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
 builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new SaveFoodBackend.Extensions.UtcDateTimeConverter());
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>

@@ -120,10 +120,7 @@ function OrderDetailModal({
               {cfg.label}
             </span>
             <div className="flex items-center gap-2">
-              <PayIcon className="w-4 h-4 text-gray-500" />
-              <span className={`text-xs font-medium px-2 py-1 rounded-md ${payInfo?.color ?? 'text-gray-600 bg-gray-100'}`}>
-                {payInfo?.label ?? 'N/A'}
-              </span>
+
               <span className={`text-xs font-medium px-2 py-1 rounded-md ${isPaid ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                 {isPaid ? 'Đã thanh toán' : 'Chưa thanh toán'}
               </span>
@@ -139,7 +136,6 @@ function OrderDetailModal({
               </div>
               <div>
                 <p className="font-semibold text-gray-900">{order.customerName}</p>
-                <p className="text-sm text-gray-500">{order.customerEmail}</p>
               </div>
             </div>
           </div>

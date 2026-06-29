@@ -39,6 +39,7 @@ public class OrderService : IOrderService
         var cartItems = await _ctx.CartItems
             .Include(ci => ci.Listing)
                 .ThenInclude(l => l.Product)
+                    .ThenInclude(p => p.Store)
             .Where(ci => req.CartItemIds.Contains(ci.Id) && ci.Cart.UserId == userId)
             .ToListAsync(ct);
 
@@ -50,6 +51,18 @@ public class OrderService : IOrderService
 
         // Generate shared Codes
         long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
+
+        // Validate wallet balance BEFORE modifying DB state
+        decimal totalCheckoutAmount = cartItems.Sum(ci => ci.Listing.SalePrice * ci.Quantity);
+        CustomerWallet? customerWallet = null;
+        if (req.PaymentMethod == 0) // Wallet
+        {
+            customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
+            if (customerWallet == null || customerWallet.Balance < totalCheckoutAmount)
+            {
+                throw new Exception("Số dư trong Ví SaveFood không đủ để thanh toán.");
+            }
+        }
         
         var storeGroups = cartItems.GroupBy(ci => ci.Listing.Product.StoreId).ToList();
         decimal grandTotalAmount = 0;
@@ -65,6 +78,9 @@ public class OrderService : IOrderService
             decimal storeTotalAmount = 0;
             foreach (var item in storeItems)
             {
+                if (item.Listing.Product.Store.Status != (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
+                    throw new Exception($"Cửa hàng '{item.Listing.Product.Store.Name}' hiện đang tạm nghỉ, không thể thanh toán.");
+
                 if (item.Listing.ExpiryDate <= DateTime.UtcNow)
                     throw new Exception($"Sản phẩm '{item.Listing.Title}' đã hết hạn.");
 
@@ -174,12 +190,10 @@ public class OrderService : IOrderService
         }
         else if (req.PaymentMethod == 0) // Wallet
         {
-            var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
-            if (customerWallet == null || customerWallet.Balance < grandTotalAmount)
-            {
-                throw new Exception("Số dư trong Ví SaveFood không đủ để thanh toán.");
-            }
-
+            // Validated early
+            if (customerWallet == null) 
+                throw new Exception("Lỗi hệ thống: Không tìm thấy ví khách hàng.");
+            
             customerWallet.Balance -= grandTotalAmount;
             
             foreach (var order in createdOrders)

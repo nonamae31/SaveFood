@@ -17,13 +17,15 @@ public class ListingService : IListingService
     private readonly IProductRepository _productRepo;
     private readonly ICloudinaryService _cloudinaryService;
     private readonly ISubscriptionRepository _subscriptionRepo;
+    private readonly IStoreRepository _storeRepo;
 
-    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService, ISubscriptionRepository subscriptionRepo)
+    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService, ISubscriptionRepository subscriptionRepo, IStoreRepository storeRepo)
     {
         _listingRepo = listingRepo;
         _productRepo = productRepo;
         _cloudinaryService = cloudinaryService;
         _subscriptionRepo = subscriptionRepo;
+        _storeRepo = storeRepo;
     }
 
     public async Task<IEnumerable<ListingResponseDTO>> GetListingsByStoreAsync(Guid storeId, CancellationToken ct = default)
@@ -45,6 +47,12 @@ public class ListingService : IListingService
 
     public async Task<ListingResponseDTO> CreateListingAsync(Guid storeId, CreateListingDTO dto, CancellationToken ct = default)
     {
+        var store = await _storeRepo.GetByIdAsync(storeId, ct);
+        if (store == null || store.Status != (byte)StoreStatus.Active)
+        {
+            throw new Exception("Cửa hàng không hoạt động. Không thể tạo tin bán.");
+        }
+
         var product = await _productRepo.GetByIdAsync(dto.ProductId, ct);
         if (product == null || product.StoreId != storeId)
         {

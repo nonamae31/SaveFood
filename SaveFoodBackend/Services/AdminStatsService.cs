@@ -23,6 +23,9 @@ public class AdminStatsService : IAdminStatsService
         var platformFeeTransactions = await _financeRepo.GetPlatformFeeTransactionsAsync();
 
         var totalRevenue = platformFeeTransactions.Sum(t => t.Amount);
+        
+        // Cửa hàng nhận 95%, hệ thống nhận 5%. Vậy doanh thu ròng của cửa hàng = phí nền tảng * 19
+        var totalShopNetRevenue = totalRevenue * 19;
 
         var monthlyRevenues = platformFeeTransactions
             .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
@@ -38,6 +41,7 @@ public class AdminStatsService : IAdminStatsService
         return new AdminRevenueStatsResponse
         {
             TotalRevenue = totalRevenue,
+            TotalShopNetRevenue = totalShopNetRevenue,
             MonthlyRevenues = monthlyRevenues
         };
     }

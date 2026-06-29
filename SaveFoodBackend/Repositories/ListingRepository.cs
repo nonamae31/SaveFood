@@ -55,7 +55,8 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
-            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+                .ThenInclude(p => p.Store)
+            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
             .CountAsync(ct);
     }
 
@@ -63,9 +64,10 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
             .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0))
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
             .AsNoTracking()
             .ToListAsync(ct);
     }
@@ -80,7 +82,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow);
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {

@@ -51,6 +51,7 @@ const BANK_BIN_MAP: Record<string, string> = {
   '01202001': 'BIDV', // CITAD code cho BIDV
   '970405': 'Agribank',
   '970407': 'Techcombank',
+  '01310001': 'Techcombank', // CITAD code cho Techcombank
   '970416': 'ACB',
   '970432': 'VPBank',
   '970423': 'TPBank',
@@ -292,8 +293,6 @@ export default function AdminAuditPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <p className="text-[14px] font-medium text-mint-ink">{formatVND(item.totalAmount)}</p>
-                      <p className="text-[12px] font-medium text-mint-brand-green mt-1">NT: +{formatVND(item.platformRevenue)}</p>
-                      <p className="text-[11px] text-mint-stone mt-1">{item.category}</p>
                     </td>
                   </tr>
                 ))}

@@ -84,6 +84,14 @@ export default function StoreManagementPage() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  
+  // Confirm Modal State
+  const [confirmAction, setConfirmAction] = useState<{
+    id: string;
+    newStatus?: number;
+    actionType: 'updateStatus' | 'approve';
+    message: string;
+  } | null>(null);
 
   const fetchStores = () => {
     setLoading(true);
@@ -117,26 +125,38 @@ export default function StoreManagementPage() {
   };
 
   const handleUpdateStatus = async (id: string, newStatus: number) => {
-    if (!confirm('Bạn có chắc chắn muốn cập nhật trạng thái cửa hàng này?')) return;
-    try {
-      await adminApi.updateStoreStatus(id, newStatus);
-      fetchStores();
-      if (selectedStore?.id === id) {
-        viewDetails(id);
-      }
-    } catch (e) {
-      alert('Không thể cập nhật trạng thái');
-    }
+    setConfirmAction({
+      id,
+      newStatus,
+      actionType: 'updateStatus',
+      message: 'Bạn có chắc chắn muốn cập nhật trạng thái cửa hàng này?'
+    });
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn duyệt cửa hàng này?')) return;
+    setConfirmAction({
+      id,
+      actionType: 'approve',
+      message: 'Bạn có chắc chắn muốn duyệt cửa hàng này?'
+    });
+  };
+
+  const executeConfirmAction = async () => {
+    if (!confirmAction) return;
     try {
-      await adminApi.approveStore(id);
+      if (confirmAction.actionType === 'updateStatus') {
+        await adminApi.updateStoreStatus(confirmAction.id, confirmAction.newStatus!);
+      } else if (confirmAction.actionType === 'approve') {
+        await adminApi.approveStore(confirmAction.id);
+      }
       fetchStores();
-      if (selectedStore?.id === id) viewDetails(id);
+      if (selectedStore?.id === confirmAction.id) {
+        viewDetails(confirmAction.id);
+      }
     } catch (e) {
-      alert('Không thể duyệt cửa hàng');
+      alert('Không thể thực hiện hành động này');
+    } finally {
+      setConfirmAction(null);
     }
   };
 

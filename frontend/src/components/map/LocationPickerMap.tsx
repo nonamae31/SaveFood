@@ -157,18 +157,27 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
           type="button"
           onClick={() => {
             if ('geolocation' in navigator) {
+              const toastId = toast.loading('Đang lấy vị trí hiện tại...');
               navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                  toast.dismiss(toastId);
                   const lat = pos.coords.latitude;
                   const lng = pos.coords.longitude;
                   const newPos = new L.LatLng(lat, lng);
                   setPosition(newPos);
                   onLocationChange(lat, lng);
+                  toast.success('Đã lấy được vị trí hiện tại!');
                 },
                 (err) => {
+                  toast.dismiss(toastId);
                   console.error(err);
-                  toast.error('Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí của trình duyệt!');
-                }
+                  if (err.code === 3) { // TIMEOUT
+                    toast.error('Quá thời gian lấy vị trí. Thử lại ở khu vực thoáng hơn.');
+                  } else {
+                    toast.error('Không thể lấy vị trí. Kiểm tra cài đặt Vị trí trên thiết bị!');
+                  }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
               );
             }
           }}
