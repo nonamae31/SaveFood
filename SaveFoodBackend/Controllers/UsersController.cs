@@ -10,6 +10,8 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.DTOs.Auth;
+using MediatR;
+using SaveFood.Application.Features.Auth;
 
 namespace SaveFoodBackend.Controllers
 {
@@ -18,14 +20,14 @@ namespace SaveFoodBackend.Controllers
     public class UsersController : ControllerBase
     {
         private readonly SaveFoodDbContext _context;
-        private readonly IAuthService _authService;
         private readonly IUserService _userService;
+        private readonly IMediator _mediator;
 
-        public UsersController(SaveFoodDbContext context, IAuthService authService, IUserService userService)
+        public UsersController(SaveFoodDbContext context, IUserService userService, IMediator mediator)
         {
             _context = context;
-            _authService = authService;
             _userService = userService;
+            _mediator = mediator;
         }
 
         // GET: api/Users
@@ -129,7 +131,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                var userId = await _authService.RegisterAsync(request);
+                var userId = await _mediator.Send(new RegisterCommand(request));
                 return Ok(new { message = "Registration successful", userId });
             }
             catch (InvalidOperationException ex)
@@ -148,7 +150,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                var response = await _authService.GoogleLoginAsync(request);
+                var response = await _mediator.Send(new GoogleLoginCommand(request));
 
                 // Set JWT Cookie
                 var cookieOptions = new CookieOptions
@@ -186,7 +188,7 @@ namespace SaveFoodBackend.Controllers
         {
             try
             {
-                await _authService.ForgotPasswordAsync(request);
+                await _mediator.Send(new ForgotPasswordCommand(request));
                 return Ok(new { message = "Nếu email hợp lệ, một mã xác nhận đã được gửi đến email của bạn." });
             }
             catch (Exception ex)
@@ -200,7 +202,7 @@ namespace SaveFoodBackend.Controllers
         {
             try
             {
-                await _authService.ResetPasswordAsync(request);
+                await _mediator.Send(new ResetPasswordCommand(request));
                 return Ok(new { message = "Khôi phục mật khẩu thành công." });
             }
             catch (Exception ex)
@@ -219,7 +221,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                await _authService.VerifyOtpAsync(request);
+                await _mediator.Send(new VerifyOtpCommand(request));
                 return Ok(new { message = "Email verified successfully" });
             }
             catch (InvalidOperationException ex)
@@ -238,7 +240,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                await _authService.ResendOtpAsync(request);
+                await _mediator.Send(new ResendOtpCommand(request));
                 return Ok(new { message = "A new OTP has been sent" });
             }
             catch (InvalidOperationException ex)
@@ -265,7 +267,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                var response = await _authService.LoginAsync(request);
+                var response = await _mediator.Send(new LoginCommand(request));
 
                 var cookieOptions = new CookieOptions
                 {
@@ -318,7 +320,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                await _authService.LogoutAsync(accessToken, refreshToken);
+                await _mediator.Send(new LogoutCommand(accessToken, refreshToken));
             }
             catch (Exception)
             {
@@ -344,7 +346,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                var response = await _authService.RefreshTokenAsync(refreshToken);
+                var response = await _mediator.Send(new RefreshTokenCommand(refreshToken));
 
                 var cookieOptions = new CookieOptions
                 {

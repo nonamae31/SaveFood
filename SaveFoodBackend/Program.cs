@@ -34,6 +34,8 @@ builder.Services.AddDbContext<SaveFoodDbContext>(options =>
 // ─── 4. Authentication (JWT) & Authorization ──────────────────────────────────
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
 // ─── 5. CORS Policy ───────────────────────────────────────────────────────────
 builder.Services.AddSaveFoodCors(builder.Configuration);
 
@@ -54,7 +56,7 @@ builder.Services.AddStackExchangeRedisCache(options =>
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBackend.Services.CartService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IRedisService, SaveFoodBackend.Services.RedisService>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IJwtProvider, SaveFoodBackend.Services.JwtProvider>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();

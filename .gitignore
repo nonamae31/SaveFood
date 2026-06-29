@@ -444,3 +444,4 @@ frontend/.env.example
 /.agents/skills
 /.swarm-workspace
 /.swarm
+/.agent_workspace
