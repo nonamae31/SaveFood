@@ -50,16 +50,29 @@ Bạn cần cấu hình file `appsettings.json` (hoặc `appsettings.Development
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Database=SaveFoodDB_MVP;Trusted_Connection=True;TrustServerCertificate=True;"
+    "DefaultConnection": "Server=localhost;Database=SaveFoodDB_MVP;Trusted_Connection=True;TrustServerCertificate=True;",
+    "Redis": "localhost:6379"
   },
+  "AllowedOrigins": [
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ],
   "Jwt": {
     "Key": "SaveFood_Super_Secret_Key_For_JWT_Authentication_12345!@#",
     "Issuer": "SaveFoodBackend",
     "Audience": "SaveFoodFrontend"
   },
   "SmtpSettings": {
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "EnableSsl": true,
     "Username": "your_email@gmail.com",
-    "Password": "your_app_password"
+    "Password": "your_app_password",
+    "SenderName": "SaveFood System",
+    "SenderEmail": "your_email@gmail.com"
+  },
+  "Google": {
+    "ClientId": "your_google_client_id"
   },
   "Cloudinary": {
     "CloudName": "your_cloud_name",
