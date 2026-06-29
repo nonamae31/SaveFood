@@ -544,6 +544,19 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_CustomerWalletTransactions_Orders");
         });
 
+        // Global Query Filters (Soft Delete)
+        modelBuilder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<ClearanceListing>().HasQueryFilter(e => (e.ListingFlags & (byte)SaveFoodBackend.Models.Enums.ListingFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingDiscountRule>().HasQueryFilter(e => (e.RuleFlags & (byte)SaveFoodBackend.Models.Enums.RuleFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Product>().HasQueryFilter(e => (e.ProductFlags & (byte)SaveFoodBackend.Models.Enums.ProductFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ProductImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Review>().HasQueryFilter(e => (e.ReviewFlags & (byte)SaveFoodBackend.Models.Enums.ReviewFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Store>().HasQueryFilter(e => (e.StoreFlags & (byte)SaveFoodBackend.Models.Enums.StoreFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<StoreStaff>().HasQueryFilter(e => (e.StaffFlags & (byte)SaveFoodBackend.Models.Enums.StaffFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<SubscriptionPlan>().HasQueryFilter(e => (e.PlanFlags & (byte)SaveFoodBackend.Models.Enums.PlanFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<User>().HasQueryFilter(e => (e.UserFlags & (byte)SaveFoodBackend.Models.Enums.UserFlagsEnum.IsDeleted) == 0);
+
         OnModelCreatingPartial(modelBuilder);
     }
 

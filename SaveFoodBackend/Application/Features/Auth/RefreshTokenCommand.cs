@@ -39,7 +39,12 @@ public class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCommand, L
         if (!Guid.TryParse(parts[0], out var userId)) throw new UnauthorizedAccessException("Invalid user ID in session.");
 
         var sessionId = parts[1];
-        var user = await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role).FirstOrDefaultAsync(u => u.Id == userId, ct);
+        var user = await _context.Users
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId, ct);
         if (user == null || user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new UnauthorizedAccessException("User not found or inactive.");
 
         await _redisService.DeleteAsync(redisKey);
