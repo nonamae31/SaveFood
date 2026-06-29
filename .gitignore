@@ -440,3 +440,4 @@ node_modules
 SaveFoodBackend/appsettings.json
 SaveFoodBackend/appsettings.Development.json
 frontend/.env.example
+.agents/skills/api-test-doc/SKILL.md
