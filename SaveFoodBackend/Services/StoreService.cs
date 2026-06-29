@@ -155,6 +155,9 @@ namespace SaveFoodBackend.Services
                 stores = stores.Where(s => s.Name.ToLower().Contains(q) || s.DetailedAddress.ToLower().Contains(q));
             }
 
+            if (!string.IsNullOrEmpty(filter?.City))
+                stores = stores.Where(s => s.City != null && s.City.Contains(filter.City, StringComparison.OrdinalIgnoreCase));
+
             var random = new Random();
             
             var storeIds = stores.Select(s => s.Id).ToList();

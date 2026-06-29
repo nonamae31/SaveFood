@@ -31,12 +31,13 @@ namespace SaveFoodBackend.Controllers
         // POST: api/stores/register
         [HttpPost("register")]
         [Authorize]
-        public async Task<IActionResult> RegisterStore([FromBody] RegisterStoreRequest request, System.Threading.CancellationToken ct)
+        [Consumes("multipart/form-data")]
+        public async Task<IActionResult> RegisterStore([FromForm] RegisterStoreRequest request, System.Threading.CancellationToken ct)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            var userId = GetRequiredUserId();
             try
             {
-                var userId = GetRequiredUserId();
                 var profile = await _storeService.RegisterStoreAsync(userId, request, ct);
                 return Created("", profile);
             }
@@ -79,7 +80,7 @@ namespace SaveFoodBackend.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -101,7 +102,7 @@ namespace SaveFoodBackend.Controllers
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Forbid(ex.Message);
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
             }
             catch (InvalidOperationException ex)
             {
@@ -114,9 +115,9 @@ namespace SaveFoodBackend.Controllers
         [Authorize] // Store Staff/Owner only
         public async Task<IActionResult> UpdateStoreImages(Guid id, [FromForm] UpdateStoreImagesRequest request)
         {
+            var userId = GetRequiredUserId();
             try
             {
-                var userId = GetRequiredUserId();
                 await _storeService.UpdateStoreImagesAsync(id, userId, request);
                 return NoContent();
             }
@@ -154,9 +155,9 @@ namespace SaveFoodBackend.Controllers
         public async Task<IActionResult> CreateSubscriptionCheckout(Guid id, [FromBody] SubscriptionCheckoutRequest request, System.Threading.CancellationToken ct)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+            var userId = GetRequiredUserId();
             try
             {
-                var userId = GetRequiredUserId();
                 var response = await _storeService.CreateSubscriptionCheckoutAsync(id, userId, request, ct);
                 return Ok(response);
             }
