@@ -310,6 +310,10 @@ namespace SaveFoodBackend.Controllers
         public async Task<IActionResult> Logout()
         {
             var accessToken = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(accessToken))
+            {
+                accessToken = Request.Cookies["jwt"];
+            }
             var refreshToken = Request.Cookies["refreshToken"];
 
             try

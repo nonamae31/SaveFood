@@ -17,11 +17,19 @@ namespace SaveFoodBackend.Middleware
         public async Task Invoke(HttpContext context, IRedisService redisService)
         {
             var authHeader = context.Request.Headers[HeaderNames.Authorization].ToString();
+            string token = null;
 
             if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer "))
             {
-                var token = authHeader.Substring("Bearer ".Length).Trim();
-                
+                token = authHeader.Substring("Bearer ".Length).Trim();
+            }
+            else
+            {
+                token = context.Request.Cookies["jwt"];
+            }
+            
+            if (!string.IsNullOrEmpty(token))
+            {
                 var isBlacklisted = await redisService.IsTokenBlacklistedAsync(token);
                 if (isBlacklisted)
                 {
