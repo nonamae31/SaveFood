@@ -20,12 +20,14 @@ public class AuthService : IAuthService
     private readonly SaveFoodDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IEmailService _emailService;
+    private readonly IRedisService _redisService;
 
-    public AuthService(SaveFoodDbContext context, IConfiguration configuration, IEmailService emailService)
+    public AuthService(SaveFoodDbContext context, IConfiguration configuration, IEmailService emailService, IRedisService redisService)
     {
         _context = context;
         _configuration = configuration;
         _emailService = emailService;
+        _redisService = redisService;
     }
 
     public async Task<Guid> RegisterAsync(RegisterRequest request)
@@ -164,20 +166,13 @@ public class AuthService : IAuthService
             throw new UnauthorizedAccessException("UNVERIFIED_ACCOUNT: Please verify your email first.");
         }
 
-        // Tạo UserSession mới để quản lý trạng thái Đăng nhập
-        var session = new Models.UserSession
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            RefreshTokenHash = Guid.NewGuid().ToString(), // Gán tạm random string để qua validate NotNull của CSDL
-            ExpiresAt = DateTime.UtcNow.AddDays(30),
-            CreatedAt = DateTime.UtcNow
-        };
-        _context.UserSessions.Add(session);
-        await _context.SaveChangesAsync();
+        var sessionId = Guid.NewGuid().ToString();
+        var refreshToken = Guid.NewGuid().ToString();
+        
+        await _redisService.SetAsync($"session:{refreshToken}", $"{user.Id}:{sessionId}", TimeSpan.FromDays(30));
 
         // 3. Generate Token
-        var token = GenerateJwtToken(user, session.Id.ToString());
+        var token = GenerateJwtToken(user, sessionId);
 
         // Extract primary role code (Prioritize ADMIN, then STORE, then default)
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
@@ -193,7 +188,7 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             Role = roleCode,
-            RefreshToken = session.RefreshTokenHash,
+            RefreshToken = refreshToken,
             StaffRole = storeStaff?.StaffRole
         };
     }
@@ -446,18 +441,12 @@ public class AuthService : IAuthService
             }
         }
 
-        var session = new Models.UserSession
-        {
-            Id = Guid.NewGuid(),
-            UserId = user.Id,
-            RefreshTokenHash = Guid.NewGuid().ToString(), // Random string
-            ExpiresAt = DateTime.UtcNow.AddDays(30),
-            CreatedAt = DateTime.UtcNow
-        };
-        _context.UserSessions.Add(session);
-        await _context.SaveChangesAsync();
+        var sessionId = Guid.NewGuid().ToString();
+        var refreshToken = Guid.NewGuid().ToString();
+        
+        await _redisService.SetAsync($"session:{refreshToken}", $"{user.Id}:{sessionId}", TimeSpan.FromDays(30));
 
-        var token = GenerateJwtToken(user, session.Id.ToString());
+        var token = GenerateJwtToken(user, sessionId);
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
@@ -471,7 +460,7 @@ public class AuthService : IAuthService
             Email = user.Email,
             FullName = user.FullName,
             Role = roleCode,
-            RefreshToken = session.RefreshTokenHash,
+            RefreshToken = refreshToken,
             StaffRole = storeStaff?.StaffRole
         };
     }
@@ -557,5 +546,97 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<LoginResponse> RefreshTokenAsync(string refreshToken)
+    {
+        // 1. Kiểm tra refresh token trong Redis
+        var redisKey = $"session:{refreshToken}";
+        var sessionData = await _redisService.GetAsync(redisKey);
+
+        if (string.IsNullOrEmpty(sessionData))
+        {
+            throw new UnauthorizedAccessException("Refresh token is invalid or expired.");
+        }
+
+        // sessionData có format "{userId}:{sessionId}"
+        var parts = sessionData.Split(':');
+        if (parts.Length != 2)
+        {
+            throw new UnauthorizedAccessException("Invalid session data format.");
+        }
+
+        if (!Guid.TryParse(parts[0], out var userId))
+        {
+            throw new UnauthorizedAccessException("Invalid user ID in session.");
+        }
+
+        var sessionId = parts[1];
+
+        // 2. Lấy thông tin User từ DB
+        var user = await _context.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user == null || user.UserStatusEnum != Models.Enums.UserStatus.Active)
+        {
+            throw new UnauthorizedAccessException("User not found or inactive.");
+        }
+
+        // 3. Xóa Refresh Token cũ để chống reuse
+        await _redisService.DeleteAsync(redisKey);
+
+        // 4. Tạo Refresh Token mới và cập nhật Redis
+        var newSessionId = Guid.NewGuid().ToString();
+        var newRefreshToken = Guid.NewGuid().ToString();
+        
+        await _redisService.SetAsync($"session:{newRefreshToken}", $"{user.Id}:{newSessionId}", TimeSpan.FromDays(30));
+
+        // 5. Generate Access Token mới
+        var token = GenerateJwtToken(user, newSessionId);
+
+        var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "ADMIN") ? "ADMIN" :
+                       user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == "STORE") ? "STORE" :
+                       user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? "Customer";
+
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id);
+
+        return new LoginResponse
+        {
+            AccessToken = token,
+            UserId = user.Id,
+            Email = user.Email,
+            FullName = user.FullName,
+            Role = roleCode,
+            RefreshToken = newRefreshToken,
+            StaffRole = storeStaff?.StaffRole
+        };
+    }
+
+    public async Task LogoutAsync(string accessToken, string refreshToken)
+    {
+        // 1. Xóa Refresh Token khỏi Redis
+        if (!string.IsNullOrEmpty(refreshToken))
+        {
+            await _redisService.DeleteAsync($"session:{refreshToken}");
+        }
+
+        // 2. Thêm Access Token vào Blacklist
+        if (!string.IsNullOrEmpty(accessToken))
+        {
+            var handler = new JwtSecurityTokenHandler();
+            if (handler.CanReadToken(accessToken))
+            {
+                var jwtToken = handler.ReadJwtToken(accessToken);
+                var expiryDate = jwtToken.ValidTo;
+                var remainingTime = expiryDate - DateTime.UtcNow;
+
+                if (remainingTime > TimeSpan.Zero)
+                {
+                    await _redisService.SetTokenBlacklistAsync(accessToken, remainingTime);
+                }
+            }
+        }
     }
 }

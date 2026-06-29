@@ -309,19 +309,63 @@ namespace SaveFoodBackend.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var sessionIdStr = User.FindFirst("sessionId")?.Value;
-            if (!string.IsNullOrEmpty(sessionIdStr) && Guid.TryParse(sessionIdStr, out Guid sessionId))
+            var accessToken = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            try
             {
-                var session = await _context.UserSessions.FindAsync(sessionId);
-                if (session != null)
-                {
-                    session.RevokedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                }
+                await _authService.LogoutAsync(accessToken, refreshToken);
+            }
+            catch (Exception)
+            {
+                // Bỏ qua lỗi trong quá trình logout để vẫn xóa cookies
             }
 
             Response.Cookies.Delete("jwt");
+            Response.Cookies.Delete("refreshToken");
             return Ok(new { message = "Logged out successfully" });
+        }
+
+        /// <summary>
+        /// Xin cấp lại Access Token mới dựa vào Refresh Token (lưu trong Cookie)
+        /// </summary>
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(new { message = "Refresh token is missing." });
+            }
+
+            try
+            {
+                var response = await _authService.RefreshTokenAsync(refreshToken);
+
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.UtcNow.AddDays(7)
+                };
+                Response.Cookies.Append("jwt", response.AccessToken, cookieOptions);
+
+                var refreshCookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.None,
+                    Expires = DateTime.UtcNow.AddMonths(1) // 30 ngày
+                };
+                Response.Cookies.Append("refreshToken", response.RefreshToken, refreshCookieOptions);
+
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Unauthorized(new { message = ex.Message });
+            }
         }
 
         /// <summary>
