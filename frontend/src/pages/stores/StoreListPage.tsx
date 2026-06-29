@@ -22,7 +22,7 @@ export function StoreListPage() {
   const [ratingFilter, setRatingFilter] = useState<number>(0)
   const [distanceFilter, setDistanceFilter] = useState<number>(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 6
+  const ITEMS_PER_PAGE = 24
 
   const filteredStores = useMemo(() => {
     if (!stores) return []

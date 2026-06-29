@@ -452,6 +452,30 @@ export default function StoreManagementPage() {
         </div>
       )}
 
+      {/* Confirm Action Modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 font-inter">
+          <div className="bg-mint-canvas rounded-[12px] border border-mint-hairline p-6 max-w-sm w-full shadow-lg">
+            <h3 className="text-lg font-bold text-mint-ink mb-4">Xác nhận</h3>
+            <p className="text-mint-stone text-sm mb-6">{confirmAction.message}</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 bg-mint-surface hover:bg-mint-surface-soft text-mint-stone hover:text-mint-ink font-medium text-sm rounded-[8px] transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={executeConfirmAction}
+                className="px-4 py-2 bg-mint-brand-green hover:bg-mint-brand-green/90 text-white font-medium text-sm rounded-[8px] transition-colors shadow-sm"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -60,10 +60,9 @@ export function ProductListPage() {
   } = useRecommendations()
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
-
   // -- Pagination Logic --
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 9
+  const ITEMS_PER_PAGE = 20
 
   useEffect(() => {
     setCurrentPage(1)
