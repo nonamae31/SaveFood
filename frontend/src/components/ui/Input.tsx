@@ -45,16 +45,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {isPassword && (
             <button
               type="button"
+              tabIndex={-1}
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink-primary"
-              aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+              aria-label="Toggle password visibility"
             >
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           )}
         </div>
         {error && (
-          <p className="text-caption text-expiry-urgent">
+          <p className="text-caption text-expiry-urgent" aria-live="polite">
             {error}
           </p>
         )}

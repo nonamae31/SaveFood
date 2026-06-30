@@ -4,7 +4,7 @@ import { useUpdateProfile } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/Input';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-
+import { z } from 'zod';
 function InlineEditableInput({
   id, label, value, type = 'text', onSave, disabled = false, className = ''
 }: {
@@ -53,6 +53,7 @@ export function ProfileInfoTab() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  const [genderStatus, setGenderStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
 
   useEffect(() => {
     if (user) {
@@ -67,6 +68,7 @@ export function ProfileInfoTab() {
         {
           fullName: field === 'fullName' ? val : user.fullName,
           phoneNumber: field === 'phoneNumber' ? val : (user.phoneNumber || ''),
+          gender: user.gender,
         },
         {
           onSuccess: () => resolve(),
@@ -74,6 +76,32 @@ export function ProfileInfoTab() {
         }
       );
     });
+  };
+
+  const handleSaveGender = (val: number) => {
+    if (!user) return;
+    try {
+      const validGender = z.union([z.literal(0), z.literal(1)]).parse(val) as number;
+      setGenderStatus('saving');
+      updateProfileMutation.mutate(
+        {
+          fullName: user.fullName,
+          gender: validGender,
+        },
+        {
+          onSuccess: () => {
+            setGenderStatus('success');
+            setTimeout(() => setGenderStatus('idle'), 2000);
+          },
+          onError: () => {
+            setGenderStatus('error');
+            setTimeout(() => setGenderStatus('idle'), 3000);
+          },
+        }
+      );
+    } catch (e) {
+      console.error('Invalid gender', e);
+    }
   };
 
   const onDropAvatar = useCallback((acceptedFiles: File[]) => {
@@ -167,6 +195,41 @@ export function ProfileInfoTab() {
             value={user?.phoneNumber || ''}
             onSave={(val) => handleSaveField('phoneNumber', val)}
           />
+
+          <fieldset className="space-y-2 relative">
+            <legend className="block text-sm font-medium text-gray-700">Giới tính</legend>
+            <div className="flex flex-row gap-6 h-10 items-center justify-start bg-white border border-gray-200 rounded-lg px-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value={1}
+                  checked={user?.gender === 1}
+                  onChange={() => handleSaveGender(1)}
+                  disabled={genderStatus === 'saving'}
+                  className="w-4 h-4 text-brand-600 focus:ring-brand-500 border-gray-300"
+                />
+                <span className="text-sm text-gray-700">Nam</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="gender"
+                  value={0}
+                  checked={user?.gender === 0}
+                  onChange={() => handleSaveGender(0)}
+                  disabled={genderStatus === 'saving'}
+                  className="w-4 h-4 text-brand-600 focus:ring-brand-500 border-gray-300"
+                />
+                <span className="text-sm text-gray-700">Nữ</span>
+              </label>
+            </div>
+            <div className="absolute right-3 top-9 flex items-center justify-center pointer-events-none">
+              {genderStatus === 'saving' && <Loader2 className="animate-spin text-[--color-brand-600]" size={18} />}
+              {genderStatus === 'success' && <CheckCircle className="text-green-500" size={18} />}
+              {genderStatus === 'error' && <XCircle className="text-red-500" size={18} />}
+            </div>
+          </fieldset>
 
           {errorMsg && (
             <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm font-medium">

@@ -445,3 +445,4 @@ frontend/.env.example
 /.swarm-workspace
 /.swarm
 /.agent_workspace
+/SaveFoodBackend/.swarm
