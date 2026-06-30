@@ -77,6 +77,7 @@ function PlaceholderPage({ title }: { title: string }) {
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 import { LocationProvider } from '@/contexts/LocationContext'
 import { CartProvider } from '@/contexts/CartContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
@@ -87,6 +88,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationProvider>
         <LocationProvider>
           <CartProvider>
             <BrowserRouter>
