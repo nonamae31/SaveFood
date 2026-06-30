@@ -17,6 +17,8 @@ export function VerifyOtpPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const email = location.state?.email as string | undefined;
+  const autoSend = location.state?.autoSend as boolean | undefined;
+  const hasAutoSent = useRef(false);
 
   const verifyMutation = useVerifyOtp();
   const resendMutation = useResendOtp();
@@ -25,8 +27,18 @@ export function VerifyOtpPage() {
     if (!email) {
       // Nếu không có email (truy cập trực tiếp), quay lại đăng ký
       navigate(ROUTES.REGISTER);
+    } else if (autoSend && !hasAutoSent.current) {
+      hasAutoSent.current = true;
+      resendMutation.mutate({ email }, {
+        onSuccess: () => {
+          setSuccess('Đã tự động gửi mã OTP mới tới email của bạn.');
+        },
+        onError: (err: Error) => {
+          setError(err.message || 'Không thể tự động gửi mã. Hãy bấm Gửi lại.');
+        }
+      });
     }
-  }, [email, navigate]);
+  }, [email, navigate, autoSend]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -124,7 +136,7 @@ export function VerifyOtpPage() {
     
     resendMutation.mutate({ email }, {
       onSuccess: () => {
-        setSuccess('Đã gửi lại mã OTP. Vui lòng kiểm tra email (hoặc console).');
+        setSuccess('Đã gửi lại mã OTP. Vui lòng kiểm tra email.');
         setCountdown(60);
         setCanResend(false);
         setOtpValues(Array(6).fill(''));
@@ -161,7 +173,7 @@ export function VerifyOtpPage() {
           </div>
 
           <form onSubmit={handleVerify} className="space-y-5">
-            <div className="flex justify-between gap-2 sm:gap-4 mb-6">
+            <div className="flex justify-center gap-2 sm:gap-3 mb-6">
               {otpValues.map((value, index) => (
                 <input
                   key={index}
@@ -172,7 +184,7 @@ export function VerifyOtpPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   maxLength={1}
-                  className="w-12 h-14 sm:w-14 sm:h-16 text-center text-heading-md font-bold text-ink-primary border border-surface-border rounded-xl bg-surface-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                  className="w-10 h-12 sm:w-12 sm:h-14 text-center text-heading-md font-bold text-ink-primary border border-surface-border rounded-xl bg-surface-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
                   value={value}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}

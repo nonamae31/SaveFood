@@ -44,6 +44,7 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
             targetUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             targetUser.FullName = request.FullName;
             targetUser.PhoneNumber = request.PhoneNumber;
+            if (request.Gender.HasValue) targetUser.IsMale = (request.Gender.Value == 1);
             targetUser.CreatedAt = DateTime.UtcNow;
         }
         else
@@ -61,6 +62,7 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
                 EmailVerified = false,
                 CreatedAt = DateTime.UtcNow
             };
+            if (request.Gender.HasValue) targetUser.IsMale = (request.Gender.Value == 1);
 
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
             if (role != null) targetUser.UserRoles.Add(new SaveFoodBackend.Models.UserRole { RoleId = role.Id, UserId = targetUser.Id });

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { validatePasswordStrength } from '@/utils/validation';
 import { ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +12,8 @@ export function ResetPasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
   const [message, setMessage] = useState('');
   
   const resetPasswordMutation = useResetPassword();
@@ -35,13 +38,14 @@ export function ResetPasswordPage() {
       return;
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+    const passError = validatePasswordStrength(newPassword);
+    if (passError) {
+      setPasswordError(passError);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự');
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -56,6 +60,27 @@ export function ResetPasswordPage() {
         setError(err.message || 'Mã OTP không chính xác hoặc đã hết hạn.');
       }
     });
+  };
+
+  const handleBlurNewPassword = () => {
+    if (newPassword) {
+      const passError = validatePasswordStrength(newPassword);
+      if (passError) {
+        setPasswordError(passError);
+      } else {
+        setPasswordError('');
+      }
+    }
+  };
+
+  const handleBlurConfirmPassword = () => {
+    if (confirmPassword && newPassword) {
+      if (newPassword !== confirmPassword) {
+        setConfirmPasswordError('Mật khẩu xác nhận không khớp');
+      } else {
+        setConfirmPasswordError('');
+      }
+    }
   };
 
   const handleResendOtp = () => {
@@ -120,7 +145,12 @@ export function ResetPasswordPage() {
               label="Mật khẩu mới"
               placeholder="••••••••"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPasswordError('');
+              }}
+              onBlur={handleBlurNewPassword}
+              error={passwordError}
               required
             />
 
@@ -130,7 +160,12 @@ export function ResetPasswordPage() {
               label="Xác nhận mật khẩu mới"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setConfirmPasswordError('');
+              }}
+              onBlur={handleBlurConfirmPassword}
+              error={confirmPasswordError}
               required
             />
             

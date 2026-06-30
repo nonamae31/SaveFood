@@ -273,8 +273,14 @@ namespace SaveFoodBackend.Controllers
                 // Bỏ qua lỗi trong quá trình logout để vẫn xóa cookies
             }
 
-            Response.Cookies.Delete("jwt");
-            Response.Cookies.Delete("refreshToken");
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            };
+            Response.Cookies.Delete("jwt", cookieOptions);
+            Response.Cookies.Delete("refreshToken", cookieOptions);
             return Ok(new { message = "Logged out successfully" });
         }
 
