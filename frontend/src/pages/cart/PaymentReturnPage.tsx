@@ -26,18 +26,17 @@ export function PaymentReturnPage() {
 
         // Call backend verify
         apiClient(`/payments/verify/${orderCode}`)
-            .then(() => {
-                setStatus('success');
+            .then((res: any) => {
+                if (res && res.success === true) {
+                    setStatus('success');
+                } else {
+                    console.error('Xác thực thanh toán thất bại:', res);
+                    setStatus('error');
+                }
             })
             .catch((err) => {
                 console.error('Lỗi xác thực thanh toán:', err);
-                // Even if verify fails (e.g. webhook already updated it and PayOS API returned error on duplicate), 
-                // we can just treat it as success or show warning. We'll show success for now if it's PAID.
-                if (paymentStatus === 'PAID') {
-                    setStatus('success');
-                } else {
-                    setStatus('error');
-                }
+                setStatus('error');
             });
     }, [orderCode, cancel, paymentStatus]);
 

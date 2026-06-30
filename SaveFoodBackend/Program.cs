@@ -52,6 +52,9 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
+// ─── 4.1 Options Configuration ────────────────────────────────────────────────
+builder.Services.Configure<SaveFoodBackend.Models.Config.PlatformConfig>(builder.Configuration.GetSection("PlatformConfig"));
+
 // ─── 5. CORS Policy ───────────────────────────────────────────────────────────
 builder.Services.AddSaveFoodCors(builder.Configuration);
 
@@ -79,6 +82,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, Save
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
 
 // Admin Repositories
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUnitOfWork, SaveFoodBackend.Repositories.UnitOfWork>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreRepository, SaveFoodBackend.Repositories.StoreRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IFinanceRepository, SaveFoodBackend.Repositories.FinanceRepository>();
@@ -111,6 +115,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFo
 
 // Sentiment analysis
 builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
+
+// Notification Service
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, SaveFoodBackend.Services.NotificationService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();

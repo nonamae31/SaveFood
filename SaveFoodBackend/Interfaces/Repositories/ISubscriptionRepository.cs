@@ -18,5 +18,9 @@ public interface ISubscriptionRepository
     Task<IEnumerable<StoreSubscription>> GetSubscriptionsWithPlansAsync(CancellationToken ct = default);
     Task<StoreSubscription?> GetActiveSubscriptionForStoreAsync(Guid storeId, DateTime currentDate, CancellationToken ct = default);
     
+    Task<decimal> GetTotalSubscriptionRevenueAsync(CancellationToken ct = default);
+    Task<List<SaveFoodBackend.DTOs.Admin.MonthlySubscriptionStats>> GetMonthlySubscriptionRevenuesAsync(CancellationToken ct = default);
+    Task<List<SaveFoodBackend.DTOs.Admin.PlanSubscriptionCount>> GetActiveSubscriptionsByPlanAsync(DateTime currentDate, CancellationToken ct = default);
+    
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

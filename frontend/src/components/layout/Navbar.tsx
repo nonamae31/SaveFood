@@ -9,6 +9,7 @@ import { useCart } from '@/hooks/useCart'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { LocationPickerMap } from '@/components/map/LocationPickerMap'
+import { NotificationDropdown } from '@/components/layout/NotificationDropdown'
 function CartBadge() {
   const { data: cartItems } = useCart()
   if (!cartItems || cartItems.length === 0) return null
@@ -211,6 +212,9 @@ export function Navbar() {
                       <Store width={18} height={18} />
                     </Link>
                   )}
+                  <div className="mr-1 flex items-center">
+                    <NotificationDropdown isDark={isDark} />
+                  </div>
                   <Link to={ROUTES.PROFILE} className={`flex items-center gap-2 border-l pl-3 transition-colors group ${isDark ? 'border-white/20' : 'border-gray-200'}`} title={user.fullName}>
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.fullName} className="w-7 h-7 rounded-full object-cover" />

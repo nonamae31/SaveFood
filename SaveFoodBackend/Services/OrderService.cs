@@ -20,12 +20,14 @@ public class OrderService : IOrderService
     private readonly SaveFoodDbContext _ctx;
     private readonly IPayOSService _payOSService;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notifService;
 
-    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext)
+    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _hubContext = hubContext;
+        _notifService = notifService;
     }
 
     public async Task<CheckoutResponseDTO> CheckoutAsync(Guid userId, CheckoutRequestDTO req, CancellationToken ct = default)
@@ -160,9 +162,19 @@ public class OrderService : IOrderService
 
         await _ctx.SaveChangesAsync(ct);
 
-        // Notify Store Staff & Owner via SignalR
+        // Notify Store Staff & Owner via Notification Service (lưu DB + SignalR)
         foreach (var order in createdOrders)
         {
+            // Notify customer
+            await _notifService.SendAsync(
+                order.UserId,
+                "Đặt hàng thành công! 🎉",
+                $"Đơn hàng #{order.OrderCode} đã được tạo. Vui lòng thanh toán và đến lấy hàng đúng giờ.",
+                "ORDER_PLACED",
+                order.Id
+            );
+
+            // Notify store staff
             var staffIds = await _ctx.StoreStaffs
                 .Where(s => s.StoreId == order.StoreId)
                 .Select(s => s.UserId)
@@ -170,7 +182,13 @@ public class OrderService : IOrderService
 
             foreach (var uid in staffIds.Distinct())
             {
-                await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: ct);
+                await _notifService.SendAsync(
+                    uid,
+                    "Có đơn hàng mới! 🛒",
+                    $"Đơn #{order.OrderCode} vừa được đặt. Hãy chuẩn bị hàng cho khách.",
+                    "ORDER_PLACED",
+                    order.Id
+                );
             }
         }
 
@@ -505,8 +523,23 @@ public class OrderService : IOrderService
             
         foreach (var staffId in staffIds)
         {
-            await _hubContext.Clients.Group($"User_{staffId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
+            await _notifService.SendAsync(
+                staffId,
+                "Đơn hàng bị hủy",
+                $"Đơn #{order.OrderCode} đã bị khách hủy.",
+                "ORDER_STATUS_CHANGED",
+                order.Id
+            );
         }
+
+        // Notify customer about refund
+        await _notifService.SendAsync(
+            order.UserId,
+            "Hủy đơn thành công — Hoàn tiền",
+            $"Đơn #{order.OrderCode} đã hủy. {order.TotalAmount:N0}₫ đã được hoàn vào ví của bạn.",
+            "ORDER_STATUS_CHANGED",
+            order.Id
+        );
 
         return true;
     }
