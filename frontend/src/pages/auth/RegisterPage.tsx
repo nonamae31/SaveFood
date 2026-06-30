@@ -1,25 +1,49 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
 import { useRegister, useGoogleLoginMutation } from '@/hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
 
+const registerSchema = z.object({
+  username: z.string()
+    .min(3, 'Username phải từ 3-20 ký tự')
+    .max(20, 'Username phải từ 3-20 ký tự')
+    .regex(/^[a-zA-Z0-9_]+$/, 'Username chỉ chứa chữ cái, số và dấu gạch dưới'),
+  fullName: z.string().min(1, 'Họ và tên là bắt buộc'),
+  phoneNumber: z.string().min(1, 'Số điện thoại là bắt buộc'),
+  email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ'),
+  password: z.string()
+    .min(8, 'Mật khẩu phải ít nhất 8 ký tự')
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/, 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt'),
+  confirmPassword: z.string().min(1, 'Xác nhận mật khẩu là bắt buộc')
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Mật khẩu và Nhập lại mật khẩu không khớp",
+  path: ["confirmPassword"], // path of error
+});
+
+type RegisterFormInputs = z.infer<typeof registerSchema>;
+
 export function RegisterPage() {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [errors, setErrors] = useState<Record<string, string>>({});
   const [globalError, setGlobalError] = useState('');
   
   const registerMutation = useRegister();
   const googleLoginMutation = useGoogleLoginMutation();
   const navigate = useNavigate();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<RegisterFormInputs>({
+    resolver: zodResolver(registerSchema),
+    mode: 'onBlur',
+  });
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
@@ -30,7 +54,7 @@ export function RegisterPage() {
           onSuccess: () => {
             navigate(ROUTES.HOME);
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             setGlobalError(err.message || 'Đăng nhập Google thất bại.');
           }
         }
@@ -42,46 +66,21 @@ export function RegisterPage() {
     }
   });
 
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-    
-    if (!username) newErrors.username = 'Username là bắt buộc';
-    else if (username.length < 3 || username.length > 20) newErrors.username = 'Username phải từ 3-20 ký tự';
-    else if (!/^[a-zA-Z0-9_]+$/.test(username)) newErrors.username = 'Username chỉ chứa chữ cái, số và dấu gạch dưới';
-
-    if (!email) newErrors.email = 'Email là bắt buộc';
-    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email không hợp lệ';
-
-    if (!password) newErrors.password = 'Mật khẩu là bắt buộc';
-    else if (password.length < 8) newErrors.password = 'Mật khẩu phải ít nhất 8 ký tự';
-    else if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$/.test(password)) {
-      newErrors.password = 'Mật khẩu cần có chữ hoa, chữ thường, số và ký tự đặc biệt';
-    }
-
-    if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Mật khẩu và Nhập lại mật khẩu không khớp';
-    }
-
-    if (!fullName) newErrors.fullName = 'Họ và tên là bắt buộc';
-    if (!phoneNumber) newErrors.phoneNumber = 'Số điện thoại là bắt buộc';
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (data: RegisterFormInputs) => {
     setGlobalError('');
-    setErrors({});
     
-    if (!validateForm()) return;
-
-    registerMutation.mutate({ username, email, password, fullName, phoneNumber }, {
+    registerMutation.mutate({ 
+      username: data.username, 
+      email: data.email, 
+      password: data.password, 
+      fullName: data.fullName, 
+      phoneNumber: data.phoneNumber 
+    }, {
       onSuccess: () => {
         // Chuyển hướng sang trang nhập OTP và truyền email theo
-        navigate(ROUTES.VERIFY_OTP, { state: { email } });
+        navigate(ROUTES.VERIFY_OTP, { state: { email: data.email } });
       },
-      onError: (err: any) => {
+      onError: (err: Error) => {
         setGlobalError(err.message || 'Đăng ký thất bại. Email có thể đã tồn tại.');
       }
     });
@@ -117,18 +116,16 @@ export function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div>
               <Input
                 id="username"
                 type="text"
                 label="Username"
                 placeholder="Ví dụ: nguyenvana_123"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
+                {...register('username')}
+                error={errors.username?.message}
               />
-              {errors.username && <p className="text-red-500 text-sm mt-1">{errors.username}</p>}
             </div>
 
             <div>
@@ -137,11 +134,9 @@ export function RegisterPage() {
                 type="text"
                 label="Họ và tên"
                 placeholder="Nguyễn Văn A"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                required
+                {...register('fullName')}
+                error={errors.fullName?.message}
               />
-              {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName}</p>}
             </div>
 
             <div>
@@ -150,11 +145,9 @@ export function RegisterPage() {
                 type="tel"
                 label="Số điện thoại"
                 placeholder="0912345678"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                required
+                {...register('phoneNumber')}
+                error={errors.phoneNumber?.message}
               />
-              {errors.phoneNumber && <p className="text-red-500 text-sm mt-1">{errors.phoneNumber}</p>}
             </div>
 
             <div>
@@ -163,11 +156,9 @@ export function RegisterPage() {
                 type="email"
                 label="Email"
                 placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
+                {...register('email')}
+                error={errors.email?.message}
               />
-              {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
             </div>
             
             <div>
@@ -176,11 +167,9 @@ export function RegisterPage() {
                 type="password"
                 label="Mật khẩu"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register('password')}
+                error={errors.password?.message}
               />
-              {errors.password && <p className="text-red-500 text-sm mt-1">{errors.password}</p>}
             </div>
 
             <div>
@@ -189,11 +178,9 @@ export function RegisterPage() {
                 type="password"
                 label="Xác nhận mật khẩu"
                 placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
+                {...register('confirmPassword')}
+                error={errors.confirmPassword?.message}
               />
-              {errors.confirmPassword && <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>}
             </div>
 
             {globalError && (
