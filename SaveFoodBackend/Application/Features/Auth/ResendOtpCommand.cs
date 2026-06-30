@@ -21,10 +21,11 @@ public class ResendOtpCommandHandler : ICommandHandler<ResendOtpCommand, bool>
 {
     private readonly SaveFoodDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IRedisService _redisService;
 
-    public ResendOtpCommandHandler(SaveFoodDbContext context, IEmailService emailService)
+    public ResendOtpCommandHandler(SaveFoodDbContext context, IEmailService emailService, IRedisService redisService)
     {
-        _context = context; _emailService = emailService;
+        _context = context; _emailService = emailService; _redisService = redisService;
     }
 
     public async Task<bool> Handle(ResendOtpCommand command, CancellationToken ct)
@@ -35,13 +36,13 @@ public class ResendOtpCommandHandler : ICommandHandler<ResendOtpCommand, bool>
         if (user == null) throw new InvalidOperationException("User not found.");
         if (user.EmailVerified) throw new InvalidOperationException("Email is already verified.");
 
-        var latestOtp = await _context.EmailVerifications.Where(e => e.UserId == user.Id).OrderByDescending(e => e.CreatedAt).FirstOrDefaultAsync(ct);
-        if (latestOtp != null && latestOtp.CreatedAt > DateTime.UtcNow.AddSeconds(-60))
-            throw new InvalidOperationException($"Please wait {(int)(60 - (DateTime.UtcNow - latestOtp.CreatedAt).TotalSeconds)} seconds before requesting a new OTP.");
+        var isCooldown = await _redisService.GetAsync($"otp_cooldown:{normalizedEmail}");
+        if (isCooldown != null)
+            throw new InvalidOperationException($"Please wait a moment before requesting a new OTP.");
 
         var otpCode = new Random().Next(100000, 999999).ToString();
-        _context.EmailVerifications.Add(new SaveFoodBackend.Models.EmailVerification { Id = Guid.NewGuid(), UserId = user.Id, VerificationCode = otpCode, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(15) });
-        await _context.SaveChangesAsync(ct);
+        await _redisService.SetAsync($"otp:{normalizedEmail}", otpCode, TimeSpan.FromMinutes(15));
+        await _redisService.SetAsync($"otp_cooldown:{normalizedEmail}", "true", TimeSpan.FromSeconds(60));
 
         await _emailService.SendEmailAsync(user.Email, "Mã xác nhận OTP mới của bạn", $@"<h2>Xác thực tài khoản SaveFood</h2><p>Mã xác nhận mới của bạn là:</p><h1 style='color: #10b981; font-size: 32px;'>{otpCode}</h1>");
         return true;
