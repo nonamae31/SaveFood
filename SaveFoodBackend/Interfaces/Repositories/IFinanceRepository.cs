@@ -15,6 +15,8 @@ public interface IFinanceRepository
 
     IQueryable<WalletTransaction> GetPlatformFeeTransactionsQuery();
     Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default);
+    Task<decimal> GetTotalPlatformFeeRevenueAsync(CancellationToken ct = default);
+    Task<List<MonthlyRevenue>> GetMonthlyPlatformFeeRevenuesAsync(CancellationToken ct = default);
     void AddWalletTransaction(WalletTransaction transaction);
     void AddCustomerWalletTransaction(CustomerWalletTransaction transaction);
     

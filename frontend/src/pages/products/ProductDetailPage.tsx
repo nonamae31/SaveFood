@@ -100,6 +100,11 @@ export function ProductDetailPage() {
   }
 
   const onActionClick = (action: 'add_to_cart' | 'buy_now') => {
+    if (!user) {
+      toast.error('Vui lòng đăng nhập để thực hiện')
+      return
+    }
+
     if (isFar) {
       setShowDistanceModal({ isOpen: true, action });
     } else {

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,25 +23,42 @@ namespace SaveFoodBackend.Controllers
         private readonly SaveFoodDbContext _context;
         private readonly IUserService _userService;
         private readonly IMediator _mediator;
+        private readonly IRedisService _redisService;
 
-        public UsersController(SaveFoodDbContext context, IUserService userService, IMediator mediator)
+        public UsersController(SaveFoodDbContext context, IUserService userService, IMediator mediator, IRedisService redisService)
         {
             _context = context;
             _userService = userService;
             _mediator = mediator;
+            _redisService = redisService;
         }
 
         // GET: api/Users
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-            return await _context.Users.AsNoTracking().ToListAsync();
+            var cachedUsers = await _redisService.GetAsync("users:list");
+            if (!string.IsNullOrEmpty(cachedUsers))
+            {
+                return JsonSerializer.Deserialize<List<User>>(cachedUsers);
+            }
+
+            var users = await _context.Users.AsNoTracking().ToListAsync();
+            await _redisService.SetAsync("users:list", JsonSerializer.Serialize(users), TimeSpan.FromMinutes(5));
+            return users;
         }
 
         // GET: api/Users/5
         [HttpGet("{id}")]
         public async Task<ActionResult<User>> GetUser(Guid id)
         {
+            var cacheKey = $"user:{id}";
+            var cachedUser = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedUser))
+            {
+                return JsonSerializer.Deserialize<User>(cachedUser);
+            }
+
             var user = await _context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
 
             if (user == null)
@@ -48,6 +66,7 @@ namespace SaveFoodBackend.Controllers
                 return NotFound();
             }
 
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(user), TimeSpan.FromMinutes(10));
             return user;
         }
 
@@ -66,6 +85,9 @@ namespace SaveFoodBackend.Controllers
             try
             {
                 await _context.SaveChangesAsync();
+                await _redisService.DeleteAsync("users:list");
+                await _redisService.DeleteAsync($"user:{id}");
+                await _redisService.DeleteAsync($"profile_v2:{id}");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -89,6 +111,7 @@ namespace SaveFoodBackend.Controllers
         {
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+            await _redisService.DeleteAsync("users:list");
 
             return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
@@ -105,6 +128,9 @@ namespace SaveFoodBackend.Controllers
 
             _context.Users.Remove(user);
             await _context.SaveChangesAsync();
+            await _redisService.DeleteAsync("users:list");
+            await _redisService.DeleteAsync($"user:{id}");
+            await _redisService.DeleteAsync($"profile_v2:{id}");
 
             return NoContent();
         }

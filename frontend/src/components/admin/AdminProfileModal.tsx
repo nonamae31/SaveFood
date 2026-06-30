@@ -18,6 +18,7 @@ export function AdminProfileModal({ isOpen, onClose }: AdminProfileModalProps) {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [address, setAddress] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [gender, setGender] = useState<number | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export function AdminProfileModal({ isOpen, onClose }: AdminProfileModalProps) {
       setPhoneNumber(user.phoneNumber || '');
       setAddress(user.address || '');
       setAvatarUrl(user.avatarUrl || '');
+      setGender(user.gender ?? null);
       setError('');
     }
   }, [user, isOpen]);
@@ -45,7 +47,8 @@ export function AdminProfileModal({ isOpen, onClose }: AdminProfileModalProps) {
       fullName,
       phoneNumber,
       address,
-      avatarUrl
+      avatarUrl,
+      gender
     }, {
       onSuccess: () => {
         onClose();
@@ -133,6 +136,34 @@ export function AdminProfileModal({ isOpen, onClose }: AdminProfileModalProps) {
                 placeholder="Enter your address"
               />
             </div>
+
+            <fieldset>
+              <legend className="block text-sm font-medium text-gray-700 mb-2">Giới tính</legend>
+              <div className="flex flex-row gap-6 h-10 items-center justify-start bg-white border border-gray-200 rounded-lg px-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="admin_gender"
+                    value={1}
+                    checked={gender === 1}
+                    onChange={() => setGender(1)}
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Nam</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="admin_gender"
+                    value={0}
+                    checked={gender === 0}
+                    onChange={() => setGender(0)}
+                    className="w-4 h-4 text-indigo-600 focus:ring-indigo-500 border-gray-300"
+                  />
+                  <span className="text-sm text-gray-700">Nữ</span>
+                </label>
+              </div>
+            </fieldset>
           </div>
 
           <div className="pt-4 border-t border-gray-100 flex gap-3">

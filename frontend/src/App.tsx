@@ -169,6 +169,7 @@ function App() {
           </BrowserRouter>
           </CartProvider>
         </LocationProvider>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

@@ -84,7 +84,7 @@ public static class AuthExtensions
     public static IServiceCollection AddSaveFoodCors(this IServiceCollection services, IConfiguration configuration)
     {
         var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:5173", "http://localhost:3000"];
+            ?? ["http://localhost:5173", "http://localhost:3000", "http://localhost:5174"];
 
         services.AddCors(options =>
         {

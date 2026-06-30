@@ -7,6 +7,7 @@ using SaveFood.Application.CQRS;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Utils;
+using SaveFoodBackend.Interfaces;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -19,10 +20,12 @@ public class VerifyOtpCommand : ICommand<bool>
 public class VerifyOtpCommandHandler : ICommandHandler<VerifyOtpCommand, bool>
 {
     private readonly SaveFoodDbContext _context;
+    private readonly IRedisService _redisService;
 
-    public VerifyOtpCommandHandler(SaveFoodDbContext context)
+    public VerifyOtpCommandHandler(SaveFoodDbContext context, IRedisService redisService)
     {
         _context = context;
+        _redisService = redisService;
     }
 
     public async Task<bool> Handle(VerifyOtpCommand command, CancellationToken ct)
@@ -33,16 +36,12 @@ public class VerifyOtpCommandHandler : ICommandHandler<VerifyOtpCommand, bool>
         if (user == null) throw new InvalidOperationException("User not found.");
         if (user.EmailVerified) return true;
 
-        var latestOtp = await _context.EmailVerifications
-            .Where(e => e.UserId == user.Id && e.VerifiedAt == null)
-            .OrderByDescending(e => e.CreatedAt)
-            .FirstOrDefaultAsync(ct);
+        var latestOtp = await _redisService.GetAsync($"otp:{normalizedEmail}");
 
-        if (latestOtp == null) throw new InvalidOperationException("No OTP found.");
-        if (latestOtp.ExpiresAt < DateTime.UtcNow) throw new InvalidOperationException("OTP has expired.");
-        if (latestOtp.VerificationCode != request.OtpCode) throw new InvalidOperationException("Invalid OTP code.");
+        if (latestOtp == null) throw new InvalidOperationException("No OTP found or OTP has expired.");
+        if (latestOtp != request.OtpCode) throw new InvalidOperationException("Invalid OTP code.");
 
-        latestOtp.VerifiedAt = DateTime.UtcNow;
+        await _redisService.DeleteAsync($"otp:{normalizedEmail}");
         user.EmailVerified = true;
         await _context.SaveChangesAsync(ct);
         return true;
