@@ -1,12 +1,15 @@
-StackExchange.Redis.RedisConnectionException: The message timed out in the backlog attempting to send because no connection became available (5000ms) - Last Connection Exception: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout, command=HMGET, timeout: 5000, inst: 0, qu: 0, qs: 0, aw: False, bw: CheckingForTimeout, rs: NotStarted, ws: Initializing, in: 0, last-in: 0, cur-in: 0, sync-ops: 0, async-ops: 2, serverEndpoint: localhost:6379, conn-sec: n/a, aoc: 0, mc: 1/1/0, mgr: 10 of 10 available, clientName: DESKTOP-1FKUAT8(SE.Redis-v2.13.17.28173), IOCP: (Busy=0,Free=1000,Min=1,Max=1000), WORKER: (Busy=3,Free=32764,Min=12,Max=32767), POOL: (Threads=6,QueuedItems=1,CompletedItems=600,Timers=11), v: 2.13.17.28173 (Please take a look at this article for some common client-side issues that can cause timeouts: https://stackexchange.github.io/StackExchange.Redis/Timeouts)
- ---> StackExchange.Redis.RedisConnectionException: It was not possible to connect to the redis server(s) localhost:6379/Interactive. ConnectTimeout
-   --- End of inner exception stack trace ---
+System.ArgumentNullException: Value cannot be null. (Parameter 'configuration')
+   at StackExchange.Redis.ConfigurationOptions.DoParse(String configuration, Boolean ignoreUnknown) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 1012
+   at StackExchange.Redis.ConfigurationOptions.Parse(String configuration, Boolean ignoreUnknown) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 814
+   at StackExchange.Redis.ConfigurationOptions.Parse(String configuration) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 804
+   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCacheOptions.GetConfiguredOptions()
+   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.ConnectSlowAsync(CancellationToken token)
    at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.GetAndRefreshAsync(String key, Boolean getData, CancellationToken token)
    at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.GetAsync(String key, CancellationToken token)
    at Microsoft.Extensions.Caching.Distributed.DistributedCacheExtensions.GetStringAsync(IDistributedCache cache, String key, CancellationToken token)
-   at SaveFoodBackend.Services.RedisService.GetAsync(String key) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 29
-   at SaveFoodBackend.Services.RedisService.IsTokenBlacklistedAsync(String token) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 46
-   at SaveFoodBackend.Middleware.JwtBlacklistMiddleware.Invoke(HttpContext context, IRedisService redisService) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\JwtBlacklistMiddleware.cs:line 33
+   at SaveFoodBackend.Services.RedisService.GetAsync(String key) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 29
+   at SaveFoodBackend.Services.RedisService.IsTokenBlacklistedAsync(String token) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 46
+   at SaveFoodBackend.Middleware.JwtBlacklistMiddleware.Invoke(HttpContext context, IRedisService redisService) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Middleware\JwtBlacklistMiddleware.cs:line 33
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
-   at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
+   at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33

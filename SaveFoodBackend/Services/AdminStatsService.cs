@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
@@ -20,11 +21,11 @@ public class AdminStatsService : IAdminStatsService
 
     public async Task<AdminRevenueStatsResponse> GetRevenueStatsAsync()
     {
-        var platformFeeTransactions = await _financeRepo.GetPlatformFeeTransactionsAsync();
+        var query = _financeRepo.GetPlatformFeeTransactionsQuery();
 
-        var totalRevenue = platformFeeTransactions.Sum(t => t.Amount);
+        var totalRevenue = await query.SumAsync(t => t.Amount);
 
-        var monthlyRevenues = platformFeeTransactions
+        var monthlyRevenues = await query
             .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
             .Select(g => new MonthlyRevenue
             {
@@ -33,7 +34,7 @@ public class AdminStatsService : IAdminStatsService
                 Revenue = g.Sum(t => t.Amount)
             })
             .OrderBy(m => m.Year).ThenBy(m => m.Month)
-            .ToList();
+            .ToListAsync();
 
         return new AdminRevenueStatsResponse
         {
