@@ -85,7 +85,16 @@ public class CustomerWalletService : ICustomerWalletService
         var wallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
         if (wallet == null)
         {
-            throw new InvalidOperationException("Ví cá nhân không tồn tại.");
+            // Auto-create wallet if not exists (consistent with GetMyWalletAsync)
+            wallet = new CustomerWallet
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Balance = 0,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _ctx.CustomerWallets.Add(wallet);
         }
 
         if (wallet.Balance < request.Amount)
