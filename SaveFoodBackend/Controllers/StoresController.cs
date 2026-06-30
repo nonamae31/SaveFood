@@ -31,7 +31,7 @@ namespace SaveFoodBackend.Controllers
         // POST: api/stores/register
         [HttpPost("register")]
         [Authorize]
-        public async Task<IActionResult> RegisterStore([FromBody] RegisterStoreRequest request, System.Threading.CancellationToken ct)
+        public async Task<IActionResult> RegisterStore([FromForm] RegisterStoreRequest request, System.Threading.CancellationToken ct)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             try
