@@ -49,19 +49,19 @@ export function DashboardLayout() {
 
   const staffNavItems = [
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
-    { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
-    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
+    { name: 'Đơn hàng (🚧)', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng (🚧)', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
   ]
 
   const ownerNavItems = [
     { name: 'Tổng quan', href: ROUTES.DASHBOARD_ANALYTICS, icon: LayoutDashboard },
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
-    { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
-    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
+    { name: 'Đơn hàng (🚧)', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng (🚧)', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
     { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
-    { name: 'Ví & Doanh thu', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
-    { name: 'Đánh giá', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
+    { name: 'Ví & Doanh thu (🚧)', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
+    { name: 'Đánh giá (🚧)', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
 

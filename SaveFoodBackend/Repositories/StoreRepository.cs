@@ -99,7 +99,7 @@ public class StoreRepository : IStoreRepository
     public async Task<IEnumerable<Store>> GetMyStoreRegistrationsAsync(Guid userId, CancellationToken ct = default)
     {
         return await _ctx.Stores
-            .Where(s => s.StoreStaffs.Any(ss => ss.UserId == userId && ss.StaffRole == 1))
+            .Where(s => s.StoreStaffs.Any(ss => ss.UserId == userId && ss.StaffRole == (byte)StaffRole.Owner))
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
     }

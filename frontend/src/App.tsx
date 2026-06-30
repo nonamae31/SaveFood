@@ -67,7 +67,7 @@ function PlaceholderPage({ title }: { title: string }) {
           {title}
         </h1>
         <p className="text-[--text-body-md] text-[--color-ink-secondary]">
-          Trang này đang được phát triển. Sprint 0 hoàn thành — sẵn sàng nhận code từ nhóm!
+          Chức năng này đang trong quá trình phát triển. Vui lòng quay lại sau!
         </p>
       </div>
     </div>
@@ -147,7 +147,7 @@ function App() {
             {/* ── Admin (Người 5) ── */}
             <Route element={<AdminProtectedRoute />}>
               <Route element={<AdminLayout />}>
-                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_ACCOUNTS} replace />} />
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
                 <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreManagementPage />} />

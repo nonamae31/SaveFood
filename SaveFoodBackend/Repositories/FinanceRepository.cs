@@ -94,11 +94,10 @@ public class FinanceRepository : IFinanceRepository
     }
 
 
-    public async Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default)
+    public IQueryable<WalletTransaction> GetPlatformFeeTransactionsQuery()
     {
-        return await _ctx.WalletTransactions
-            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed)
-            .ToListAsync(ct);
+        return _ctx.WalletTransactions
+            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed);
     }
 
     public void AddWalletTransaction(WalletTransaction transaction)

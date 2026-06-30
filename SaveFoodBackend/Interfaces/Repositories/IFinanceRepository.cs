@@ -13,7 +13,7 @@ public interface IFinanceRepository
     Task<(IEnumerable<WithdrawalRequestDTO> Items, int TotalCount)> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status = null, CancellationToken ct = default);
     Task<WithdrawalRequest?> GetWithdrawalWithStoreWalletAsync(Guid id, CancellationToken ct = default);
 
-    Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default);
+    IQueryable<WalletTransaction> GetPlatformFeeTransactionsQuery();
     void AddWalletTransaction(WalletTransaction transaction);
     void AddCustomerWalletTransaction(CustomerWalletTransaction transaction);
     

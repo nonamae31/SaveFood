@@ -43,7 +43,7 @@ namespace SaveFoodBackend.Repositories
                 .Include(r => r.ReviewImages)
                 .Include(r => r.OrderItem)
                     .ThenInclude(oi => oi.Order)
-                .FirstOrDefaultAsync(r => r.Id == reviewId && (r.ReviewFlags & (byte)ReviewFlagsEnum.IsDeleted) == 0, ct);
+                .FirstOrDefaultAsync(r => r.Id == reviewId, ct);
         }
 
         public async Task<Review?> GetReviewByOrderItemIdAsync(Guid orderItemId, CancellationToken ct = default)
@@ -60,7 +60,7 @@ namespace SaveFoodBackend.Repositories
                 .Include(r => r.OrderItem)
                     .ThenInclude(oi => oi.Order)
                         .ThenInclude(o => o.User)
-                .Where(r => r.OrderItem.ListingId == listingId && (r.ReviewFlags & (byte)ReviewFlagsEnum.IsDeleted) == 0)
+                .Where(r => r.OrderItem.ListingId == listingId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -73,7 +73,7 @@ namespace SaveFoodBackend.Repositories
                     .ThenInclude(oi => oi.Order)
                         .ThenInclude(o => o.User)
                 .Include(r => r.OrderItem.Listing)
-                .Where(r => r.OrderItem.Listing.ProductId == productId && (r.ReviewFlags & (byte)ReviewFlagsEnum.IsDeleted) == 0)
+                .Where(r => r.OrderItem.Listing.ProductId == productId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
         }
@@ -85,7 +85,7 @@ namespace SaveFoodBackend.Repositories
                 .Include(r => r.OrderItem)
                     .ThenInclude(oi => oi.Order)
                         .ThenInclude(o => o.User)
-                .Where(r => r.OrderItem.Order.StoreId == storeId && (r.ReviewFlags & (byte)ReviewFlagsEnum.IsDeleted) == 0)
+                .Where(r => r.OrderItem.Order.StoreId == storeId)
                 .OrderByDescending(r => r.CreatedAt)
                 .ToListAsync(ct);
         }

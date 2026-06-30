@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { subscriptionApi } from '@/api/subscription.api';
 import { storeApi } from '@/api/store.api';
-import { apiClient } from '@/lib/apiClient';
+import { apiClient } from '@/api/client';
 import { useStoreAnalytics } from '@/hooks/useStores';
 
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
@@ -203,7 +203,7 @@ export default function DashboardSubscriptionPage() {
                   <li className="flex items-start gap-3">
                     <Check className={`w-5 h-5 shrink-0 mt-0.5 ${isPremium ? 'text-orange-500' : 'text-green-500'}`} />
                     <span className="text-gray-600">
-                      Tối đa <strong className="text-gray-900">{plan.maxActiveListings}</strong> tin đăng
+                      {plan.maxActiveListings != null ? <>Tối đa <strong className="text-gray-900">{plan.maxActiveListings}</strong> tin đăng</> : <>Không giới hạn tin đăng</>}
                     </span>
                   </li>
                   <li className="flex items-start gap-3">

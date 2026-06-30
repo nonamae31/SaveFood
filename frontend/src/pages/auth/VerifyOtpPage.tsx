@@ -1,17 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
 import { useVerifyOtp, useResendOtp } from '@/hooks/useAuth';
 
 export function VerifyOtpPage() {
-  const [otpCode, setOtpCode] = useState('');
+  const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(''));
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
+
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,25 +37,82 @@ export function VerifyOtpPage() {
     }
   }, [countdown]);
 
-  const handleVerify = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleVerifySubmit = (code: string) => {
     setError('');
     setSuccess('');
 
-    if (!otpCode || otpCode.length !== 6) {
+    if (code.length !== 6) {
       setError('Vui lòng nhập đủ 6 số OTP.');
       return;
     }
 
     if (email) {
-      verifyMutation.mutate({ email, otpCode }, {
+      verifyMutation.mutate({ email, otpCode: code }, {
         onSuccess: () => {
           navigate(ROUTES.LOGIN, { state: { message: 'Xác nhận email thành công. Vui lòng đăng nhập!' } });
         },
-        onError: (err: any) => {
+        onError: (err: Error) => {
           setError(err.message || 'Mã OTP không đúng hoặc đã hết hạn.');
         }
       });
+    }
+  };
+
+  const handleVerify = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleVerifySubmit(otpValues.join(''));
+  };
+
+  const handleChange = (index: number, value: string) => {
+    const newValue = value.replace(/[^0-9]/g, '');
+    if (!newValue) {
+      const newOtp = [...otpValues];
+      newOtp[index] = '';
+      setOtpValues(newOtp);
+      return;
+    }
+
+    const digit = newValue.slice(-1);
+    const newOtp = [...otpValues];
+    newOtp[index] = digit;
+    setOtpValues(newOtp);
+
+    if (index < 5 && digit) {
+      inputRefs.current[index + 1]?.focus();
+    }
+
+    const fullCode = newOtp.join('');
+    if (fullCode.length === 6) {
+      handleVerifySubmit(fullCode);
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').replace(/[^0-9]/g, '').slice(0, 6);
+    if (!pastedData) return;
+
+    const newOtp = [...otpValues];
+    for (let i = 0; i < pastedData.length; i++) {
+      newOtp[i] = pastedData[i];
+    }
+    setOtpValues(newOtp);
+
+    const nextFocusIndex = Math.min(pastedData.length, 5);
+    if (nextFocusIndex < 6) {
+      inputRefs.current[nextFocusIndex]?.focus();
+    } else {
+      inputRefs.current[5]?.focus();
+    }
+
+    if (pastedData.length === 6) {
+      handleVerifySubmit(pastedData);
     }
   };
 
@@ -69,12 +127,16 @@ export function VerifyOtpPage() {
         setSuccess('Đã gửi lại mã OTP. Vui lòng kiểm tra email (hoặc console).');
         setCountdown(60);
         setCanResend(false);
+        setOtpValues(Array(6).fill(''));
+        inputRefs.current[0]?.focus();
       },
-      onError: (err: any) => {
+      onError: (err: Error) => {
         setError(err.message || 'Không thể gửi lại mã lúc này. Hãy thử lại sau.');
       }
     });
   };
+
+  const isComplete = otpValues.join('').length === 6;
 
   return (
     <div className="min-h-screen flex w-full bg-surface-muted relative">
@@ -99,16 +161,26 @@ export function VerifyOtpPage() {
           </div>
 
           <form onSubmit={handleVerify} className="space-y-5">
-            <Input
-              id="otpCode"
-              type="text"
-              label="Mã OTP"
-              placeholder="123456"
-              maxLength={6}
-              value={otpCode}
-              onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-              required
-            />
+            <div className="flex justify-between gap-2 sm:gap-4 mb-6">
+              {otpValues.map((value, index) => (
+                <input
+                  key={index}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={1}
+                  className="w-12 h-14 sm:w-14 sm:h-16 text-center text-heading-md font-bold text-ink-primary border border-surface-border rounded-xl bg-surface-base focus:border-brand-500 focus:ring-4 focus:ring-brand-500/10 outline-none transition-all"
+                  value={value}
+                  onChange={(e) => handleChange(index, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={handlePaste}
+                  required
+                />
+              ))}
+            </div>
 
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-md text-expiry-urgent text-body-sm text-center">
@@ -127,7 +199,7 @@ export function VerifyOtpPage() {
               className="w-full mt-4 shadow-dropdown"
               size="lg"
               isLoading={verifyMutation.isPending}
-              disabled={otpCode.length !== 6}
+              disabled={!isComplete}
             >
               Xác nhận
             </Button>
