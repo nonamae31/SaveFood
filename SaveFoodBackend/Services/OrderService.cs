@@ -15,7 +15,7 @@ using SaveFoodBackend.Hubs;
 
 namespace SaveFoodBackend.Services;
 
-public class OrderService : IOrderService
+public class OrderService
 {
     private readonly SaveFoodDbContext _ctx;
     private readonly IPayOSService _payOSService;
@@ -279,9 +279,9 @@ public class OrderService : IOrderService
         if (!isStaff)
             throw new Exception("Bạn không có quyền xác nhận đơn hàng của cửa hàng này.");
 
-        if (order.OrderStatus == 4)
+        if (order.OrderStatus == OrderStatusEnum.Cancelled)
             throw new Exception("Đơn hàng đã bị huỷ.");
-        if (order.OrderStatus == 3)
+        if (order.OrderStatus == OrderStatusEnum.Completed)
             throw new Exception("Đơn hàng đã được xác nhận lấy hàng trước đó.");
         
         if (order.PickupCode != pickupCode)
@@ -292,7 +292,7 @@ public class OrderService : IOrderService
             throw new Exception("Đơn hàng thanh toán online chưa hoàn tất thanh toán. Vui lòng kiểm tra lại.");
         }
 
-        order.OrderStatus = 3; // Completed / Delivered
+        order.OrderStatus = OrderStatusEnum.Completed; // Completed / Delivered
         order.ConfirmedById = userId;
 
         // Process store wallet (add money to store - minus 5% platform fee)
@@ -351,7 +351,7 @@ public class OrderService : IOrderService
 
         if (status.HasValue)
         {
-            query = query.Where(o => o.OrderStatus == status.Value);
+            query = query.Where(o => o.OrderStatus == (OrderStatusEnum)status.Value);
         }
 
         var totalRecords = await query.CountAsync(ct);
@@ -435,7 +435,7 @@ public class OrderService : IOrderService
         if (order == null)
             throw new Exception("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != 1)
+        if (order.OrderStatus != OrderStatusEnum.Confirmed)
             throw new Exception("Chỉ có thể gia hạn giờ lấy cho đơn hàng đã thanh toán và đang chờ lấy.");
 
         if (!order.ExpectedPickupTime.HasValue || !order.MaxPickupTime.HasValue)
@@ -461,7 +461,7 @@ public class OrderService : IOrderService
         if (order == null)
             throw new Exception("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != 1) // 1 = Confirmed/Paid Wait for pickup
+        if (order.OrderStatus != OrderStatusEnum.Confirmed) // 1 = Confirmed/Paid Wait for pickup
             throw new Exception("Chỉ có thể hủy đơn hàng đang chờ lấy hàng.");
 
         if (order.ConfirmedById.HasValue)
@@ -513,7 +513,7 @@ public class OrderService : IOrderService
             }
         }
 
-        order.OrderStatus = 4; // Cancelled
+        order.OrderStatus = OrderStatusEnum.Cancelled; // Cancelled
         await _ctx.SaveChangesAsync(ct);
         
         var staffIds = await _ctx.StoreStaffs

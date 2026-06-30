@@ -9,6 +9,8 @@ import { useCart } from '@/hooks/useCart'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { LocationPickerMap } from '@/components/map/LocationPickerMap'
+import { NotificationDropdown } from '@/components/layout/NotificationDropdown'
+
 function CartBadge() {
   const { data: cartItems } = useCart()
   if (!cartItems || cartItems.length === 0) return null
