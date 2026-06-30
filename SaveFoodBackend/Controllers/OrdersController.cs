@@ -38,12 +38,12 @@ public class OrdersController : ApiControllerBase
 
     [Authorize]
     [HttpGet]
-    public async Task<IActionResult> GetMyOrders(CancellationToken ct)
+    public async Task<IActionResult> GetMyOrders([FromQuery] int? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 5, CancellationToken ct = default)
     {
         try
         {
             var userId = GetRequiredUserId();
-            var result = await _orderService.GetMyOrdersAsync(userId, ct);
+            var result = await _orderService.GetMyOrdersAsync(userId, status, page, pageSize, ct);
             return Ok(new { success = true, data = result });
         }
         catch (Exception ex)

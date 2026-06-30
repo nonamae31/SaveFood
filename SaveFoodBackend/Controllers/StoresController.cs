@@ -31,7 +31,7 @@ namespace SaveFoodBackend.Controllers
         // POST: api/stores/register
         [HttpPost("register")]
         [Authorize]
-        public async Task<IActionResult> RegisterStore([FromBody] RegisterStoreRequest request, System.Threading.CancellationToken ct)
+        public async Task<IActionResult> RegisterStore([FromForm] RegisterStoreRequest request, System.Threading.CancellationToken ct)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
             try
@@ -109,6 +109,32 @@ namespace SaveFoodBackend.Controllers
             }
         }
 
+        // PUT: api/stores/{id}/status
+        [HttpPut("{id}/status")]
+        [Authorize]
+        public async Task<IActionResult> UpdateStoreStatus(Guid id, [FromBody] StoreStatusActionRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var userId = GetRequiredUserId();
+                await _storeService.UpdateStoreStatusAsync(id, userId, request.Action);
+                return NoContent();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Forbid(ex.Message);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
         // PUT: api/stores/{id}/images
         [HttpPut("{id}/images")]
         [Authorize] // Store Staff/Owner only
@@ -171,6 +197,72 @@ namespace SaveFoodBackend.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+            }
+        }
+        // POST: api/stores/extract-map-link
+        [HttpPost("extract-map-link")]
+        [AllowAnonymous]
+        public async Task<IActionResult> ExtractMapLink([FromBody] ExtractMapLinkRequest request)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+            try
+            {
+                var url = request.Url;
+                if (!url.Contains("google.com/maps") && !url.Contains("maps.app.goo.gl"))
+                {
+                    return BadRequest(new { message = "Không phải link Google Maps hợp lệ." });
+                }
+
+                string finalUrl = url;
+                if (url.Contains("maps.app.goo.gl") || url.Contains("goo.gl/maps"))
+                {
+                    var handler = new System.Net.Http.HttpClientHandler { AllowAutoRedirect = false };
+                    using var client = new System.Net.Http.HttpClient(handler);
+                    var response = await client.GetAsync(url);
+                    if (response.StatusCode == System.Net.HttpStatusCode.Found || response.StatusCode == System.Net.HttpStatusCode.MovedPermanently)
+                    {
+                        finalUrl = response.Headers.Location?.ToString() ?? url;
+                    }
+                }
+
+                var result = new ExtractMapLinkResponse();
+
+                var nameMatch = System.Text.RegularExpressions.Regex.Match(finalUrl, @"/place/([^/]+)/");
+                if (nameMatch.Success)
+                {
+                    var rawName = nameMatch.Groups[1].Value;
+                    result.Name = System.Net.WebUtility.UrlDecode(rawName).Replace("+", " ");
+                }
+
+                var exactCoordMatch = System.Text.RegularExpressions.Regex.Match(finalUrl, @"!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)");
+                if (exactCoordMatch.Success)
+                {
+                    if (decimal.TryParse(exactCoordMatch.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal lat) &&
+                        decimal.TryParse(exactCoordMatch.Groups[2].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal lng))
+                    {
+                        result.Latitude = lat;
+                        result.Longitude = lng;
+                    }
+                }
+                else
+                {
+                    var centerMatch = System.Text.RegularExpressions.Regex.Match(finalUrl, @"@(-?\d+\.\d+),(-?\d+\.\d+)");
+                    if (centerMatch.Success)
+                    {
+                        if (decimal.TryParse(centerMatch.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal lat) &&
+                            decimal.TryParse(centerMatch.Groups[2].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out decimal lng))
+                        {
+                            result.Latitude = lat;
+                            result.Longitude = lng;
+                        }
+                    }
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi khi phân tích link.", details = ex.Message });
             }
         }
     }

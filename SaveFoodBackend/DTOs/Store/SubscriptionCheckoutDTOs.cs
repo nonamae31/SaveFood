@@ -11,6 +11,9 @@ namespace SaveFoodBackend.DTOs.Store
         [Required]
         [RegularExpression("monthly|semiannual|annual", ErrorMessage = "Chu kỳ thanh toán không hợp lệ.")]
         public string BillingCycle { get; set; } = "monthly";
+
+        public string? ReturnUrl { get; set; }
+        public string? CancelUrl { get; set; }
     }
 
     public class SubscriptionCheckoutResponse

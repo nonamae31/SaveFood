@@ -8,7 +8,7 @@
 // 3. Nếu vẫn không tìm thấy → hiển thị Not Found
 
 import { useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ChevronRight, ChevronLeft, Store, ShoppingCart, ShoppingBag,
@@ -18,15 +18,21 @@ import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { useListings } from '@/hooks/useListings'
+import { useStoreDetail } from '@/hooks/useStores'
 import { LISTING_QUERY_KEYS } from '@/hooks/useListings'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import type { CustomerListingDTO } from '@/types/listing.types'
 import { useAddToCart } from '@/hooks/useCart'
 import { toast } from 'react-hot-toast'
+import { MapPin } from 'lucide-react'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { useAuthContext } from '@/contexts/AuthContext'
+import { calculateDistance } from '@/utils/distance'
 
 export function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const addToCartMutation = useAddToCart()
@@ -57,6 +63,50 @@ export function ProductDetailPage() {
   const discount = listing ? calcDiscountPercent(listing.originalPrice, listing.salePrice) : 0
   const isLowStock = listing && listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut = listing && listing.quantityAvailable === 0
+  
+  const { user } = useAuthContext()
+  const isMyStore = user?.storeId === listing?.storeId
+  const isStoreClosed = listing?.storeStatus !== 0
+  
+  const { location } = useLocationContext()
+  const { data: store } = useStoreDetail(listing?.storeId)
+  
+  const isFar = listing && store && store.latitude && store.longitude && location
+    ? calculateDistance(location.lat, location.lng, store.latitude, store.longitude) > 5
+    : false;
+
+  const [showDistanceModal, setShowDistanceModal] = useState<{ isOpen: boolean; action?: 'add_to_cart' | 'buy_now' }>({ isOpen: false });
+
+  const handleAddToCart = () => {
+    addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+      onSuccess: () => {
+        toast.success('Đã thêm vào giỏ hàng')
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+      }
+    })
+  }
+
+  const handleBuyNow = () => {
+    addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
+      onSuccess: (cartItem) => {
+        navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: [cartItem.id] } })
+      },
+      onError: (err: any) => {
+        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+      }
+    })
+  }
+
+  const onActionClick = (action: 'add_to_cart' | 'buy_now') => {
+    if (isFar) {
+      setShowDistanceModal({ isOpen: true, action });
+    } else {
+      if (action === 'add_to_cart') handleAddToCart();
+      else handleBuyNow();
+    }
+  }
 
   // ── Loading state ──
   if (isLoading && !cachedListing) {
@@ -110,17 +160,17 @@ export function ProductDetailPage() {
       <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
 
         {/* ── Breadcrumb ── */}
-        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]">
-          <Link to={ROUTES.HOME} className="hover:text-[--color-brand-600] transition-colors flex items-center gap-1">
+        <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary] overflow-x-auto whitespace-nowrap pb-2 hide-scrollbar">
+          <Link to={ROUTES.HOME} className="hover:text-[--color-brand-600] transition-colors flex items-center gap-1 shrink-0">
             <Leaf size={13} aria-hidden="true" />
             Trang chủ
           </Link>
-          <ChevronRight size={13} aria-hidden="true" />
-          <Link to={ROUTES.PRODUCTS} className="hover:text-[--color-brand-600] transition-colors">
+          <ChevronRight size={13} aria-hidden="true" className="shrink-0" />
+          <Link to={ROUTES.PRODUCTS} className="hover:text-[--color-brand-600] transition-colors shrink-0">
             Đồ ăn cận date
           </Link>
-          <ChevronRight size={13} aria-hidden="true" />
-          <span className="text-[--color-ink-primary] font-medium truncate max-w-[200px]">
+          <ChevronRight size={13} aria-hidden="true" className="shrink-0" />
+          <span className="text-[--color-ink-primary] font-medium truncate max-w-[200px] shrink-0">
             {listing!.title}
           </span>
         </nav>
@@ -129,10 +179,10 @@ export function ProductDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
 
           {/* ── Ảnh sản phẩm ── */}
-          <div className="flex flex-col gap-3">
-            <div className="relative rounded-[--radius-card] overflow-hidden
+          <div className="flex flex-col gap-4 w-full">
+            <div className="relative rounded-[2rem] shadow-sm overflow-hidden
                               bg-gradient-to-br from-[--color-brand-50] to-[--color-brand-100]
-                              flex items-center justify-center min-h-64 lg:min-h-80 group">
+                              flex items-center justify-center h-[400px] lg:h-[500px] w-full shrink-0 group">
               {listing!.images && listing!.images.length > 0 ? (
                 <>
                   <img
@@ -168,7 +218,7 @@ export function ProductDetailPage() {
                   )}
                 </>
               ) : listing!.imageUrl ? (
-                <img src={listing!.imageUrl} alt={listing!.title} className="w-full h-full object-cover" />
+                <img src={listing!.imageUrl} alt={listing!.title} className="w-full h-full object-contain p-4" />
               ) : listing!.isSurpriseBag ? (
                 <div className="flex flex-col items-center gap-3 text-[--color-brand-600] py-12">
                   <ShoppingBag size={80} strokeWidth={1} />
@@ -186,15 +236,15 @@ export function ProductDetailPage() {
 
               {/* Discount badge */}
               {discount > 0 && (
-                <div className="absolute top-4 left-4">
+                <div className="absolute top-4 left-4 z-10">
                   <DiscountTag percent={discount} size="lg" />
                 </div>
               )}
 
-              {isSoldOut && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+              {(isSoldOut || isStoreClosed) && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-10">
                   <span className="text-[--text-heading-sm] font-bold text-[--color-ink-tertiary]">
-                    Đã hết hàng
+                    {isStoreClosed ? 'Tạm đóng cửa' : 'Đã hết hàng'}
                   </span>
                 </div>
               )}
@@ -218,7 +268,17 @@ export function ProductDetailPage() {
           </div>
 
           {/* ── Thông tin chi tiết ── */}
-          <div className="flex flex-col gap-5">
+          <div className="flex flex-col gap-5 w-full">
+
+            {isFar && (
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800">
+                <MapPin className="shrink-0 mt-0.5 text-orange-600" size={20} />
+                <div className="text-sm leading-relaxed">
+                  <p className="font-bold mb-1">Cửa hàng cách xa hơn 5km</p>
+                  <p>Vui lòng cân nhắc khoảng cách. Hãy đảm bảo bạn có thể đến lấy hàng đúng thời gian quy định để tránh bị hủy đơn và mất tiền (không hỗ trợ hoàn tiền).</p>
+                </div>
+              </div>
+            )}
 
             {/* Tên + cửa hàng */}
             <div>
@@ -228,7 +288,7 @@ export function ProductDetailPage() {
                   🎁 Surprise Bag
                 </span>
               )}
-              <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] leading-tight mb-1">
+              <h1 className="text-3xl sm:text-4xl font-extrabold text-[--color-ink-primary] font-[--font-display] leading-tight mb-2">
                 {listing!.title}
               </h1>
               <div className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]">
@@ -268,10 +328,10 @@ export function ProductDetailPage() {
               </span>
               <span className={[
                 'text-[--text-body-sm] font-bold',
-                isSoldOut ? 'text-[--color-ink-tertiary]'
+                isStoreClosed || isSoldOut ? 'text-[--color-ink-tertiary]'
                   : isLowStock ? 'text-red-600' : 'text-[--color-brand-700]',
               ].join(' ')}>
-                {isSoldOut ? 'Đã hết hàng' : `${listing!.quantityAvailable} phần`}
+                {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Đã hết hàng' : `${listing!.quantityAvailable} phần`}
               </span>
             </div>
 
@@ -301,39 +361,52 @@ export function ProductDetailPage() {
               </div>
             )}
 
-            {/* CTA Button */}
-            <button
-              onClick={() => {
-                addToCartMutation.mutate({ listingId: listing!.id, quantity: 1 }, {
-                  onSuccess: () => {
-                    toast.success('Đã thêm vào giỏ hàng')
-                  },
-                  onError: (err: any) => {
-                    toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
-                  }
-                })
-              }}
-              disabled={isSoldOut || addToCartMutation.isPending}
-              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-full
-                           text-[--text-body-md] font-bold transition-all duration-300
-                           bg-brand-500 text-white hover:bg-brand-600
-                           hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
-                           disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
-              aria-disabled={isSoldOut || addToCartMutation.isPending}
-            >
-              <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
-              {isSoldOut ? 'Đã hết hàng' : 'Thêm vào giỏ hàng'}
-            </button>
+            {/* CTA Buttons */}
+            <div className="flex gap-3 mt-2">
+              {isMyStore ? (
+                <div className="w-full py-4 text-center rounded-xl bg-blue-50 text-blue-700 font-bold border border-blue-100">
+                  Đây là sản phẩm thuộc cửa hàng của bạn
+                </div>
+              ) : (
+                <>
+                  <button
+                    onClick={() => onActionClick('add_to_cart')}
+                    disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                    className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                                 text-[--text-body-md] font-bold transition-all duration-300
+                                 bg-brand-100 text-brand-700 border border-brand-200 hover:bg-brand-200
+                                 disabled:opacity-50 disabled:cursor-not-allowed"
+                    aria-disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                  >
+                    <ShoppingCart size={18} strokeWidth={2.5} aria-hidden="true" />
+                    {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Hết hàng' : 'Thêm vào giỏ'}
+                  </button>
+
+                  <button
+                    onClick={() => onActionClick('buy_now')}
+                    disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                    className="flex items-center justify-center gap-2 flex-1 py-3.5 rounded-full
+                                 text-[--text-body-md] font-bold transition-all duration-300
+                                 bg-brand-500 text-white hover:bg-brand-600
+                                 hover:shadow-[0_8px_30px_rgba(34,197,94,0.3)]
+                                 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    aria-disabled={isSoldOut || isStoreClosed || addToCartMutation.isPending}
+                  >
+                    {isStoreClosed ? 'Tạm đóng cửa' : isSoldOut ? 'Hết hàng' : 'Mua ngay'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
         {/* ── Related Listings ── */}
         {relatedListings.length > 0 && (
           <section aria-labelledby="related-heading">
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 gap-2 sm:gap-0">
               <h2
                 id="related-heading"
-                className="text-[--text-heading-sm] font-bold text-[--color-ink-primary]"
+                className="text-[--text-heading-sm] font-bold text-[--color-ink-primary] pr-2"
               >
                 Sản phẩm khác từ {listing!.storeName}
               </h2>
@@ -344,7 +417,7 @@ export function ProductDetailPage() {
                 Xem tất cả →
               </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {relatedListings.map(l => (
                 <ListingCard key={l.id} listing={l} />
               ))}
@@ -353,6 +426,41 @@ export function ProductDetailPage() {
         )}
 
       </div>
+
+      {/* Distance Warning Modal */}
+      {showDistanceModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[150] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full animate-[--animate-fade-in]">
+            <div className="w-12 h-12 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mb-4">
+              <MapPin width={24} height={24} />
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              Khoảng cách xa (&gt; 5km)
+            </h3>
+            <p className="text-gray-600 text-sm mb-6">
+              Quán này cách vị trí hiện tại của bạn khá xa. Hãy đảm bảo bạn có thể sắp xếp thời gian đến lấy hàng đúng giờ để tránh rủi ro bị hủy đơn (không hoàn tiền). Bạn có chắc chắn muốn tiếp tục không?
+            </p>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => setShowDistanceModal({ isOpen: false })}
+                className="flex-1 py-2.5 font-semibold text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={() => {
+                  if (showDistanceModal.action === 'add_to_cart') handleAddToCart();
+                  else if (showDistanceModal.action === 'buy_now') handleBuyNow();
+                  setShowDistanceModal({ isOpen: false });
+                }}
+                className="flex-1 py-2.5 font-bold text-white bg-brand-500 rounded-xl hover:bg-brand-600 transition-colors"
+              >
+                Tiếp tục
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

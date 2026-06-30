@@ -22,6 +22,10 @@ public partial class Review
     public string? StoreReply { get; set; }
 
     public DateTime? StoreReplyAt { get; set; }
+    
+    public string? SentimentLabel { get; set; }
+    
+    public decimal? SentimentScore { get; set; }
 
     public virtual OrderItem OrderItem { get; set; } = null!;
 

@@ -14,6 +14,11 @@ export default function AdminFinancePage() {
   const [transactions, setTransactions] = useState<WalletTransactionDTO[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestDTO[]>([]);
 
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('');
+
   // Pagination states
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -45,7 +50,7 @@ export default function AdminFinancePage() {
         setTransactions(res.items);
         setTotalPages(res.totalPages);
       } else if (activeTab === 'withdrawals') {
-        const res = await adminApi.getWithdrawals(page, 15);
+        const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined);
         setWithdrawals(res.items);
         setTotalPages(res.totalPages);
       }
@@ -58,7 +63,7 @@ export default function AdminFinancePage() {
 
   useEffect(() => {
     fetchData();
-  }, [activeTab, page]);
+  }, [activeTab, page, statusFilter]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -142,6 +147,46 @@ export default function AdminFinancePage() {
         </button>
       </div>
 
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-4 mb-4">
+        <div className="flex-1 min-w-[250px] max-w-sm">
+          <input 
+            type="text" 
+            placeholder="Tìm theo tên cửa hàng, mô tả, STK..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
+          />
+        </div>
+        <div>
+          <input 
+            type="date" 
+            value={dateFilter}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
+          />
+        </div>
+        {activeTab === 'withdrawals' && (
+          <select 
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
+          >
+            <option value="all">Tất cả trạng thái</option>
+            <option value="0">Đang chờ</option>
+            <option value="1">Đang xử lý</option>
+            <option value="2">Đã thanh toán</option>
+            <option value="3">Từ chối</option>
+          </select>
+        )}
+      </div>
+
       {/* Content */}
       <div className="bg-white border border-mint-hairline rounded-[12px] shadow-sm overflow-hidden min-h-[400px]">
         {loading ? (
@@ -175,29 +220,99 @@ export default function AdminFinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-mint-hairline">
-                {activeTab === 'ledger' && transactions.length === 0 && (
+                {activeTab === 'ledger' && transactions.filter(t => {
+                  if (t.type === 2) return false;
+                  
+                  // Text search (Store Name, Description)
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchStore = t.storeName.toLowerCase().includes(q);
+                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
+                    if (!matchStore && !matchDesc) return false;
+                  }
+
+                  // Date filter
+                  if (dateFilter) {
+                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
+                    if (txDate !== dateFilter) return false;
+                  }
+
+                  return true;
+                }).length === 0 && (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
-                {activeTab === 'ledger' && transactions.map(t => (
+                {activeTab === 'ledger' && transactions.filter(t => {
+                  if (t.type === 2) return false;
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchStore = t.storeName.toLowerCase().includes(q);
+                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
+                    if (!matchStore && !matchDesc) return false;
+                  }
+                  if (dateFilter) {
+                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
+                    if (txDate !== dateFilter) return false;
+                  }
+                  return true;
+                }).map(t => (
                   <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(t.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>
                     <td className="px-6 py-4 text-[14px] text-mint-stone">{t.description || '-'}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-right">
-                      {t.amount > 0 ? (
-                        <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                      {t.type === 1 ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-mint-stone text-[12px] font-normal">
+                            Đơn hàng: {formatCurrency(t.amount)}
+                          </span>
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1">
+                            <ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount * 0.05)}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> {formatCurrency(t.amount)}</span>
+                        t.amount > 0 ? (
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                        ) : (
+                          <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> {formatCurrency(t.amount)}</span>
+                        )
                       )}
                     </td>
                     <td className="px-6 py-4">{renderStatus(t.status, 'tx')}</td>
                   </tr>
                 ))}
 
-                {activeTab === 'withdrawals' && withdrawals.length === 0 && (
+                {activeTab === 'withdrawals' && withdrawals.filter(w => {
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchName = w.requesterName.toLowerCase().includes(q);
+                    const matchBank = w.bankName.toLowerCase().includes(q);
+                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
+                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
+                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
+                  }
+                  if (dateFilter) {
+                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
+                    if (wDate !== dateFilter) return false;
+                  }
+                  return true;
+                }).length === 0 && (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu rút tiền nào</td></tr>
                 )}
-                {activeTab === 'withdrawals' && withdrawals.map(w => (
+                {activeTab === 'withdrawals' && withdrawals.filter(w => {
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchName = w.requesterName.toLowerCase().includes(q);
+                    const matchBank = w.bankName.toLowerCase().includes(q);
+                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
+                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
+                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
+                  }
+                  if (dateFilter) {
+                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
+                    if (wDate !== dateFilter) return false;
+                  }
+                  return true;
+                }).map(w => (
                   <tr key={w.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(w.createdAt)}</td>
                     <td className="px-6 py-4">

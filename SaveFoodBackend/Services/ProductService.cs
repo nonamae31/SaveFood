@@ -15,11 +15,13 @@ public class ProductService : IProductService
 {
     private readonly IProductRepository _repo;
     private readonly ICloudinaryService _cloudinaryService;
+    private readonly IStoreRepository _storeRepo;
 
-    public ProductService(IProductRepository repo, ICloudinaryService cloudinaryService)
+    public ProductService(IProductRepository repo, ICloudinaryService cloudinaryService, IStoreRepository storeRepo)
     {
         _repo = repo;
         _cloudinaryService = cloudinaryService;
+        _storeRepo = storeRepo;
     }
 
     public async Task<ProductResponseDTO?> GetProductByIdAsync(Guid storeId, Guid productId, CancellationToken ct = default)
@@ -41,6 +43,12 @@ public class ProductService : IProductService
 
     public async Task<ProductResponseDTO> CreateProductAsync(Guid storeId, CreateProductDTO dto, CancellationToken ct = default)
     {
+        var store = await _storeRepo.GetByIdAsync(storeId, ct);
+        if (store == null || store.Status != (byte)StoreStatus.Active)
+        {
+            throw new Exception("Cửa hàng không hoạt động. Không thể tạo sản phẩm.");
+        }
+
         var product = new Product
         {
             Id = Guid.NewGuid(),

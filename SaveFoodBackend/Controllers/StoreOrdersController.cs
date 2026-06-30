@@ -102,4 +102,19 @@ public class StoreOrdersController : ApiControllerBase
         catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
         catch (InvalidOperationException ex)   { return NotFound(new { message = ex.Message }); }
     }
+
+    // GET: api/stores/{storeId}/orders/export-csv
+    [HttpGet("export-csv")]
+    public async Task<IActionResult> ExportCsv(Guid storeId, [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null, CancellationToken ct = default)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var csvBytes = await _orderService.ExportOrdersCsvAsync(storeId, userId, from, to, ct);
+            var fileName = $"store_orders_{storeId}_{DateTime.UtcNow:yyyyMMdd}.csv";
+            return File(csvBytes, "text/csv; charset=utf-8", fileName);
+        }
+        catch (UnauthorizedAccessException ex) { return Forbid(ex.Message); }
+        catch (InvalidOperationException ex)   { return BadRequest(new { message = ex.Message }); }
+    }
 }

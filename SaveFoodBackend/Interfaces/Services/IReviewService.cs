@@ -16,6 +16,7 @@ namespace SaveFoodBackend.Interfaces.Services
         Task<IEnumerable<ReviewResponse>> GetReviewsByListingIdAsync(Guid listingId, CancellationToken ct = default);
         Task<IEnumerable<ReviewResponse>> GetReviewsByProductIdAsync(Guid productId, CancellationToken ct = default);
         Task<IEnumerable<ReviewResponse>> GetReviewsByStoreIdAsync(Guid storeId, CancellationToken ct = default);
+        Task<StoreReviewStatsResponse> GetStoreReviewStatsAsync(Guid storeId, CancellationToken ct = default);
         
         Task<ReviewResponse> ReplyToReviewAsync(Guid storeId, Guid staffUserId, Guid reviewId, StoreReplyRequest request, CancellationToken ct = default);
     }

@@ -1,15 +1,1 @@
-System.ArgumentNullException: Value cannot be null. (Parameter 'configuration')
-   at StackExchange.Redis.ConfigurationOptions.DoParse(String configuration, Boolean ignoreUnknown) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 1012
-   at StackExchange.Redis.ConfigurationOptions.Parse(String configuration, Boolean ignoreUnknown) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 814
-   at StackExchange.Redis.ConfigurationOptions.Parse(String configuration) in /_/src/StackExchange.Redis/ConfigurationOptions.cs:line 804
-   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCacheOptions.GetConfiguredOptions()
-   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.ConnectSlowAsync(CancellationToken token)
-   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.GetAndRefreshAsync(String key, Boolean getData, CancellationToken token)
-   at Microsoft.Extensions.Caching.StackExchangeRedis.RedisCache.GetAsync(String key, CancellationToken token)
-   at Microsoft.Extensions.Caching.Distributed.DistributedCacheExtensions.GetStringAsync(IDistributedCache cache, String key, CancellationToken token)
-   at SaveFoodBackend.Services.RedisService.GetAsync(String key) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 29
-   at SaveFoodBackend.Services.RedisService.IsTokenBlacklistedAsync(String token) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Services\RedisService.cs:line 46
-   at SaveFoodBackend.Middleware.JwtBlacklistMiddleware.Invoke(HttpContext context, IRedisService redisService) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Middleware\JwtBlacklistMiddleware.cs:line 33
-   at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
-   at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
-   at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in D:\Ky8\PRN232\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
+""

@@ -12,7 +12,23 @@ var builder = WebApplication.CreateBuilder(args);
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new SaveFoodBackend.Extensions.UtcDateTimeConverter());
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = string.Join(" | ", context.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new SaveFoodBackend.Common.ApiResponse
+            {
+                Success = false,
+                Message = "Dữ liệu không hợp lệ: " + errors
+            });
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
 
@@ -93,6 +109,8 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, S
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreStaffRepository, SaveFoodBackend.Repositories.StoreStaffRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFoodBackend.Services.StoreStaffService>();
 
+// Sentiment analysis
+builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();

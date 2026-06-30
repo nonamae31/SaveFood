@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid } from 'lucide-react';
+import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
@@ -34,10 +34,11 @@ export function AdminLayout() {
   const navItems = [
     { name: 'Bảng điều khiển (🚧)', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
     { name: 'Tài khoản', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
-    { name: 'Duyệt cửa hàng (🚧)', href: ROUTES.ADMIN_APPROVALS, icon: Store },
-    { name: 'Tài chính (🚧)', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
-    { name: 'Gói đăng ký (🚧)', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
-    { name: 'Danh mục (🚧)', href: ROUTES.ADMIN_CATEGORIES, icon: LayoutGrid },
+    { name: 'Quản lý cửa hàng', href: ROUTES.ADMIN_APPROVALS, icon: Store },
+    { name: 'Tài chính', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
+    { name: 'Gói đăng ký', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
+    { name: 'Danh mục', href: ROUTES.ADMIN_CATEGORIES, icon: LayoutGrid },
+    { name: 'Kiểm toán', href: ROUTES.ADMIN_AUDIT, icon: ShieldCheck },
   ];
 
   return (

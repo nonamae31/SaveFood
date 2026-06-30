@@ -18,15 +18,18 @@ namespace SaveFoodBackend.Services
         private readonly IReviewRepository _reviewRepo;
         private readonly IStoreRepository _storeRepo;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly ISentimentService _sentimentService;
 
         public ReviewService(
             IReviewRepository reviewRepo,
             IStoreRepository storeRepo,
-            ICloudinaryService cloudinaryService)
+            ICloudinaryService cloudinaryService,
+            ISentimentService sentimentService)
         {
             _reviewRepo = reviewRepo;
             _storeRepo = storeRepo;
             _cloudinaryService = cloudinaryService;
+            _sentimentService = sentimentService;
         }
 
         private ReviewResponse MapToDTO(Review review)
@@ -43,7 +46,9 @@ namespace SaveFoodBackend.Services
                 StoreReplyAt = review.StoreReplyAt,
                 Images = review.ReviewImages?.Select(img => img.ImageUrl).ToList() ?? new List<string>(),
                 CustomerName = review.OrderItem?.Order?.User?.FullName ?? "Khách hàng",
-                CustomerAvatar = review.OrderItem?.Order?.User?.AvatarUrl
+                CustomerAvatar = review.OrderItem?.Order?.User?.AvatarUrl,
+                SentimentLabel = review.SentimentLabel,
+                SentimentScore = review.SentimentScore
             };
         }
 
@@ -98,6 +103,11 @@ namespace SaveFoodBackend.Services
                 }
             }
 
+            // Call sentiment service
+            var sentiment = await _sentimentService.AnalyzeSentimentAsync(request.Comment, ct);
+            review.SentimentLabel = sentiment.Label;
+            review.SentimentScore = sentiment.Score;
+
             await _reviewRepo.AddAsync(review, ct);
             await _reviewRepo.SaveChangesAsync(ct);
 
@@ -130,6 +140,11 @@ namespace SaveFoodBackend.Services
             // Delete store reply if any
             review.StoreReply = null;
             review.StoreReplyAt = null;
+
+            // Call sentiment service
+            var sentiment = await _sentimentService.AnalyzeSentimentAsync(request.Comment, ct);
+            review.SentimentLabel = sentiment.Label;
+            review.SentimentScore = sentiment.Score;
 
             // Process images (replace all if new images provided, or if empty array)
             if (request.Images != null)
@@ -195,6 +210,34 @@ namespace SaveFoodBackend.Services
         {
             var reviews = await _reviewRepo.GetReviewsByStoreIdAsync(storeId, ct);
             return reviews.Select(MapToDTO);
+        }
+
+        public async Task<StoreReviewStatsResponse> GetStoreReviewStatsAsync(Guid storeId, CancellationToken ct = default)
+        {
+            var reviews = await _reviewRepo.GetReviewsByStoreIdAsync(storeId, ct);
+            
+            var stats = new StoreReviewStatsResponse();
+            stats.TotalReviews = reviews.Count();
+            if (stats.TotalReviews > 0)
+            {
+                stats.AverageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+                stats.PendingReply = reviews.Count(r => string.IsNullOrEmpty(r.StoreReply));
+                stats.HighRated = reviews.Count(r => r.Rating >= 4);
+                
+                for (int i = 1; i <= 5; i++)
+                {
+                    stats.RatingDistribution[i] = reviews.Count(r => r.Rating == i);
+                }
+            }
+            else
+            {
+                for (int i = 1; i <= 5; i++)
+                {
+                    stats.RatingDistribution[i] = 0;
+                }
+            }
+
+            return stats;
         }
 
         public async Task<ReviewResponse> ReplyToReviewAsync(Guid storeId, Guid staffUserId, Guid reviewId, StoreReplyRequest request, CancellationToken ct = default)

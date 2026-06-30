@@ -20,6 +20,7 @@ export interface CustomerListingDTO {
   hasFeaturedBadge?: boolean
   priorityLevel?: number
   distance?: number
+  storeStatus: number
 }
 
 /** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */

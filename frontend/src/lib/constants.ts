@@ -60,9 +60,11 @@ export const ROUTES = {
   STORE_REGISTER: '/stores/register',
   POLICY:         '/policy',
   CART:           '/cart',
+  HELP_CENTER:    '/help-center',
+  MY_STORES:      '/profile/stores',
   CHECKOUT:       '/checkout',
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
-  MY_ORDERS:      '/my-orders',
+  MY_ORDERS:      '/profile?tab=orders',
   MY_WALLET:      '/my-wallet',
 
   // Auth
@@ -95,6 +97,7 @@ export const ROUTES = {
   ADMIN_APPROVALS:     '/admin/approvals',
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
   ADMIN_CATEGORIES:    '/admin/categories',
+  ADMIN_AUDIT:         '/admin/audit',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────

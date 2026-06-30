@@ -35,11 +35,18 @@ public class CartService : ICartService
         var listing = await _ctx.ClearanceListings
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreStaffs)
             .Include(l => l.ListingImages)
             .FirstOrDefaultAsync(l => l.Id == req.ListingId, ct);
 
         if (listing == null)
             throw new Exception("Sản phẩm không tồn tại.");
+
+        if (listing.Product.Store.Status != (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
+            throw new Exception("Cửa hàng hiện đang tạm đóng cửa.");
+
+        if (listing.Product.Store.StoreStaffs.Any(s => s.UserId == userId))
+            throw new Exception("Bạn không thể mua hàng từ cửa hàng của chính mình.");
 
         if (listing.QuantityAvailable <= 0)
             throw new Exception("Sản phẩm đã hết hàng.");
@@ -156,6 +163,8 @@ public class CartService : ICartService
             OriginalPrice = listing.Product.OriginalPrice,
             StoreId = listing.Product.StoreId,
             StoreName = listing.Product.Store.Name,
+            StoreLatitude = listing.Product.Store.Latitude,
+            StoreLongitude = listing.Product.Store.Longitude,
             Quantity = item.Quantity,
             AvailableQuantity = listing.QuantityAvailable,
             ExpiryDate = listing.ExpiryDate

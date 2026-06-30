@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin.api';
 import type { AdminRevenueStatsResponse, AdminSubscriptionStatsResponse } from '../../api/admin.api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, DollarSign, Package, Users } from 'lucide-react';
+import { TrendingUp, DollarSign, Package, Users, Store } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -93,11 +93,23 @@ export default function AdminDashboardPage() {
         <p className="text-[16px] text-mint-steel mt-2">Theo dõi doanh thu nền tảng và các chỉ số gói đăng ký.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
         <StatCard 
           title="Tổng doanh thu nền tảng" 
-          value={formatCurrency(revenueStats?.totalRevenue || 0)} 
+          value={formatCurrency((revenueStats?.totalRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0))} 
           icon={<DollarSign className="w-5 h-5" />} 
+          trend="Toàn thời gian"
+        />
+        <StatCard 
+          title="Thu nhập ròng các Cửa hàng" 
+          value={formatCurrency(revenueStats?.totalShopNetRevenue || 0)} 
+          icon={<Store className="w-5 h-5" />} 
+          trend="Toàn thời gian"
+        />
+        <StatCard 
+          title="Doanh thu từ phí (5%)" 
+          value={formatCurrency(revenueStats?.totalRevenue || 0)} 
+          icon={<TrendingUp className="w-5 h-5" />} 
           trend="Toàn thời gian"
         />
         <StatCard 
@@ -111,11 +123,6 @@ export default function AdminDashboardPage() {
           value={(subStats?.totalActiveSubscriptions || 0).toString()} 
           icon={<Users className="w-5 h-5" />} 
           trend="Hiện tại"
-        />
-        <StatCard 
-          title="Doanh thu TB / Gói ĐK" 
-          value={formatCurrency(subStats?.totalActiveSubscriptions ? (subStats.totalSubscriptionRevenue / subStats.totalActiveSubscriptions) : 0)} 
-          icon={<TrendingUp className="w-5 h-5" />} 
         />
       </div>
 

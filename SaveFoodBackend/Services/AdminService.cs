@@ -178,5 +178,27 @@ namespace SaveFoodBackend.Services
             _userRepo.Add(newUser);
             await _userRepo.SaveChangesAsync();
         }
+
+        public async Task<PaginatedList<AdminStoreListDTO>> GetStoresAsync(string? search, byte? status, int pageNumber, int pageSize)
+        {
+            var (items, totalCount) = await _storeRepo.GetAdminStoresAsync(search, status, pageNumber, pageSize);
+            return new PaginatedList<AdminStoreListDTO>(items, totalCount, pageNumber, pageSize);
+        }
+
+        public async Task<AdminStoreDetailsDTO> GetStoreDetailsAsync(Guid storeId)
+        {
+            var store = await _storeRepo.GetAdminStoreDetailsAsync(storeId);
+            if (store == null) throw new InvalidOperationException("Store not found.");
+            return store;
+        }
+
+        public async Task UpdateStoreStatusAsync(Guid storeId, byte newStatus)
+        {
+            var store = await _storeRepo.GetByIdAsync(storeId);
+            if (store == null) throw new InvalidOperationException("Store not found.");
+            
+            store.Status = newStatus;
+            await _storeRepo.SaveChangesAsync();
+        }
     }
 }

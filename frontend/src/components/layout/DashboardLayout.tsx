@@ -155,6 +155,14 @@ export function DashboardLayout() {
           </div>
           
           <button 
+            onClick={() => navigate(ROUTES.HOME)}
+            className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors cursor-pointer mb-2"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Về trang mua hàng
+          </button>
+          
+          <button 
             onClick={handleLogout}
             className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors cursor-pointer"
           >

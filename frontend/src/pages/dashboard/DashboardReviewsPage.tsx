@@ -7,6 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { QUERY_KEYS } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { apiClient } from '@/lib/apiClient'
+import { useMyStoreReviewStats } from '@/hooks/useReviews'
 import type { ReviewDTO } from '@/api/reviews.api'
 
 // ─── Store Reviews API calls ──────────────────────────────────────────────────
@@ -79,14 +80,15 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
   const avatarLetter = review.customerName?.charAt(0).toUpperCase() || 'K'
 
   const relativeDate = (dateStr: string) => {
-    const diff = Date.now() - new Date(dateStr).getTime()
+    const utcDateStr = dateStr.endsWith('Z') ? dateStr : dateStr + 'Z'
+    const diff = Date.now() - new Date(utcDateStr).getTime()
     const days = Math.floor(diff / 86400000)
-    if (days === 0) return 'Hôm nay'
+    if (days <= 0) return 'Hôm nay'
     if (days === 1) return 'Hôm qua'
     if (days < 30) return `${days} ngày trước`
     const months = Math.floor(days / 30)
     if (months < 12) return `${months} tháng trước`
-    return new Date(dateStr).toLocaleDateString('vi-VN')
+    return new Date(utcDateStr).toLocaleDateString('vi-VN')
   }
 
   const showReplyBox = isExpanded || isEditing
@@ -97,7 +99,7 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
       <div className="p-5">
         <div className="flex items-start gap-4">
           {/* Avatar */}
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[--color-brand-400] to-[--color-brand-600] flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
             {review.customerAvatar
               ? <img src={review.customerAvatar} alt={review.customerName} className="w-full h-full object-cover" />
               : avatarLetter
@@ -110,6 +112,15 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
               <span className="font-semibold text-gray-900 text-sm">{review.customerName}</span>
               <span className="text-xs text-gray-400">{relativeDate(review.createdAt)}</span>
               {review.updatedAt && <span className="text-xs text-gray-400 italic">(đã chỉnh sửa)</span>}
+              {review.sentimentLabel && (
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  review.sentimentLabel === 'Positive' ? 'bg-green-100 text-green-700 border border-green-200' :
+                  review.sentimentLabel === 'Negative' ? 'bg-red-100 text-red-700 border border-red-200' :
+                  'bg-gray-100 text-gray-700 border border-gray-200'
+                }`}>
+                  {review.sentimentLabel === 'Positive' ? 'Tích cực' : review.sentimentLabel === 'Negative' ? 'Tiêu cực' : 'Trung tính'}
+                </span>
+              )}
             </div>
             <div className="mt-1"><StarRating rating={review.rating} /></div>
           </div>
@@ -118,7 +129,7 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
           <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold
             ${review.rating >= 4 ? 'bg-green-50 text-green-600' :
               review.rating === 3 ? 'bg-amber-50 text-amber-600' :
-              'bg-red-50 text-red-600'}`}>
+                'bg-red-50 text-red-600'}`}>
             {review.rating}
           </div>
         </div>
@@ -145,10 +156,10 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
 
         {/* Existing reply */}
         {review.storeReply && !isEditing && (
-          <div className="mt-4 bg-[--color-brand-50] border border-[--color-brand-100] rounded-xl p-4">
+          <div className="mt-4 bg-brand-50 border border-brand-100 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="w-4 h-4 text-[--color-brand-600]" />
-              <span className="text-xs font-semibold text-[--color-brand-700]">Phản hồi của cửa hàng</span>
+              <MessageSquare className="w-4 h-4 text-brand-600" />
+              <span className="text-xs font-semibold text-brand-700">Phản hồi của cửa hàng</span>
               {review.storeReplyAt && (
                 <span className="text-xs text-gray-400 ml-auto">{relativeDate(review.storeReplyAt)}</span>
               )}
@@ -156,7 +167,7 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
             <p className="text-sm text-gray-700 leading-relaxed">{review.storeReply}</p>
             <button
               onClick={() => { setIsEditing(true); setReplyText(review.storeReply ?? '') }}
-              className="mt-2 text-xs text-[--color-brand-600] hover:text-[--color-brand-700] font-medium"
+              className="mt-2 text-xs text-brand-600 hover:text-brand-700 font-medium"
             >
               Chỉnh sửa phản hồi
             </button>
@@ -169,7 +180,7 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
         {!review.storeReply && !isExpanded && (
           <button
             onClick={() => setIsExpanded(true)}
-            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm text-[--color-brand-600] hover:bg-[--color-brand-50] transition-colors font-medium"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 text-sm text-brand-600 hover:bg-brand-50 transition-colors font-medium"
           >
             <MessageCircle className="w-4 h-4" />
             Phản hồi đánh giá
@@ -188,13 +199,13 @@ function ReviewCard({ review, storeId }: { review: ReviewDTO; storeId: string })
                 placeholder="Cảm ơn quý khách đã đánh giá! Chúng tôi..."
                 rows={3}
                 maxLength={1000}
-                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-[--color-brand-300] focus:border-[--color-brand-400] bg-white placeholder-gray-400"
+                className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 bg-white placeholder-gray-400"
               />
               <div className="flex flex-col gap-2">
                 <button
                   onClick={handleReply}
                   disabled={!replyText.trim() || replyMutation.isPending}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[--color-brand-500] text-white rounded-xl text-sm font-medium hover:bg-[--color-brand-600] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {replyMutation.isPending
                     ? <Loader2 className="w-4 h-4 animate-spin" />
@@ -252,18 +263,17 @@ export default function DashboardReviewsPage() {
   const { user } = useAuthContext()
   const storeId = user?.storeId ?? ''
   const { data: reviews = [], isLoading, isError } = useStoreReviews(storeId)
+  const { data: stats, isLoading: isStatsLoading } = useMyStoreReviewStats()
 
   const [search, setSearch] = useState('')
   const [filterRating, setFilterRating] = useState<number | null>(null)
   const [filterReplied, setFilterReplied] = useState<'all' | 'replied' | 'pending'>('all')
 
-  // Stats
-  const totalReviews = reviews.length
-  const avgRating = totalReviews > 0
-    ? (reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews).toFixed(1)
-    : '—'
-  const pendingReply = reviews.filter(r => !r.storeReply).length
-  const highRated = reviews.filter(r => r.rating >= 4).length
+  // Stats from backend
+  const totalReviews = stats?.totalReviews ?? 0
+  const avgRating = totalReviews > 0 ? (stats?.averageRating?.toFixed(1) ?? '—') : '—'
+  const pendingReply = stats?.pendingReply ?? 0
+  const highRated = stats?.highRated ?? 0
 
   // Filter + sort
   const filtered = reviews
@@ -299,12 +309,12 @@ export default function DashboardReviewsPage() {
       )}
 
       {/* Rating Distribution */}
-      {!isLoading && totalReviews > 0 && (
+      {!isStatsLoading && totalReviews > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">Phân bố đánh giá</h2>
           <div className="space-y-2">
             {[5, 4, 3, 2, 1].map(star => {
-              const count = reviews.filter(r => r.rating === star).length
+              const count = stats?.ratingDistribution?.[star] ?? 0
               const pct = totalReviews > 0 ? (count / totalReviews) * 100 : 0
               return (
                 <button
@@ -339,7 +349,7 @@ export default function DashboardReviewsPage() {
             placeholder="Tìm kiếm theo tên khách hoặc nội dung..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[--color-brand-300] focus:border-[--color-brand-400] bg-white"
+            className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 bg-white"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -347,7 +357,7 @@ export default function DashboardReviewsPage() {
           <select
             value={filterReplied}
             onChange={(e) => setFilterReplied(e.target.value as 'all' | 'replied' | 'pending')}
-            className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[--color-brand-300] bg-white text-gray-700"
+            className="text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-brand-300 bg-white text-gray-700"
           >
             <option value="all">Tất cả</option>
             <option value="pending">Chưa phản hồi</option>
@@ -356,7 +366,7 @@ export default function DashboardReviewsPage() {
           {filterRating !== null && (
             <button
               onClick={() => setFilterRating(null)}
-              className="text-xs text-[--color-brand-600] hover:text-[--color-brand-700] font-medium whitespace-nowrap"
+              className="text-xs text-brand-600 hover:text-brand-700 font-medium whitespace-nowrap"
             >
               ✕ Xóa lọc ★{filterRating}
             </button>
@@ -367,7 +377,7 @@ export default function DashboardReviewsPage() {
       {/* Content states */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-[--color-brand-500]" />
+          <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
         </div>
       )}
 
@@ -381,8 +391,8 @@ export default function DashboardReviewsPage() {
 
       {!isLoading && !isError && totalReviews === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-16 h-16 bg-[--color-brand-50] rounded-2xl flex items-center justify-center mb-4">
-            <Star className="w-8 h-8 text-[--color-brand-400]" />
+          <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mb-4">
+            <Star className="w-8 h-8 text-brand-400" />
           </div>
           <p className="text-gray-700 font-semibold">Chưa có đánh giá nào</p>
           <p className="text-sm text-gray-400 mt-1">Khi khách hàng gửi đánh giá, chúng sẽ xuất hiện tại đây</p>
@@ -395,7 +405,7 @@ export default function DashboardReviewsPage() {
           <p className="text-gray-500">Không tìm thấy đánh giá nào khớp với bộ lọc</p>
           <button
             onClick={() => { setSearch(''); setFilterRating(null); setFilterReplied('all') }}
-            className="mt-3 text-sm text-[--color-brand-600] hover:text-[--color-brand-700] font-medium"
+            className="mt-3 text-sm text-brand-600 hover:text-brand-700 font-medium"
           >
             Xóa tất cả bộ lọc
           </button>

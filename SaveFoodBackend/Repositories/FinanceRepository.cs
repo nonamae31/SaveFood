@@ -105,6 +105,11 @@ public class FinanceRepository : IFinanceRepository
         _ctx.WalletTransactions.Add(transaction);
     }
 
+    public void AddCustomerWalletTransaction(CustomerWalletTransaction transaction)
+    {
+        _ctx.CustomerWalletTransactions.Add(transaction);
+    }
+
     public async Task<StoreWallet?> GetStoreWalletByStoreIdAsync(Guid storeId, CancellationToken ct = default)
     {
         return await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == storeId, ct);
@@ -149,6 +154,11 @@ public class FinanceRepository : IFinanceRepository
     public void AddWithdrawalRequest(WithdrawalRequest request)
     {
         _ctx.WithdrawalRequests.Add(request);
+    }
+
+    public void AddStoreWallet(StoreWallet storeWallet)
+    {
+        _ctx.StoreWallets.Add(storeWallet);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
