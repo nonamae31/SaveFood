@@ -57,7 +57,7 @@ public class NoShowOrderCompletionService : BackgroundService
             .Include(o => o.Payment)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Listing)
-            .Where(o => (o.OrderStatus == 0 || o.OrderStatus == 1 || o.OrderStatus == 2) 
+            .Where(o => (o.OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending || o.OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Confirmed || o.OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.ReadyForPickup) 
                         && o.ExpectedPickupTime.HasValue 
                         && o.ExpectedPickupTime.Value < thresholdTime)
             .ToListAsync(cancellationToken);
@@ -66,11 +66,11 @@ public class NoShowOrderCompletionService : BackgroundService
         {
             foreach (var order in lateOrders)
             {
-                if (order.OrderStatus == 0)
+                if (order.OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending)
                 {
                     // Store never confirmed it. Customer didn't receive it.
                     // Cancel order and refund customer.
-                    order.OrderStatus = 4; // Cancelled
+                    order.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Cancelled; // Cancelled
 
                     // Restore stock
                     foreach (var item in order.OrderItems)
@@ -116,9 +116,7 @@ public class NoShowOrderCompletionService : BackgroundService
                 }
                 else // Status 1 or 2
                 {
-                    // Store confirmed it, customer No-Show. Pay the store.
-                    order.OrderStatus = 3; // Completed / Delivered
-
+                    order.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Completed; // Delivered
                     // Process store wallet (add money to store - minus 5% platform fee)
                     if (order.Store?.StoreWallet != null)
                     {

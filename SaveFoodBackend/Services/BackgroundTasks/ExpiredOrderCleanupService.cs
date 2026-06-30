@@ -55,14 +55,14 @@ public class ExpiredOrderCleanupService : BackgroundService
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Listing)
             .Include(o => o.Payment)
-            .Where(o => o.OrderStatus == 0 && o.ReservationExpiresAt.HasValue && o.ReservationExpiresAt.Value < now)
+            .Where(o => o.OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending && o.ReservationExpiresAt.HasValue && o.ReservationExpiresAt.Value < now)
             .ToListAsync(cancellationToken);
 
         if (expiredOrders.Any())
         {
             foreach (var order in expiredOrders)
             {
-                order.OrderStatus = 4; // Cancelled (assuming 4 is Cancelled)
+                order.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Cancelled; // Cancelled
                 order.ReservationExpiresAt = null; // Clear expiration
 
                 // Restore stock
