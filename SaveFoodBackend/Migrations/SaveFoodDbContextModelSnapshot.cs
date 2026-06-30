@@ -1489,6 +1489,17 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.UserSession", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "User")
+                        .WithMany("UserSessions")
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("FK_UserSessions_Users");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.WalletTransaction", b =>
                 {
                     b.HasOne("SaveFoodBackend.Models.Order", "Order")
@@ -1628,6 +1639,8 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("StoreSubscriptions");
 
                     b.Navigation("UserRoles");
+
+                    b.Navigation("UserSessions");
 
                     b.Navigation("WithdrawalRequests");
                 });

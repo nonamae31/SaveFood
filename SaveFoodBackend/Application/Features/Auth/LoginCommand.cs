@@ -1,13 +1,4 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using SaveFood.Application.CQRS;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
@@ -54,7 +45,7 @@ public class LoginCommandHandler : ICommandHandler<LoginCommand, LoginResponse>
         if (user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new BusinessException("Account is locked or inactive.", "ACCOUNT_LOCKED_OR_INACTIVE", 403);
         if (user.EmailVerified == false)
         {
-            throw new SaveFoodBackend.Common.Exceptions.BusinessException(
+            throw new BusinessException(
                 "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để lấy mã OTP.",
                 "UNVERIFIED_ACCOUNT",
                 403);

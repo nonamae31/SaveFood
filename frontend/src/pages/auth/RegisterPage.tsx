@@ -39,6 +39,8 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
+    trigger,
+    getValues,
     formState: { errors }
   } = useForm<RegisterFormInputs>({
     resolver: zodResolver(registerSchema),
@@ -167,7 +169,13 @@ export function RegisterPage() {
                 type="password"
                 label="Mật khẩu"
                 placeholder="••••••••"
-                {...register('password')}
+                {...register('password', {
+                  onBlur: () => {
+                    if (getValues('confirmPassword')) {
+                      trigger('confirmPassword');
+                    }
+                  }
+                })}
                 error={errors.password?.message}
               />
             </div>
