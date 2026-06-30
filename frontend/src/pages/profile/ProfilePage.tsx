@@ -1,14 +1,77 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useUpdateProfile, useChangePassword, useForgotPassword, useResetPassword } from '@/hooks/useAuth';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, ClipboardList, Store, Clock, XCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Wallet, ClipboardList, Store, Clock, XCircle, CheckCircle, Loader2 } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useQuery } from '@tanstack/react-query';
 import { storeApi } from '@/api/store.api';
 import dayjs from 'dayjs';
+import { useDropzone } from 'react-dropzone';
+
+function InlineEditableInput({
+  id,
+  label,
+  value,
+  type = 'text',
+  onSave,
+  disabled = false,
+  className = '',
+}: {
+  id: string;
+  label: string;
+  value: string;
+  type?: string;
+  onSave?: (val: string) => Promise<void>;
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [localValue, setLocalValue] = useState(value);
+  const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setLocalValue(value);
+  }, [value]);
+
+  const handleBlur = async () => {
+    if (disabled || !onSave) return;
+    if (localValue === value) return; // no change
+    setStatus('saving');
+    try {
+      await onSave(localValue);
+      setStatus('success');
+      setTimeout(() => setStatus('idle'), 2000);
+    } catch (_error) {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 3000);
+      setLocalValue(value); // revert on error
+    }
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        label={label}
+        type={type}
+        value={localValue}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={handleBlur}
+        disabled={disabled || status === 'saving'}
+        className={className}
+      />
+      {/* Indicator */}
+      <div className="absolute right-3 top-9 flex items-center justify-center pointer-events-none">
+        {status === 'saving' && <Loader2 className="animate-spin text-[--color-brand-600]" size={18} />}
+        {status === 'success' && <CheckCircle className="text-green-500" size={18} />}
+        {status === 'error' && <XCircle className="text-red-500" size={18} />}
+      </div>
+    </div>
+  );
+}
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -20,12 +83,9 @@ export function ProfilePage() {
   const resetPasswordMutation = useResetPassword();
   
   // Profile State
-  const [fullName, setFullName] = useState('');
-  const [phoneNumber, setPhoneNumber] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   
-  const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
   // Password State
@@ -47,11 +107,39 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (user) {
-      setFullName(user.fullName || '');
-      setPhoneNumber(user.phoneNumber || '');
+      // eslint-disable-next-line react-hooks/exhaustive-deps
       setAvatarUrl(user.avatarUrl || '');
     }
   }, [user]);
+
+  const onDropAvatar = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file && user) {
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarUrl(previewUrl);
+      setIsUploadingAvatar(true);
+      setErrorMsg('');
+      
+      updateProfileMutation.mutate(
+        { fullName: user.fullName, avatarFile: file },
+        {
+          onSettled: () => setIsUploadingAvatar(false),
+          onError: (err) => {
+             console.error(err);
+             setAvatarUrl(user.avatarUrl || ''); // revert on error
+             setErrorMsg('Lỗi khi tải ảnh lên.');
+          }
+        }
+      );
+    }
+  }, [user, updateProfileMutation]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop: onDropAvatar,
+    accept: { 'image/*': [] },
+    maxFiles: 1,
+    multiple: false
+  });
 
   if (isLoading) {
     return <div className="p-8 text-center">Đang tải dữ liệu...</div>;
@@ -61,18 +149,20 @@ export function ProfilePage() {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSuccessMsg('');
-    setErrorMsg('');
-
-    updateProfileMutation.mutate(
-      { fullName, phoneNumber, avatarFile },
-      {
-        onSuccess: () => setSuccessMsg('Cập nhật hồ sơ thành công!'),
-        onError: (err: Error) => setErrorMsg(err.message || 'Cập nhật thất bại. Vui lòng thử lại.')
-      }
-    );
+  const handleSaveField = async (field: 'fullName' | 'phoneNumber', val: string) => {
+    return new Promise<void>((resolve, reject) => {
+      if (!user) return reject(new Error('User not found'));
+      updateProfileMutation.mutate(
+        {
+          fullName: field === 'fullName' ? val : user.fullName,
+          phoneNumber: field === 'phoneNumber' ? val : (user.phoneNumber || ''),
+        },
+        {
+          onSuccess: () => resolve(),
+          onError: (err) => reject(err),
+        }
+      );
+    });
   };
 
   const handleChangePasswordSubmit = (e: React.FormEvent) => {
@@ -173,34 +263,27 @@ export function ProfilePage() {
       {/* SECTION: THÔNG TIN CÁ NHÂN */}
       <div className="bg-[--color-surface-base] shadow-[--shadow-card] rounded-[1.5rem] overflow-hidden">
         <div className="bg-brand-50 px-8 py-6 border-b border-brand-100 flex items-center gap-6">
-          <div className="relative group w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm flex-shrink-0 cursor-pointer">
-            {avatarUrl ? (
+          <div 
+            {...getRootProps()} 
+            className={`relative group w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-sm flex-shrink-0 cursor-pointer ${isDragActive ? 'ring-2 ring-[--color-brand-500]' : ''}`}
+          >
+            <input {...getInputProps()} />
+            {isUploadingAvatar ? (
+              <div className="w-full h-full bg-black/20 flex items-center justify-center">
+                <Loader2 className="animate-spin text-white" size={32} />
+              </div>
+            ) : avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full bg-brand-500 flex items-center justify-center text-white text-heading-xl font-bold">
                 {user?.fullName.charAt(0).toUpperCase()}
               </div>
             )}
-            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <span className="text-white text-xs font-medium">Thay đổi</span>
-            </div>
-            <input 
-              type="file" 
-              accept="image/*" 
-              className="absolute inset-0 opacity-0 cursor-pointer"
-              title="Thay đổi ảnh đại diện"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setAvatarUrl(reader.result as string);
-                };
-                reader.readAsDataURL(file);
-                setAvatarFile(file);
-              }}
-            />
+            {!isUploadingAvatar && (
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-white text-xs font-medium text-center px-1">Thay đổi</span>
+              </div>
+            )}
           </div>
           <div>
             <h1 className="text-heading-lg font-bold text-ink-primary">{user?.fullName}</h1>
@@ -227,8 +310,8 @@ export function ProfilePage() {
         <div className="p-8">
           <h2 className="text-heading-md font-bold mb-6">Thông tin cá nhân</h2>
           
-          <form onSubmit={handleProfileSubmit} className="space-y-5">
-            <Input
+          <div className="space-y-5">
+            <InlineEditableInput
               id="email"
               label="Địa chỉ Email"
               type="email"
@@ -237,41 +320,28 @@ export function ProfilePage() {
               className="bg-surface-muted text-ink-secondary"
             />
 
-            <Input
+            <InlineEditableInput
               id="fullName"
               label="Họ và tên"
               type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
+              value={user?.fullName || ''}
+              onSave={(val) => handleSaveField('fullName', val)}
             />
 
-            <Input
+            <InlineEditableInput
               id="phoneNumber"
               label="Số điện thoại"
               type="tel"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
+              value={user?.phoneNumber || ''}
+              onSave={(val) => handleSaveField('phoneNumber', val)}
             />
-
-            {successMsg && (
-              <div className="p-3 bg-brand-50 border border-brand-100 text-brand-700 rounded-md text-body-sm">
-                {successMsg}
-              </div>
-            )}
             
             {errorMsg && (
               <div className="p-3 bg-red-50 border border-red-100 text-expiry-urgent rounded-md text-body-sm">
                 {errorMsg}
               </div>
             )}
-
-            <div className="pt-4 flex justify-end">
-              <Button type="submit" isLoading={updateProfileMutation.isPending}>
-                Lưu thông tin
-              </Button>
-            </div>
-          </form>
+          </div>
         </div>
       </div>
 
@@ -456,3 +526,4 @@ export function ProfilePage() {
     </div>
   );
 }
+
