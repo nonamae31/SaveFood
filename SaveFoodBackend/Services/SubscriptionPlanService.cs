@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
 
@@ -13,45 +13,51 @@ namespace SaveFoodBackend.Services
 {
     public class SubscriptionPlanService : ISubscriptionPlanService
     {
-        private readonly SaveFoodDbContext _context;
+        private readonly ISubscriptionRepository _subscriptionRepo;
 
-        public SubscriptionPlanService(SaveFoodDbContext context)
+        public SubscriptionPlanService(ISubscriptionRepository subscriptionRepo)
         {
-            _context = context;
+            _subscriptionRepo = subscriptionRepo;
         }
 
         public async Task<IEnumerable<SubscriptionPlanDTO>> GetAllPlansAsync()
         {
-            var plans = await _context.SubscriptionPlans
-                .Where(p => (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-                .Select(p => new SubscriptionPlanDTO
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    MonthlyPrice = p.MonthlyPrice,
-                    IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
-                })
-                .ToListAsync();
-
-            return plans;
+            var plans = await _subscriptionRepo.GetAllActivePlansAsync();
+            
+            return plans.Select(p => new SubscriptionPlanDTO
+            {
+                Id = p.Id,
+                Name = p.Name,
+                Description = p.Description,
+                MonthlyPrice = p.MonthlyPrice,
+                IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = p.MaxActiveListings,
+                HasCustomBanner = p.HasCustomBanner,
+                HasFeaturedBadge = p.HasFeaturedBadge,
+                PriorityLevel = p.PriorityLevel,
+                AnalyticsLevel = p.AnalyticsLevel
+            }).ToList();
         }
 
         public async Task<SubscriptionPlanDTO?> GetPlanByIdAsync(Guid id)
         {
-            var plan = await _context.SubscriptionPlans
-                .Where(p => p.Id == id && (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-                .Select(p => new SubscriptionPlanDTO
-                {
-                    Id = p.Id,
-                    Name = p.Name,
-                    Description = p.Description,
-                    MonthlyPrice = p.MonthlyPrice,
-                    IsActive = (p.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
-                })
-                .FirstOrDefaultAsync();
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            return plan;
+            if (plan == null) return null;
+
+            return new SubscriptionPlanDTO
+            {
+                Id = plan.Id,
+                Name = plan.Name,
+                Description = plan.Description,
+                MonthlyPrice = plan.MonthlyPrice,
+                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = plan.MaxActiveListings,
+                HasCustomBanner = plan.HasCustomBanner,
+                HasFeaturedBadge = plan.HasFeaturedBadge,
+                PriorityLevel = plan.PriorityLevel,
+                AnalyticsLevel = plan.AnalyticsLevel
+            };
         }
 
         public async Task<SubscriptionPlanDTO> CreatePlanAsync(CreateSubscriptionPlanRequest request)
@@ -62,11 +68,16 @@ namespace SaveFoodBackend.Services
                 Name = request.Name,
                 Description = request.Description,
                 MonthlyPrice = request.MonthlyPrice,
-                PlanFlags = (byte)PlanFlagsEnum.IsActive
+                PlanFlags = (byte)PlanFlagsEnum.IsActive,
+                MaxActiveListings = request.MaxActiveListings,
+                HasCustomBanner = request.HasCustomBanner,
+                HasFeaturedBadge = request.HasFeaturedBadge,
+                PriorityLevel = request.PriorityLevel,
+                AnalyticsLevel = request.AnalyticsLevel
             };
 
-            _context.SubscriptionPlans.Add(newPlan);
-            await _context.SaveChangesAsync();
+            _subscriptionRepo.AddPlan(newPlan);
+            await _subscriptionRepo.SaveChangesAsync();
 
             return new SubscriptionPlanDTO
             {
@@ -74,15 +85,20 @@ namespace SaveFoodBackend.Services
                 Name = newPlan.Name,
                 Description = newPlan.Description,
                 MonthlyPrice = newPlan.MonthlyPrice,
-                IsActive = true
+                IsActive = true,
+                MaxActiveListings = newPlan.MaxActiveListings,
+                HasCustomBanner = newPlan.HasCustomBanner,
+                HasFeaturedBadge = newPlan.HasFeaturedBadge,
+                PriorityLevel = newPlan.PriorityLevel,
+                AnalyticsLevel = newPlan.AnalyticsLevel
             };
         }
 
         public async Task<SubscriptionPlanDTO> UpdatePlanAsync(Guid id, UpdateSubscriptionPlanRequest request)
         {
-            var plan = await _context.SubscriptionPlans.FindAsync(id);
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            if (plan == null || (plan.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) != 0)
+            if (plan == null)
             {
                 throw new InvalidOperationException("Subscription Plan not found.");
             }
@@ -90,8 +106,13 @@ namespace SaveFoodBackend.Services
             plan.Name = request.Name;
             plan.Description = request.Description;
             plan.MonthlyPrice = request.MonthlyPrice;
+            plan.MaxActiveListings = request.MaxActiveListings;
+            plan.HasCustomBanner = request.HasCustomBanner;
+            plan.HasFeaturedBadge = request.HasFeaturedBadge;
+            plan.PriorityLevel = request.PriorityLevel;
+            plan.AnalyticsLevel = request.AnalyticsLevel;
 
-            await _context.SaveChangesAsync();
+            await _subscriptionRepo.SaveChangesAsync();
 
             return new SubscriptionPlanDTO
             {
@@ -99,21 +120,27 @@ namespace SaveFoodBackend.Services
                 Name = plan.Name,
                 Description = plan.Description,
                 MonthlyPrice = plan.MonthlyPrice,
-                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0
+                IsActive = (plan.PlanFlags & (byte)PlanFlagsEnum.IsActive) != 0,
+                MaxActiveListings = plan.MaxActiveListings,
+                HasCustomBanner = plan.HasCustomBanner,
+                HasFeaturedBadge = plan.HasFeaturedBadge,
+                PriorityLevel = plan.PriorityLevel,
+                AnalyticsLevel = plan.AnalyticsLevel
             };
         }
 
         public async Task DeletePlanAsync(Guid id)
         {
-            var plan = await _context.SubscriptionPlans.FindAsync(id);
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
 
-            if (plan == null || (plan.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) != 0)
+            if (plan == null)
             {
                 throw new InvalidOperationException("Subscription Plan not found.");
             }
 
-            plan.PlanFlags |= (byte)PlanFlagsEnum.IsDeleted;
-            await _context.SaveChangesAsync();
+            // Đánh dấu là đã xóa và gỡ cờ Active (nếu có)
+            plan.PlanFlags = (byte)((plan.PlanFlags & ~(byte)PlanFlagsEnum.IsActive) | (byte)PlanFlagsEnum.IsDeleted);
+            await _subscriptionRepo.SaveChangesAsync();
         }
     }
 }

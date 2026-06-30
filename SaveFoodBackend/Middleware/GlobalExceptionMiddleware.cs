@@ -40,6 +40,9 @@ public class GlobalExceptionMiddleware(
 
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
+        // Ghi log ra file để debug nhanh
+        System.IO.File.WriteAllText("error_log.txt", exception.ToString());
+
         // Log lỗi — luôn ghi log đầy đủ cho debugging
         if (exception is BusinessException)
             logger.LogWarning(exception, "Business exception: {Message}", exception.Message);
@@ -56,14 +59,16 @@ public class GlobalExceptionMiddleware(
             SecurityTokenExpiredException => (401, "TOKEN_EXPIRED", "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại."),
 
             // Lỗi không có quyền
-            ForbiddenException fe => (403, fe.ErrorCode, fe.Message),
-            UnauthorizedAccessException => (403, "FORBIDDEN", "Bạn không có quyền thực hiện thao tác này."),
+            // ForbiddenException fe => (403, fe.ErrorCode, fe.Message),
+            UnauthorizedAccessException => (403, "FORBIDDEN", exception.Message),
 
             // Lỗi không tìm thấy
             NotFoundException nfe => (404, nfe.ErrorCode, nfe.Message),
 
             // Lỗi nghiệp vụ khác (BusinessException và các subclass)
             BusinessException be => (be.HttpStatusCode, be.ErrorCode, be.Message),
+            ArgumentException ae => (400, "BAD_REQUEST", ae.Message),
+            InvalidOperationException ioe => (400, "BAD_REQUEST", ioe.Message),
 
             // Lỗi hệ thống không xác định
             _ => (500, "SERVER_ERROR", env.IsDevelopment()

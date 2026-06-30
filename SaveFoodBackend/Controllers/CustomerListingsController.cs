@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaveFoodBackend.DTOs.Customer.Listings;
 using SaveFoodBackend.Interfaces;
@@ -18,6 +19,7 @@ public class CustomerListingsController : ApiControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetListings([FromQuery] CustomerListingFilterDTO filter, CancellationToken ct)
     {
         var listings = await _listingService.GetListingsAsync(filter, ct);
@@ -25,6 +27,7 @@ public class CustomerListingsController : ApiControllerBase
     }
 
     [HttpGet("recommendations")]
+    [Authorize]
     public async Task<IActionResult> GetRecommendations(CancellationToken ct)
     {
         var userId = GetRequiredUserId();

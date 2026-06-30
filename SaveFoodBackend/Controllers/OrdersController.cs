@@ -1,0 +1,117 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using SaveFoodBackend.DTOs.Customer.Orders;
+using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Utils;
+
+namespace SaveFoodBackend.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public class OrdersController : ApiControllerBase
+{
+    private readonly IOrderService _orderService;
+
+    public OrdersController(IOrderService orderService)
+    {
+        _orderService = orderService;
+    }
+
+    [Authorize]
+    [HttpPost("checkout")]
+    public async Task<IActionResult> Checkout([FromBody] CheckoutRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var result = await _orderService.CheckoutAsync(userId, req, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> GetMyOrders([FromQuery] int? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 5, CancellationToken ct = default)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var result = await _orderService.GetMyOrdersAsync(userId, status, page, pageSize, ct);
+            return Ok(new { success = true, data = result });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetOrderById(Guid id, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var result = await _orderService.GetOrderByIdAsync(id, userId, ct);
+            return Ok(new { success = true, data = result });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [Authorize(Roles = "STORE")]
+    [HttpPost("{id}/verify-pickup")]
+    public async Task<IActionResult> VerifyPickup(Guid id, [FromBody] VerifyPickupRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var success = await _orderService.VerifyPickupAsync(id, req.PickupCode, userId, ct);
+            return Ok(new { success = success, message = "Xác nhận nhận hàng thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [Authorize]
+    [HttpPut("{id}/extend-pickup")]
+    public async Task<IActionResult> ExtendPickupTime(Guid id, [FromBody] ExtendPickupRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var success = await _orderService.ExtendPickupTimeAsync(id, userId, req.AdditionalMinutes, ct);
+            return Ok(new { success = success, message = "Gia hạn thời gian lấy hàng thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+    [Authorize]
+    [HttpPost("{id}/cancel")]
+    public async Task<IActionResult> CancelOrder(Guid id, [FromBody] CancelOrderRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = GetRequiredUserId();
+            var success = await _orderService.CancelOrderAsync(id, userId, req, ct);
+            return Ok(new { success = success, message = "Hủy đơn hàng và gửi yêu cầu hoàn tiền thành công." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+}

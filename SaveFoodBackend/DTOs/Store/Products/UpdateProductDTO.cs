@@ -19,4 +19,6 @@ public class UpdateProductDTO
     public decimal OriginalPrice { get; set; }
 
     public bool IsHidden { get; set; } = false;
+
+    public bool IsSurpriseBag { get; set; } = false;
 }

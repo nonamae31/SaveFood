@@ -41,8 +41,16 @@ public class ProductsController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        var product = await _productService.CreateProductAsync(storeId, dto, ct);
-        return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
+        try
+        {
+            var product = await _productService.CreateProductAsync(storeId, dto, ct);
+            return CreatedAtAction(nameof(GetProduct), new { storeId, productId = product.Id }, product);
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException != null ? ex.InnerException.Message : "";
+            return BadRequest(new { Message = $"{ex.Message} {inner}" });
+        }
     }
     //
     //
@@ -70,6 +78,33 @@ public class ProductsController : ControllerBase
         {
             await _productService.DeleteProductAsync(storeId, productId, ct);
             return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+    [HttpPost("{productId}/images")]
+    public async Task<IActionResult> UploadProductImages(Guid storeId, Guid productId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> images, CancellationToken ct)
+    {
+        try
+        {
+            var product = await _productService.UploadProductImagesAsync(storeId, productId, images, ct);
+            return Ok(product);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{productId}/images/{imageId}")]
+    public async Task<IActionResult> DeleteProductImage(Guid storeId, Guid productId, Guid imageId, CancellationToken ct)
+    {
+        try
+        {
+            var product = await _productService.DeleteProductImageAsync(storeId, productId, imageId, ct);
+            return Ok(product);
         }
         catch (Exception ex)
         {

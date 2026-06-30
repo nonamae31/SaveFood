@@ -15,13 +15,24 @@ public class CustomerListingDTO
     public int QuantityAvailable { get; set; }
     public DateTime ExpiryDate { get; set; }
     public bool IsSurpriseBag { get; set; }
+    public string? ImageUrl { get; set; }
+    public List<string> Images { get; set; } = new();
+    public bool HasFeaturedBadge { get; set; }
+    public int PriorityLevel { get; set; }
+    public double? Distance { get; set; } // km
+    public byte StoreStatus { get; set; }
 }
 
 public class CustomerListingFilterDTO
 {
-    public Guid? CategoryId { get; set; }
+    public Guid? StoreId { get; set; }
+    public List<Guid>? CategoryIds { get; set; }
     public decimal? MinPrice { get; set; }
     public decimal? MaxPrice { get; set; }
     public bool? IsSurpriseBag { get; set; }
-    public string? SortBy { get; set; } // "price_asc", "price_desc", "expiry_asc"
+    public string? SortBy { get; set; } // "price_asc", "price_desc", "expiry_asc", "distance"
+    public string? SearchQuery { get; set; }
+    public double? UserLat { get; set; }
+    public double? UserLng { get; set; }
+    public double? RadiusKm { get; set; }
 }

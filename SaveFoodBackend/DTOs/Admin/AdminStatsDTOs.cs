@@ -6,6 +6,7 @@ namespace SaveFoodBackend.DTOs.Admin;
 public class AdminRevenueStatsResponse
 {
     public decimal TotalRevenue { get; set; }
+    public decimal TotalShopNetRevenue { get; set; }
     public List<MonthlyRevenue> MonthlyRevenues { get; set; } = new();
 }
 

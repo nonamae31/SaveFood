@@ -100,10 +100,21 @@ export function useUpdateProfile() {
   });
 }
 
-import { changePassword } from '@/api/auth.api';
+import { changePassword, updateLocation } from '@/api/auth.api';
 
 export function useChangePassword() {
   return useMutation({
     mutationFn: changePassword,
+  });
+}
+
+export function useUpdateLocation() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: updateLocation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.profile });
+    },
   });
 }

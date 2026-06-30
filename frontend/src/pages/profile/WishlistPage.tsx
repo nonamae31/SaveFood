@@ -3,7 +3,7 @@ import { Link, Navigate } from 'react-router-dom';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useGetWishlist, useRemoveWishlistItem } from '@/hooks/useWishlist';
 import { Button } from '@/components/ui/Button';
-import { HeartCrack, Store, Tag } from 'lucide-react';
+import { HeartCrack, Store } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
 export function WishlistPage() {
@@ -31,9 +31,13 @@ export function WishlistPage() {
 
   return (
     <div className="max-w-[--spacing-container] mx-auto py-10 px-4 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <h1 className="text-heading-xl font-display font-bold text-ink-primary">Danh sách yêu thích</h1>
-        <p className="text-body-md text-ink-secondary mt-2">
+      <div className="mb-10">
+        <div className="flex items-center gap-2 mb-2">
+          <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+          <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Yêu thích</span>
+        </div>
+        <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Danh sách <span className="text-[--color-brand-600]">yêu thích</span></h1>
+        <p className="text-[--color-ink-secondary] mt-2">
           Các món ăn và thực phẩm bạn đã lưu để xem lại sau.
         </p>
       </div>
@@ -51,7 +55,7 @@ export function WishlistPage() {
       ) : wishlistItems && wishlistItems.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {wishlistItems.map((item) => (
-            <div key={item.productId} className="bg-surface-base rounded-2xl shadow-card overflow-hidden border border-surface-border group flex flex-col">
+            <div key={item.productId} className="bg-[--color-surface-base] rounded-[1.5rem] shadow-[--shadow-card] overflow-hidden border border-[--color-surface-border] group flex flex-col hover:shadow-[--shadow-card-hover] hover:-translate-y-1 transition-all duration-300">
               <div className="relative h-48 bg-surface-muted overflow-hidden">
                 {item.imageUrl ? (
                   <img src={item.imageUrl} alt={item.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -93,14 +97,14 @@ export function WishlistPage() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 bg-surface-base rounded-2xl border border-surface-border border-dashed">
-          <HeartCrack className="w-12 h-12 mx-auto text-ink-tertiary mb-4" />
-          <h3 className="text-heading-sm font-bold text-ink-primary">Danh sách trống</h3>
-          <p className="text-body-sm text-ink-secondary mt-1 max-w-sm mx-auto mb-6">
+        <div className="text-center py-20 bg-[--color-surface-base] rounded-[1.5rem] border border-[--color-surface-border] border-dashed">
+          <HeartCrack className="w-12 h-12 mx-auto text-[--color-ink-tertiary] mb-4" />
+          <h3 className="text-xl font-bold text-[--color-ink-primary] font-[--font-display]">Danh sách trống</h3>
+          <p className="text-sm text-[--color-ink-secondary] mt-1 max-w-sm mx-auto mb-6">
             Bạn chưa có sản phẩm nào trong danh sách yêu thích. Hãy tiếp tục khám phá nhé!
           </p>
           <Link to={ROUTES.PRODUCTS}>
-            <Button>Khám phá đồ ăn</Button>
+            <Button className="rounded-full px-6">Khám phá đồ ăn</Button>
           </Link>
         </div>
       )}

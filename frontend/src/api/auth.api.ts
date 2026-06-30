@@ -68,3 +68,9 @@ export const changePassword = (data: import('@/types/auth.types').ChangePassword
     method: 'PUT',
     body: JSON.stringify(data)
   });
+
+export const updateLocation = (data: import('@/types/auth.types').UpdateLocationRequest): Promise<{ message: string }> =>
+  apiClient('/Users/location', {
+    method: 'PUT',
+    body: JSON.stringify(data)
+  });

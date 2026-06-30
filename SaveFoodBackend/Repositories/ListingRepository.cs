@@ -25,16 +25,16 @@ public class ListingRepository : IListingRepository
     public async Task<ClearanceListing?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _set
-            .Where(l => (l.ListingFlags & 1) == 0) // IsDeleted = 1
+            .Include(l => l.ListingImages)
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
 
     public async Task<ClearanceListing?> GetByIdWithRulesAsync(Guid id, CancellationToken ct = default)
     {
         return await _set
-            .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0)) // Rule IsDeleted = 2
+            .Include(l => l.ListingDiscountRules)
+            .Include(l => l.ListingImages)
             .Include(l => l.Product)
-            .Where(l => (l.ListingFlags & 1) == 0)
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
 
@@ -42,32 +42,60 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
-            .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0))
-            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0)
+            .Include(l => l.ListingDiscountRules)
+            .Include(l => l.ListingImages)
+            .Where(l => l.Product.StoreId == storeId)
             .AsNoTracking()
             .ToListAsync(ct);
+    }
+
+    public async Task<int> GetActiveListingsCountByStoreAsync(Guid storeId, CancellationToken ct = default)
+    {
+        return await _set
+            .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
+            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
+            .CountAsync(ct);
     }
 
     public async Task<IEnumerable<ClearanceListing>> GetAllActiveListingsAsync(CancellationToken ct = default)
     {
         return await _set
             .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
             .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0))
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+            .Include(l => l.ListingImages)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
             .AsNoTracking()
             .ToListAsync(ct);
     }
 
-    public async Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? categoryId, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, CancellationToken ct = default)
+    public async Task<IEnumerable<ClearanceListing>> GetCustomerListingsAsync(Guid? storeId, List<Guid>? categoryIds, decimal? minPrice, decimal? maxPrice, bool? isSurpriseBag, string? sortBy, string? searchQuery, CancellationToken ct = default)
     {
         var query = _set
             .Include(l => l.Product)
-            .ThenInclude(p => p.Store)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow);
+                .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                        .ThenInclude(sub => sub.Plan)
+            .Include(l => l.Product)
+                .ThenInclude(p => p.ProductImages)
+            .Include(l => l.ListingImages)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
 
-        if (categoryId.HasValue)
+        if (!string.IsNullOrWhiteSpace(searchQuery))
         {
-            query = query.Where(l => l.Product.CategoryId == categoryId.Value);
+            var term = searchQuery.Trim().ToLower();
+            query = query.Where(l => l.Product.Name.ToLower().Contains(term) || l.Title.ToLower().Contains(term));
+        }
+
+        if (storeId.HasValue)
+        {
+            query = query.Where(l => l.Product.StoreId == storeId.Value);
+        }
+
+        if (categoryIds != null && categoryIds.Any())
+        {
+            query = query.Where(l => categoryIds.Contains(l.Product.CategoryId));
         }
 
         if (minPrice.HasValue)
@@ -95,10 +123,10 @@ public class ListingRepository : IListingRepository
 
         query = sortBy switch
         {
-            "price_asc" => query.OrderBy(l => l.SalePrice),
-            "price_desc" => query.OrderByDescending(l => l.SalePrice),
-            "expiry_asc" => query.OrderBy(l => l.ExpiryDate),
-            _ => query.OrderBy(l => l.ExpiryDate) // default
+            "price_asc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.SalePrice),
+            "price_desc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenByDescending(l => l.SalePrice),
+            "expiry_asc" => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.ExpiryDate),
+            _ => query.OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault()).ThenBy(l => l.ExpiryDate) // default
         };
 
         return await query.AsNoTracking().ToListAsync(ct);
@@ -118,6 +146,11 @@ public class ListingRepository : IListingRepository
     {
         listing.IsDeleted = true;
         _set.Update(listing);
+    }
+
+    public void RemoveImage(ListingImage image)
+    {
+        _ctx.Set<ListingImage>().Remove(image);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)

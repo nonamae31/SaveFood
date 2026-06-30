@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -18,6 +18,17 @@ public partial class StoreSubscription
     public byte Status { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public long? OrderCode { get; set; }
+
+    // PayOS Audit Fields
+    public string? PayOsTransactionId { get; set; }
+
+    public string? PayerAccountNumber { get; set; }
+
+    public string? PayerName { get; set; }
+
+    public string? PayerBankId { get; set; }
 
     public virtual SubscriptionPlan Plan { get; set; } = null!;
 

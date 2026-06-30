@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Models;
@@ -42,9 +42,9 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<ProductImage> ProductImages { get; set; }
 
-    public virtual DbSet<RefundRequest> RefundRequests { get; set; }
-
     public virtual DbSet<Review> Reviews { get; set; }
+
+    public virtual DbSet<ReviewImage> ReviewImages { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
 
@@ -62,11 +62,15 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
-    public virtual DbSet<UserSession> UserSessions { get; set; }
+
 
     public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
 
     public virtual DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
+
+    public virtual DbSet<CustomerWallet> CustomerWallets { get; set; }
+
+    public virtual DbSet<CustomerWalletTransaction> CustomerWalletTransactions { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
@@ -104,6 +108,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.IsDeleted).HasDefaultValue(false);
             entity.Property(e => e.Name).HasMaxLength(100);
         });
 
@@ -150,6 +155,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
 
             entity.HasOne(d => d.Listing).WithMany(p => p.ListingImages)
                 .HasForeignKey(d => d.ListingId)
@@ -162,6 +168,9 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.TotalAmount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PickupCode).HasMaxLength(10);
+            entity.Property(e => e.OrderCode).HasColumnType("bigint");
+            entity.Property(e => e.ReservationExpiresAt).HasColumnType("datetime");
 
             entity.HasOne(d => d.ConfirmedBy).WithMany(p => p.OrderConfirmedBies)
                 .HasForeignKey(d => d.ConfirmedById)
@@ -244,6 +253,7 @@ public partial class SaveFoodDbContext : DbContext
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
 
             entity.HasOne(d => d.Product).WithMany(p => p.ProductImages)
                 .HasForeignKey(d => d.ProductId)
@@ -251,33 +261,7 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_ProductImages_Products");
         });
 
-        modelBuilder.Entity<RefundRequest>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__RefundRe__3214EC07722B756F");
 
-            entity.HasIndex(e => e.OrderId, "IX_RefundRequests_OrderId");
-
-            entity.HasIndex(e => e.RequestedBy, "IX_RefundRequests_RequestedBy");
-
-            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.AdminNote).HasMaxLength(500);
-            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
-            entity.Property(e => e.CustomerBankAccount).HasMaxLength(50);
-            entity.Property(e => e.CustomerBankAccountName).HasMaxLength(100);
-            entity.Property(e => e.CustomerBankName).HasMaxLength(100);
-            entity.Property(e => e.Reason).HasMaxLength(500);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.RefundRequests)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_RefundRequests_Orders");
-
-            entity.HasOne(d => d.RequestedByNavigation).WithMany(p => p.RefundRequests)
-                .HasForeignKey(d => d.RequestedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_RefundRequests_Users");
-        });
 
         modelBuilder.Entity<Review>(entity =>
         {
@@ -286,11 +270,25 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
             entity.Property(e => e.Comment).HasMaxLength(1000);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.StoreReply).HasMaxLength(1000);
 
             entity.HasOne(d => d.OrderItem).WithOne(p => p.Review)
                 .HasForeignKey<Review>(d => d.OrderItemId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Reviews_OrderItems");
+        });
+
+        modelBuilder.Entity<ReviewImage>(entity =>
+        {
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.CloudinaryPublicId).HasMaxLength(255);
+
+            entity.HasOne(d => d.Review).WithMany(p => p.ReviewImages)
+                .HasForeignKey(d => d.ReviewId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ReviewImages_Reviews");
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -305,11 +303,10 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<Store>(entity =>
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.AddressLine).HasMaxLength(300);
+            entity.Property(e => e.DetailedAddress).HasMaxLength(300);
             entity.Property(e => e.City).HasMaxLength(100);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Description).HasMaxLength(1000);
-            entity.Property(e => e.District).HasMaxLength(100);
             entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
             entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
@@ -381,6 +378,52 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.MonthlyPrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Name).HasMaxLength(100);
             entity.Property(e => e.PlanFlags).HasDefaultValue((byte)1);
+            entity.Property(e => e.HasCustomBanner).HasDefaultValue(false);
+            entity.Property(e => e.HasFeaturedBadge).HasDefaultValue(false);
+            entity.Property(e => e.PriorityLevel).HasDefaultValue(0);
+            entity.Property(e => e.AnalyticsLevel).HasDefaultValue(0);
+
+            entity.HasData(
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("11111111-1111-1111-1111-111111111111"),
+                    Name = "Free",
+                    Description = "Tối đa 5 tin đăng.Thống kê cơ bản",
+                    MonthlyPrice = 0,
+                    PlanFlags = 1,
+                    MaxActiveListings = 5,
+                    HasCustomBanner = false,
+                    HasFeaturedBadge = false,
+                    PriorityLevel = 0,
+                    AnalyticsLevel = 0
+                },
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("22222222-2222-2222-2222-222222222222"),
+                    Name = "Plus",
+                    Description = "Tối đa 15 tin đăng.Banner tùy chỉnh.Thống kê nâng cao",
+                    MonthlyPrice = 149000,
+                    PlanFlags = 1,
+                    MaxActiveListings = 15,
+                    HasCustomBanner = true,
+                    HasFeaturedBadge = false,
+                    PriorityLevel = 1,
+                    AnalyticsLevel = 1
+                },
+                new SubscriptionPlan
+                {
+                    Id = Guid.Parse("33333333-3333-3333-3333-333333333333"),
+                    Name = "Premium",
+                    Description = "Không giới hạn tin đăng.Banner tùy chỉnh.Huy hiệu Nổi bật.Ưu tiên lên top tìm kiếm.Thống kê cao cấp",
+                    MonthlyPrice = 399000,
+                    PlanFlags = 1,
+                    MaxActiveListings = null, // Unlimited
+                    HasCustomBanner = true,
+                    HasFeaturedBadge = true,
+                    PriorityLevel = 2,
+                    AnalyticsLevel = 2
+                }
+            );
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -393,6 +436,8 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Email).HasMaxLength(255);
             entity.Property(e => e.FullName).HasMaxLength(150);
+            entity.Property(e => e.Latitude).HasColumnType("decimal(9, 6)");
+            entity.Property(e => e.Longitude).HasColumnType("decimal(9, 6)");
             entity.Property(e => e.NormalizedEmail).HasMaxLength(255);
             entity.Property(e => e.PasswordHash).HasMaxLength(500);
             entity.Property(e => e.PhoneNumber).HasMaxLength(20);
@@ -416,17 +461,7 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_UserRoles_Users");
         });
 
-        modelBuilder.Entity<UserSession>(entity =>
-        {
-            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.RefreshTokenHash).HasMaxLength(500);
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserSessions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserSessions_Users");
-        });
 
         modelBuilder.Entity<WalletTransaction>(entity =>
         {
@@ -466,9 +501,61 @@ public partial class SaveFoodDbContext : DbContext
 
             entity.HasOne(d => d.Store).WithMany(p => p.WithdrawalRequests)
                 .HasForeignKey(d => d.StoreId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WithdrawalRequests_Stores");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WithdrawalRequests)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_WithdrawalRequests_Users");
         });
+
+        modelBuilder.Entity<CustomerWallet>(entity =>
+        {
+            entity.HasIndex(e => e.UserId, "UQ_CustomerWallets_UserId").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Balance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithOne(p => p.CustomerWallet)
+                .HasForeignKey<CustomerWallet>(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerWallets_Users");
+        });
+
+        modelBuilder.Entity<CustomerWalletTransaction>(entity =>
+        {
+            entity.HasIndex(e => e.CustomerWalletId, "IX_CustomerWalletTransactions_WalletId");
+            entity.HasIndex(e => e.OrderId, "IX_CustomerWalletTransactions_OrderId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(d => d.CustomerWallet).WithMany(p => p.CustomerWalletTransactions)
+                .HasForeignKey(d => d.CustomerWalletId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerWalletTransactions_Wallets");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.CustomerWalletTransactions)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CustomerWalletTransactions_Orders");
+        });
+
+        // Global Query Filters (Soft Delete)
+        modelBuilder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<ClearanceListing>().HasQueryFilter(e => (e.ListingFlags & (byte)SaveFoodBackend.Models.Enums.ListingFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingDiscountRule>().HasQueryFilter(e => (e.RuleFlags & (byte)SaveFoodBackend.Models.Enums.RuleFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Product>().HasQueryFilter(e => (e.ProductFlags & (byte)SaveFoodBackend.Models.Enums.ProductFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ProductImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Review>().HasQueryFilter(e => (e.ReviewFlags & (byte)SaveFoodBackend.Models.Enums.ReviewFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Store>().HasQueryFilter(e => (e.StoreFlags & (byte)SaveFoodBackend.Models.Enums.StoreFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<StoreStaff>().HasQueryFilter(e => (e.StaffFlags & (byte)SaveFoodBackend.Models.Enums.StaffFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<SubscriptionPlan>().HasQueryFilter(e => (e.PlanFlags & (byte)SaveFoodBackend.Models.Enums.PlanFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<User>().HasQueryFilter(e => (e.UserFlags & (byte)SaveFoodBackend.Models.Enums.UserFlagsEnum.IsDeleted) == 0);
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -5,6 +5,7 @@ import type { AdminUserListDTO, AdminUserDetailsDTO, PaginatedList, GetUsersRequ
 import { Shield, AlertCircle, CheckCircle, Search, X, Store, User as UserIcon, ArrowUpDown, ArrowUp, ArrowDown, Filter, ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Select } from '@/components/ui/Select';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -62,14 +63,14 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
   const [hoveredOption, setHoveredOption] = useState<string | null>(null);
 
   const getLabel = () => {
-    if (roleValue === 'All') return 'All Roles';
-    if (roleValue === 'ADMIN') return 'Admin';
-    if (roleValue === 'Customer') return 'Customer';
+    if (roleValue === 'All') return 'Tất cả Vai trò';
+    if (roleValue === 'ADMIN') return 'Quản trị viên (Admin)';
+    if (roleValue === 'Customer') return 'Khách hàng';
     if (roleValue === 'STORE') {
-      if (staffRoleValue === '0') return 'Store - Owner';
-      if (staffRoleValue === '1') return 'Store - Manager';
-      if (staffRoleValue === '2') return 'Store - Staff';
-      return 'Store';
+      if (staffRoleValue === '0') return 'Cửa hàng - Chủ';
+      if (staffRoleValue === '1') return 'Cửa hàng - Quản lý';
+      if (staffRoleValue === '2') return 'Cửa hàng - Nhân viên';
+      return 'Cửa hàng';
     }
     return roleValue;
   }
@@ -100,7 +101,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                   roleValue === 'All' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                 )}
               >
-                All Roles
+                Tất cả Vai trò
                 {roleValue === 'All' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
               </button>
 
@@ -112,7 +113,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                   roleValue === 'ADMIN' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                 )}
               >
-                Admin
+                Quản trị viên (Admin)
                 {roleValue === 'ADMIN' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
               </button>
 
@@ -127,7 +128,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                     roleValue === 'STORE' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                   )}
                 >
-                  Store
+                  Cửa hàng
                   <ChevronRight className="w-4 h-4 text-mint-stone" />
                 </button>
                 
@@ -140,7 +141,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                         roleValue === 'STORE' && staffRoleValue === 'All' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                       )}
                     >
-                      All Store Roles
+                      Tất cả vai trò cửa hàng
                       {roleValue === 'STORE' && staffRoleValue === 'All' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
                     </button>
                     <button
@@ -150,7 +151,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                         roleValue === 'STORE' && staffRoleValue === '0' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                       )}
                     >
-                      Owner
+                      Chủ cửa hàng
                       {roleValue === 'STORE' && staffRoleValue === '0' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
                     </button>
                     <button
@@ -160,7 +161,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                         roleValue === 'STORE' && staffRoleValue === '1' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                       )}
                     >
-                      Manager
+                      Quản lý
                       {roleValue === 'STORE' && staffRoleValue === '1' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
                     </button>
                     <button
@@ -170,7 +171,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                         roleValue === 'STORE' && staffRoleValue === '2' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                       )}
                     >
-                      Staff
+                      Nhân viên
                       {roleValue === 'STORE' && staffRoleValue === '2' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
                     </button>
                   </div>
@@ -185,7 +186,7 @@ function RoleFilterSelect({ roleValue, staffRoleValue, onChange }: { roleValue: 
                   roleValue === 'Customer' ? "bg-mint-surface-soft text-mint-ink font-medium" : "text-mint-steel hover:bg-mint-surface hover:text-mint-ink"
                 )}
               >
-                Customer
+                Khách hàng
                 {roleValue === 'Customer' && <div className="w-1.5 h-1.5 rounded-full bg-mint-brand-green"></div>}
               </button>
             </div>
@@ -218,7 +219,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
     <div className="fixed inset-0 bg-mint-primary/20 backdrop-blur-sm flex items-center justify-center z-50 p-4 font-inter">
       <div className="bg-mint-canvas rounded-[12px] shadow-[0_24px_48px_-8px_rgba(0,0,0,0.12)] border border-mint-hairline w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="sticky top-0 bg-mint-canvas/80 backdrop-blur-md border-b border-mint-hairline-soft px-6 py-4 flex items-center justify-between z-10">
-          <h2 className="text-[18px] font-semibold text-mint-ink">Add New User</h2>
+          <h2 className="text-[18px] font-semibold text-mint-ink">Thêm người dùng mới</h2>
           <button onClick={onClose} className="p-2 hover:bg-mint-surface rounded-full transition-colors text-mint-stone hover:text-mint-ink">
             <X className="w-5 h-5" />
           </button>
@@ -227,7 +228,7 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
           {error && <div className="bg-[#d45656]/10 text-[#d45656] text-[13px] px-3 py-2 rounded-md">{error}</div>}
           
           <div>
-            <label className="block text-[13px] font-medium text-mint-ink mb-1">Full Name</label>
+            <label className="block text-[13px] font-medium text-mint-ink mb-1">Họ và tên</label>
             <input required type="text" value={formData.fullName} onChange={e => setFormData({ ...formData, fullName: e.target.value })}
               className="w-full px-3 py-2 bg-mint-canvas border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green focus:border-2"
               placeholder="John Doe" />
@@ -239,25 +240,29 @@ function AddUserModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: 
               placeholder="john@example.com" />
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-mint-ink mb-1">Password</label>
+            <label className="block text-[13px] font-medium text-mint-ink mb-1">Mật khẩu</label>
             <input required type="password" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })}
               className="w-full px-3 py-2 bg-mint-canvas border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green focus:border-2"
-              placeholder="Min 6 characters" minLength={6} />
+              placeholder="Tối thiểu 6 ký tự" minLength={6} />
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-mint-ink mb-1">Role</label>
-            <select value={formData.roleCode} onChange={e => setFormData({ ...formData, roleCode: e.target.value })}
-              className="w-full px-3 py-2 bg-mint-canvas border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green focus:border-2">
-              <option value="Customer">Customer</option>
-              <option value="STORE">Store</option>
-              <option value="ADMIN">Admin</option>
-            </select>
+            <label className="block text-[13px] font-medium text-mint-ink mb-1">Vai trò</label>
+            <Select 
+              value={formData.roleCode} 
+              onChange={(val) => setFormData({ ...formData, roleCode: val.toString() })}
+              options={[
+                { label: "Khách hàng", value: "Customer" },
+                { label: "Cửa hàng", value: "STORE" },
+                { label: "Quản trị viên", value: "ADMIN" }
+              ]}
+              className="w-full"
+            />
           </div>
           
           <div className="pt-4 flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-[14px] font-medium text-mint-steel hover:text-mint-ink transition-colors">Cancel</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-[14px] font-medium text-mint-steel hover:text-mint-ink transition-colors">Hủy</button>
             <button type="submit" disabled={loading} className="px-4 py-2 text-[14px] font-medium bg-mint-brand-green hover:bg-mint-brand-green-deep text-mint-primary rounded-[8px] transition-colors disabled:opacity-50">
-              {loading ? 'Creating...' : 'Create User'}
+              {loading ? 'Đang tạo...' : 'Tạo người dùng'}
             </button>
           </div>
         </form>
@@ -292,7 +297,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
       <div className="fixed inset-0 bg-mint-primary/20 backdrop-blur-sm flex items-center justify-center z-50">
         <div className="bg-mint-canvas p-8 rounded-[12px] border border-mint-hairline shadow-[0_24px_48px_-8px_rgba(0,0,0,0.12)] flex flex-col items-center">
           <div className="w-8 h-8 border-[3px] border-mint-brand-green border-t-transparent rounded-full animate-spin mb-4" />
-          <p className="text-mint-steel font-medium font-inter text-[14px]">Loading details...</p>
+          <p className="text-mint-steel font-medium font-inter text-[14px]">Đang tải dữ liệu...</p>
         </div>
       </div>
     );
@@ -307,7 +312,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
         <div className="sticky top-0 bg-mint-canvas/80 backdrop-blur-md border-b border-mint-hairline-soft px-6 py-4 flex items-center justify-between z-10">
           <h2 className="text-[22px] font-semibold text-mint-ink flex items-center gap-2">
             <UserIcon className="w-5 h-5 text-mint-steel" />
-            User Details
+            Chi tiết người dùng
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-mint-surface rounded-full transition-colors text-mint-stone hover:text-mint-ink">
             <X className="w-5 h-5" />
@@ -336,11 +341,11 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
                 </div>
                 <div className="grid grid-cols-2 gap-8 text-[14px]">
                   <div>
-                    <span className="block text-mint-stone mb-1 font-medium">Phone Number</span>
+                    <span className="block text-mint-stone mb-1 font-medium">Số điện thoại</span>
                     <span className="font-geist text-mint-ink bg-mint-surface-soft border border-mint-hairline px-2 py-0.5 rounded-[4px]">{details.phoneNumber || 'N/A'}</span>
                   </div>
                   <div>
-                    <span className="block text-mint-stone mb-1 font-medium">Joined Date</span>
+                    <span className="block text-mint-stone mb-1 font-medium">Ngày tham gia</span>
                     <span className="font-medium text-mint-ink">{new Date(details.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -353,7 +358,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
                   details.status === 1 ? "bg-[#c37d0d]/10 text-[#c37d0d]" :
                   "bg-[#d45656]/10 text-[#d45656]"
                 )}>
-                  {details.status === 0 ? 'ACTIVE' : details.status === 1 ? 'INACTIVE' : 'BANNED'}
+                  {details.status === 0 ? 'HOẠT ĐỘNG' : details.status === 1 ? 'KHÔNG HOẠT ĐỘNG' : 'BỊ CẤM'}
                 </span>
                 
                 <div className="flex flex-wrap gap-2 justify-end max-w-[200px]">
@@ -372,7 +377,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
             <section>
               <h3 className="text-[11px] font-semibold text-mint-steel uppercase tracking-[0.5px] mb-4 flex items-center gap-2">
                 <Store className="w-3.5 h-3.5" />
-                Store Affiliations
+                Các cửa hàng liên kết
               </h3>
               <div className="grid gap-4">
                 {details.storeAffiliations.map(store => (
@@ -391,7 +396,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
                         {store.staffRole === 0 ? 'OWNER' : store.staffRole === 1 ? 'MANAGER' : 'STAFF'}
                       </span>
                       <p className="text-[13px] text-mint-stone mt-2 font-medium">
-                        Status: {store.storeStatus === 0 ? 'Active' : store.storeStatus === 3 ? 'Pending' : store.storeStatus === 4 ? 'Rejected' : store.storeStatus === 1 ? 'Suspended' : 'Closed'}
+                        Trạng thái: {store.storeStatus === 0 ? 'Hoạt động' : store.storeStatus === 3 ? 'Chờ duyệt' : store.storeStatus === 4 ? 'Bị từ chối' : store.storeStatus === 1 ? 'Bị đình chỉ' : 'Đóng cửa'}
                       </p>
                     </div>
                   </div>
@@ -402,7 +407,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
 
           {/* Actions */}
           <section className="pt-6 border-t border-mint-hairline-soft">
-            <h3 className="text-[11px] font-semibold text-mint-steel uppercase tracking-[0.5px] mb-4">Danger Zone</h3>
+            <h3 className="text-[11px] font-semibold text-mint-steel uppercase tracking-[0.5px] mb-4">Vùng nguy hiểm</h3>
             <div className="flex gap-4">
               {details.status !== 2 ? (
                 <button 
@@ -410,7 +415,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
                   className="flex-1 bg-transparent hover:bg-[#d45656]/5 text-[#d45656] font-medium py-[10px] px-[20px] rounded-[9999px] transition-colors border border-mint-hairline hover:border-[#d45656] flex items-center justify-center gap-2 text-[14px]"
                 >
                   <AlertCircle className="w-4 h-4" />
-                  Ban User
+                  Cấm người dùng
                 </button>
               ) : (
                 <button 
@@ -418,7 +423,7 @@ function UserDetailsModal({ userId, onClose }: { userId: string, onClose: () => 
                   className="flex-1 bg-mint-brand-green hover:bg-mint-brand-green-deep text-mint-primary font-medium py-[10px] px-[20px] rounded-[9999px] transition-colors flex items-center justify-center gap-2 text-[14px]"
                 >
                   <CheckCircle className="w-4 h-4" />
-                  Re-activate User
+                  Kích hoạt lại
                 </button>
               )}
             </div>
@@ -443,7 +448,7 @@ export default function AccountManagementPage() {
   const sortBy = searchParams.get('sortBy') || '';
   const sortDirection = searchParams.get('sortDirection') || 'desc';
   const currentPage = parseInt(searchParams.get('pageNumber') || '1', 10);
-  const ITEMS_PER_PAGE = 5; // Bạn có thể thay đổi số lượng item trên mỗi trang ở đây
+  const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -464,7 +469,7 @@ export default function AccountManagementPage() {
           sortBy: sortBy || undefined,
           sortDirection: sortBy ? sortDirection : undefined,
           pageNumber: currentPage,
-          pageSize: ITEMS_PER_PAGE
+          pageSize: pageSize
         };
 
         const result = await adminApi.getUsers(request);
@@ -484,7 +489,7 @@ export default function AccountManagementPage() {
     return () => {
       ignore = true;
     };
-  }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage]);
+  }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage, pageSize]);
 
   const updateFilter = (key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -527,10 +532,10 @@ export default function AccountManagementPage() {
   };
 
   const statusOptions = [
-    { label: 'All Statuses', value: 'All' },
-    { label: 'Active', value: '0' },
-    { label: 'Inactive', value: '1' },
-    { label: 'Banned', value: '2' }
+    { label: 'Tất cả trạng thái', value: 'All' },
+    { label: 'Hoạt động', value: '0' },
+    { label: 'Không hoạt động', value: '1' },
+    { label: 'Bị cấm', value: '2' }
   ];
 
   return (
@@ -541,16 +546,16 @@ export default function AccountManagementPage() {
         <div>
           <h1 className="text-[36px] font-semibold text-mint-ink tracking-[-0.5px] flex items-center gap-3">
             <Shield className="w-8 h-8 text-mint-ink" />
-            Account Management
+            Quản lý tài khoản
           </h1>
-          <p className="text-[16px] text-mint-steel mt-2">View and manage all users, staff, and store owners in the system.</p>
+          <p className="text-[16px] text-mint-steel mt-2">Xem và quản lý tất cả người dùng, nhân viên và chủ cửa hàng trên hệ thống.</p>
         </div>
         <button 
           onClick={() => setShowAddModal(true)}
           className="bg-mint-brand-green hover:bg-mint-brand-green-deep text-mint-primary font-medium py-[10px] px-[20px] rounded-[8px] transition-colors flex items-center gap-2 text-[14px] shadow-sm"
         >
           <Plus className="w-4 h-4" />
-          Add User
+          Thêm người dùng
         </button>
       </div>
 
@@ -560,7 +565,7 @@ export default function AccountManagementPage() {
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-mint-steel" />
           <input 
             type="text"
-            placeholder="Search by name or email..."
+            placeholder="Tìm kiếm theo tên hoặc email..."
             value={search}
             onChange={e => updateFilter('search', e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-mint-canvas border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] h-[40px] transition-all"
@@ -602,18 +607,18 @@ export default function AccountManagementPage() {
             <thead className="text-mint-steel border-b border-mint-hairline bg-mint-surface/50">
               <tr>
                 <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('fullName')}>
-                  User {getSortIcon('fullName')}
+                  Người dùng {getSortIcon('fullName')}
                 </th>
                 <th className="px-6 py-4 font-medium select-none">
-                  Roles
+                  Vai trò
                 </th>
                 <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('status')}>
-                  Status {getSortIcon('status')}
+                  Trạng thái {getSortIcon('status')}
                 </th>
                 <th className="px-6 py-4 font-medium group cursor-pointer hover:text-mint-ink select-none" onClick={() => requestSort('createdAt')}>
-                  Joined Date {getSortIcon('createdAt')}
+                  Ngày tham gia {getSortIcon('createdAt')}
                 </th>
-                <th className="px-6 py-4 font-medium text-right">Action</th>
+                <th className="px-6 py-4 font-medium text-right">Thao tác</th>
               </tr>
             </thead>
             <tbody>
@@ -626,7 +631,7 @@ export default function AccountManagementPage() {
               ) : !data || data.items.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-mint-steel border-b border-mint-hairline-soft text-[14px]">
-                    No users found matching your filters
+                    Không tìm thấy người dùng nào phù hợp với bộ lọc
                   </td>
                 </tr>
               ) : (
@@ -642,7 +647,7 @@ export default function AccountManagementPage() {
                           <span key={r.code} className="bg-[rgba(55,114,207,0.15)] text-[#3772cf] px-2 py-0.5 rounded-[6px] text-[13px] font-semibold">
                             {r.name}
                           </span>
-                        )) : <span className="text-mint-stone italic">None</span>}
+                        )) : <span className="text-mint-stone italic">Không có</span>}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -652,7 +657,7 @@ export default function AccountManagementPage() {
                         user.status === 1 ? "bg-[#c37d0d]/10 text-[#c37d0d]" :
                         "bg-[#d45656]/10 text-[#d45656]"
                       )}>
-                        {user.status === 0 ? 'ACTIVE' : user.status === 1 ? 'INACTIVE' : 'BANNED'}
+                        {user.status === 0 ? 'HOẠT ĐỘNG' : user.status === 1 ? 'KHÔNG H.ĐỘNG' : 'BỊ CẤM'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-mint-steel text-[14px]">
@@ -663,7 +668,7 @@ export default function AccountManagementPage() {
                         onClick={() => setSelectedUserId(user.id)}
                         className="bg-transparent text-mint-ink font-medium hover:bg-mint-surface px-[12px] py-[8px] rounded-[8px] transition-colors text-[14px] border border-transparent hover:border-mint-hairline"
                       >
-                        Details
+                        Chi tiết
                       </button>
                     </td>
                   </tr>
@@ -674,11 +679,31 @@ export default function AccountManagementPage() {
         </div>
         
         {/* Pagination Controls */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50">
-            <span className="text-[13px] text-mint-stone">
-              Showing {(data.pageNumber - 1) * data.pageSize + 1} to {Math.min(data.pageNumber * data.pageSize, data.totalCount)} of {data.totalCount} users
-            </span>
+        {data && data.totalCount > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50 flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-[13px] text-mint-stone">
+                Hiển thị {(data.pageNumber - 1) * data.pageSize + 1} đến {Math.min(data.pageNumber * data.pageSize, data.totalCount)} trên tổng số {data.totalCount} người dùng
+              </span>
+              <div className="flex items-center gap-2 text-[13px] text-mint-stone">
+                Hiển thị:
+                <select
+                  className="bg-mint-canvas border border-mint-hairline text-mint-ink rounded pl-2 pr-8 py-1 text-[13px] cursor-pointer focus:outline-none focus:border-mint-brand-green"
+                  value={pageSize}
+                  onChange={(e) => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('pageSize', e.target.value);
+                    newParams.set('pageNumber', '1');
+                    setSearchParams(newParams);
+                  }}
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => handlePageChange(data.pageNumber - 1)}

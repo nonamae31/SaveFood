@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -16,6 +16,10 @@ public partial class User
     public string? PhoneNumber { get; set; }
 
     public string? Address { get; set; }
+
+    public decimal? Latitude { get; set; }
+
+    public decimal? Longitude { get; set; }
 
     public string? AvatarUrl { get; set; }
 
@@ -41,11 +45,15 @@ public partial class User
 
     public virtual ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 
-    public virtual ICollection<RefundRequest> RefundRequests { get; set; } = new List<RefundRequest>();
+    public virtual ICollection<StoreSubscription> StoreSubscriptions { get; set; } = new List<StoreSubscription>();
+
+    public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
 
     public virtual ICollection<StoreStaff> StoreStaffs { get; set; } = new List<StoreStaff>();
 
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-    public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+
+
+    public virtual CustomerWallet? CustomerWallet { get; set; }
 }

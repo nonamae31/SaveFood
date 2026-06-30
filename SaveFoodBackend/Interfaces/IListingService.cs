@@ -13,4 +13,6 @@ public interface IListingService
     Task<ListingResponseDTO> CreateListingAsync(Guid storeId, CreateListingDTO dto, CancellationToken ct = default);
     Task<ListingResponseDTO> UpdateListingAsync(Guid storeId, Guid listingId, UpdateListingDTO dto, CancellationToken ct = default);
     Task DeleteListingAsync(Guid storeId, Guid listingId, CancellationToken ct = default);
+    Task<ListingResponseDTO> UploadListingImagesAsync(Guid storeId, Guid listingId, System.Collections.Generic.IEnumerable<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken ct = default);
+    Task<ListingResponseDTO> DeleteListingImageAsync(Guid storeId, Guid listingId, Guid imageId, CancellationToken ct = default);
 }

@@ -82,4 +82,32 @@ public class ListingsController : ControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
+
+    [HttpPost("{listingId}/images")]
+    public async Task<IActionResult> UploadListingImages(Guid storeId, Guid listingId, [FromForm] System.Collections.Generic.List<Microsoft.AspNetCore.Http.IFormFile> images, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _listingService.UploadListingImagesAsync(storeId, listingId, images, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpDelete("{listingId}/images/{imageId}")]
+    public async Task<IActionResult> DeleteListingImage(Guid storeId, Guid listingId, Guid imageId, CancellationToken ct)
+    {
+        try
+        {
+            var result = await _listingService.DeleteListingImageAsync(storeId, listingId, imageId, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
 }

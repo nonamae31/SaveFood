@@ -27,12 +27,25 @@ export const QUERY_KEYS = {
     myList: (): readonly string[] => ['orders', 'my'],
     detail: (id: string): readonly string[] => ['orders', 'detail', id],
     store:  (storeId: string): readonly string[] => ['orders', 'store', storeId],
+    lookup: (storeId: string, code: string): readonly string[] => ['orders', 'lookup', storeId, code],
   },
   cart: {
     mine: (): readonly string[] => ['cart', 'mine'],
   },
   auth: {
     me: (): readonly string[] => ['auth', 'me'],
+  },
+  categories: {
+    all:         (): readonly string[] => ['categories'],
+    adminAll:    (): readonly string[] => ['categories', 'admin'],
+  },
+  storeFinance: {
+    wallet: (): readonly string[] => ['storeFinance', 'wallet'],
+    transactions: (page: number, size: number): readonly unknown[] => ['storeFinance', 'transactions', page, size],
+    withdrawals: (page: number, size: number): readonly unknown[] => ['storeFinance', 'withdrawals', page, size],
+  },
+  reviews: {
+    byStore: (storeId: string): readonly string[] => ['reviews', 'store', storeId],
   },
 } as const
 
@@ -44,10 +57,15 @@ export const ROUTES = {
   PRODUCT_DETAIL: (id: string) => `/products/${id}`,
   STORE:          (id: string) => `/stores/${id}`,
   STORES:         '/stores',
+  STORE_REGISTER: '/stores/register',
+  POLICY:         '/policy',
   CART:           '/cart',
+  HELP_CENTER:    '/help-center',
+  MY_STORES:      '/profile/stores',
   CHECKOUT:       '/checkout',
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
-  MY_ORDERS:      '/my-orders',
+  MY_ORDERS:      '/profile?tab=orders',
+  MY_WALLET:      '/my-wallet',
 
   // Auth
   LOGIN:          '/login',
@@ -60,18 +78,26 @@ export const ROUTES = {
 
   // Store Dashboard
   DASHBOARD:              '/dashboard',
+  DASHBOARD_PRODUCTS:     '/dashboard/products',
   DASHBOARD_LISTINGS:     '/dashboard/listings',
   DASHBOARD_ORDERS:       '/dashboard/orders',
   DASHBOARD_ANALYTICS:    '/dashboard/analytics',
   DASHBOARD_SETTINGS:     '/dashboard/settings',
+  DASHBOARD_SUBSCRIPTION: '/dashboard/subscription',
+  DASHBOARD_PICKUP:       '/dashboard/pickup',
+  DASHBOARD_STAFF:        '/dashboard/staff',
+  DASHBOARD_WALLET:       '/dashboard/wallet',
+  DASHBOARD_REVIEWS:      '/dashboard/reviews',
 
   // Admin
-  ADMIN:          '/admin',
-  ADMIN_DASHBOARD:'/admin/dashboard',
-  ADMIN_FINANCE:  '/admin/finance',
-  ADMIN_ACCOUNTS: '/admin/accounts',
-  ADMIN_APPROVALS:'/admin/approvals',
+  ADMIN:               '/admin',
+  ADMIN_DASHBOARD:     '/admin/dashboard',
+  ADMIN_FINANCE:       '/admin/finance',
+  ADMIN_ACCOUNTS:      '/admin/accounts',
+  ADMIN_APPROVALS:     '/admin/approvals',
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
+  ADMIN_CATEGORIES:    '/admin/categories',
+  ADMIN_AUDIT:         '/admin/audit',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────
@@ -91,8 +117,18 @@ export const API_ENDPOINTS = {
 
   // Stores
   STORES:               '/stores',
+  STORE_REGISTER:       '/stores/register',
   STORE_DETAIL:         (id: string) => `/stores/${id}`,
   MY_STORE:             '/stores/mine',
+
+  // Store Finance
+  STORE_FINANCE_WALLET:       '/store/finance/wallet',
+  STORE_FINANCE_TRANSACTIONS: '/store/finance/transactions',
+  STORE_FINANCE_WITHDRAWALS:  '/store/finance/withdrawals',
+
+  // Store Reviews
+  STORE_REVIEWS:              '/store/reviews',
+  STORE_REVIEW_REPLY:         (reviewId: string) => `/store/reviews/${reviewId}/reply`,
 
   // Cart
   CART:                 '/cart',
@@ -107,6 +143,12 @@ export const API_ENDPOINTS = {
   // Payment
   PAYMENT_CREATE:       '/payment/create',
   PAYMENT_CALLBACK:     '/payment/vnpay-return',
+
+  // Categories
+  CATEGORIES:           '/categories',
+  CATEGORIES_ADMIN_ALL: '/categories/all',
+  CATEGORY:             (id: string) => `/categories/${id}`,
+  CATEGORY_RESTORE:     (id: string) => `/categories/${id}/restore`,
 } as const
 
 // ── Pagination Defaults ───────────────────────────────────────────────────────

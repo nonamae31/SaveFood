@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -11,11 +11,9 @@ public partial class Store
 
     public string? Description { get; set; }
 
-    public string AddressLine { get; set; } = null!;
+    public string DetailedAddress { get; set; } = null!;
 
-    public string? Ward { get; set; }
-
-    public string District { get; set; } = null!;
+    public string Ward { get; set; } = null!;
 
     public string City { get; set; } = null!;
 
@@ -26,6 +24,16 @@ public partial class Store
     public string? PhoneNumber { get; set; }
 
     public string? LogoUrl { get; set; }
+
+    public string? LogoCloudinaryId { get; set; }
+
+    public string? CoverUrl { get; set; }
+
+    public string? CoverCloudinaryId { get; set; }
+
+    public string? StorefrontImageUrl { get; set; }
+
+    public string? ReferenceLink { get; set; }
 
     public byte Status { get; set; }
 

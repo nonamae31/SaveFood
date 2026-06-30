@@ -68,3 +68,88 @@ export interface CreateStorePayload {
 }
 
 export type UpdateStorePayload = Partial<CreateStorePayload>
+
+// ─── PRODUCTS (Owner-facing) ────────────────────────────────────────────────
+
+export interface ProductResponseDTO {
+  id: string
+  storeId: string
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isHidden: boolean
+  isSurpriseBag: boolean
+  createdAt: string
+  images: { id: string; imageUrl: string }[]
+}
+
+export interface CreateProductDTO {
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isSurpriseBag: boolean
+}
+
+export interface UpdateProductDTO {
+  categoryId: string
+  name: string
+  description?: string
+  originalPrice: number
+  isSurpriseBag: boolean
+  isHidden: boolean
+}
+
+// ─── LISTINGS (Owner-facing) ────────────────────────────────────────────────
+
+export interface DiscountRuleDTO {
+  discountPercent?: number
+  targetPrice?: number
+  triggerValue: number
+  triggerType: number // 0 = TimeBeforeExpiry, 1 = StockRemaining
+  ruleOrder: number
+}
+
+export interface DiscountRuleResponseDTO {
+  id: string
+  ruleOrder: number
+  discountPercent?: number
+  targetPrice?: number
+  triggerValue: number
+  triggerType: number
+  isActive: boolean
+}
+
+export interface ListingResponseDTO {
+  id: string
+  productId: string
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  status: number // 0 = Draft, 1 = Published, 2 = SoldOut, 3 = Expired
+  createdAt: string
+  discountRules: DiscountRuleResponseDTO[]
+  images: { id: string; imageUrl: string }[]
+}
+
+export interface CreateListingDTO {
+  productId: string
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  discountRules: DiscountRuleDTO[]
+  reusedProductImageIds?: string[]
+}
+
+export interface UpdateListingDTO {
+  title: string
+  salePrice: number
+  quantityAvailable: number
+  expiryDate: string
+  status: number
+  discountRules: DiscountRuleDTO[]
+  reusedProductImageIds?: string[]
+}

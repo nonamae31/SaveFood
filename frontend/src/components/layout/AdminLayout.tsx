@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard } from 'lucide-react';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
@@ -16,6 +16,7 @@ export function AdminLayout() {
   const { user } = useAuthContext();
   const logoutMutation = useLogout();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
@@ -31,11 +32,13 @@ export function AdminLayout() {
   };
 
   const navItems = [
-    { name: 'Dashboard', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
-    { name: 'Accounts', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
-    { name: 'Approvals', href: ROUTES.ADMIN_APPROVALS, icon: Store },
-    { name: 'Finance', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
-    { name: 'Subscriptions', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
+    { name: 'Bảng điều khiển', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
+    { name: 'Tài khoản', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
+    { name: 'Quản lý cửa hàng', href: ROUTES.ADMIN_APPROVALS, icon: Store },
+    { name: 'Tài chính', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
+    { name: 'Gói đăng ký', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
+    { name: 'Danh mục', href: ROUTES.ADMIN_CATEGORIES, icon: LayoutGrid },
+    { name: 'Kiểm toán', href: ROUTES.ADMIN_AUDIT, icon: ShieldCheck },
   ];
 
   return (
@@ -59,7 +62,7 @@ export function AdminLayout() {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">SaveFood <span className="text-indigo-600">Admin</span></span>
+            <span className="text-xl font-bold font-display text-gray-900 tracking-tight">Quản trị <span className="text-indigo-600">SaveFood</span></span>
           </div>
           <button 
             className="ml-auto lg:hidden text-gray-400 hover:text-gray-600"
@@ -71,7 +74,7 @@ export function AdminLayout() {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
-          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">Management</div>
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4 px-2">Quản lý</div>
           {navItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -118,7 +121,7 @@ export function AdminLayout() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold text-gray-900 truncate group-hover:text-indigo-600 transition-colors">
-                {user?.fullName || 'Admin User'}
+                {user?.fullName || 'Quản trị viên'}
               </p>
               <p className="text-xs text-gray-500 truncate">{user?.email}</p>
             </div>
@@ -129,7 +132,7 @@ export function AdminLayout() {
             className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors"
           >
             <LogOut className="w-4 h-4" />
-            Logout
+            Đăng xuất
           </button>
         </div>
       </aside>
@@ -146,12 +149,12 @@ export function AdminLayout() {
           </button>
           <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
             <Shield className="w-5 h-5 text-indigo-600" />
-            SaveFood Admin
+            Quản trị SaveFood
           </div>
         </header>
 
         {/* Outlet Content */}
-        <div className="flex-1 overflow-auto">
+        <div key={location.pathname} className="flex-1 overflow-auto animate-[--animate-fade-in] duration-300">
           <Outlet />
         </div>
       </main>

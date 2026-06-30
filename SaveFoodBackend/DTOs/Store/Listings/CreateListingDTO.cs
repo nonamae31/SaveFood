@@ -18,15 +18,15 @@ public class CreateListingDTO
     public decimal SalePrice { get; set; }
 
     [Required]
-    [Range(1, int.MaxValue, ErrorMessage = "Số lượng phải lớn hơn 0")]
+    [Range(0, int.MaxValue, ErrorMessage = "Số lượng phải lớn hơn hoặc bằng 0")]
     public int QuantityAvailable { get; set; }
 
     [Required]
     public DateTime ExpiryDate { get; set; }
 
-    public bool IsAutoRenew { get; set; } = false;
-
     public List<DiscountRuleDTO> DiscountRules { get; set; } = new List<DiscountRuleDTO>();
+
+    public List<Guid>? ReusedProductImageIds { get; set; }
 }
 
 public class DiscountRuleDTO
