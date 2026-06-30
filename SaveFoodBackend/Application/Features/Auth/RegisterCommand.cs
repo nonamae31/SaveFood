@@ -20,11 +20,13 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
 {
     private readonly SaveFoodDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IRedisService _redisService;
 
-    public RegisterCommandHandler(SaveFoodDbContext context, IEmailService emailService)
+    public RegisterCommandHandler(SaveFoodDbContext context, IEmailService emailService, IRedisService redisService)
     {
         _context = context;
         _emailService = emailService;
+        _redisService = redisService;
     }
 
     public async Task<Guid> Handle(RegisterCommand command, CancellationToken ct)
@@ -79,10 +81,8 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
         }
 
         var otpCode = new Random().Next(100000, 999999).ToString();
-        _context.EmailVerifications.Add(new SaveFoodBackend.Models.EmailVerification
-        {
-            Id = Guid.NewGuid(), UserId = targetUser.Id, VerificationCode = otpCode, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(15)
-        });
+        await _redisService.SetAsync($"otp:{normalizedEmail}", otpCode, TimeSpan.FromMinutes(15));
+        await _redisService.SetAsync($"otp_cooldown:{normalizedEmail}", "true", TimeSpan.FromSeconds(60));
 
         await _context.SaveChangesAsync(ct);
         await _emailService.SendEmailAsync(targetUser.Email, "Mã xác nhận OTP của bạn", $@"<h2>Xác thực tài khoản SaveFood</h2><p>Chào {targetUser.FullName},</p><p>Mã xác nhận OTP của bạn là:</p><h1 style='color: #10b981; font-size: 32px;'>{otpCode}</h1><p>Mã này hết hạn sau 15 phút.</p>");
