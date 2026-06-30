@@ -85,7 +85,7 @@ export function LoginPage() {
       },
       onError: (err: Error & { code?: string; details?: { email?: string } }) => {
         if (err.code === 'UNVERIFIED_ACCOUNT') {
-          navigate(ROUTES.VERIFY_OTP, { state: { email: err.details?.email || data.email } });
+          navigate(ROUTES.VERIFY_OTP, { state: { email: err.details?.email || data.email, autoSend: true } });
         } else {
           setError(err.message || 'Sai email hoặc mật khẩu.');
         }

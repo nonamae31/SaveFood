@@ -24,7 +24,7 @@ namespace SaveFoodBackend.Services
 
         public async Task<UserProfileDTO> GetProfileAsync(Guid userId)
         {
-            var cacheKey = $"profile:{userId}";
+            var cacheKey = $"profile_v2:{userId}";
             var cachedProfile = await _redisService.GetAsync(cacheKey);
             if (!string.IsNullOrEmpty(cachedProfile))
             {
@@ -54,6 +54,7 @@ namespace SaveFoodBackend.Services
                 Latitude = user.Latitude,
                 Longitude = user.Longitude,
                 AvatarUrl = user.AvatarUrl,
+                Gender = user.IsMale ? 1 : 0,
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
                             .Select(ur => ur.Role.Code)
@@ -108,7 +109,7 @@ namespace SaveFoodBackend.Services
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             await _context.SaveChangesAsync();
-            await _redisService.DeleteAsync($"profile:{userId}");
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
@@ -122,7 +123,10 @@ namespace SaveFoodBackend.Services
 
             user.FullName = request.FullName;
             user.PhoneNumber = request.PhoneNumber;
-
+            if (request.Gender.HasValue)
+            {
+                user.IsMale = (request.Gender.Value == 1);
+            }
             if (request.AvatarFile != null)
             {
                 var uploadResult = await _cloudinaryService.UploadImageAsync(request.AvatarFile, user.ImgCloudinaryId);
@@ -134,7 +138,7 @@ namespace SaveFoodBackend.Services
             }
 
             await _context.SaveChangesAsync();
-            await _redisService.DeleteAsync($"profile:{userId}");
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request)
@@ -153,7 +157,7 @@ namespace SaveFoodBackend.Services
             }
 
             await _context.SaveChangesAsync();
-            await _redisService.DeleteAsync($"profile:{userId}");
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
     }
 }

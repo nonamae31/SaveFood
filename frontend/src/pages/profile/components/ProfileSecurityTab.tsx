@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useChangePassword, useForgotPassword, useResetPassword } from '@/hooks/useAuth';
+import { validatePasswordStrength } from '@/utils/validation';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 
@@ -17,6 +18,9 @@ export function ProfileSecurityTab() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpCode, setOtpCode] = useState('');
   
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+
   const [passSuccessMsg, setPassSuccessMsg] = useState('');
   const [passErrorMsg, setPassErrorMsg] = useState('');
   
@@ -27,13 +31,14 @@ export function ProfileSecurityTab() {
     setPassSuccessMsg('');
     setPassErrorMsg('');
 
-    if (newPassword !== confirmPassword) {
-      setPassErrorMsg('Mật khẩu xác nhận không khớp.');
+    const passError = validatePasswordStrength(newPassword);
+    if (passError) {
+      setPasswordError(passError);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPassErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự.');
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError('Mật khẩu xác nhận không khớp.');
       return;
     }
 
@@ -49,6 +54,27 @@ export function ProfileSecurityTab() {
         onError: (err: Error) => setPassErrorMsg(err.message || 'Lỗi khi đổi mật khẩu.')
       }
     );
+  };
+
+  const handleBlurNewPassword = () => {
+    if (newPassword) {
+      const passError = validatePasswordStrength(newPassword);
+      if (passError) {
+        setPasswordError(passError);
+      } else {
+        setPasswordError('');
+      }
+    }
+  };
+
+  const handleBlurConfirmPassword = () => {
+    if (confirmPassword && newPassword) {
+      if (newPassword !== confirmPassword) {
+        setConfirmPasswordError('Mật khẩu xác nhận không khớp.');
+      } else {
+        setConfirmPasswordError('');
+      }
+    }
   };
 
   const handleSendOtp = () => {
@@ -73,13 +99,14 @@ export function ProfileSecurityTab() {
     setPassSuccessMsg('');
     setPassErrorMsg('');
 
-    if (newPassword !== confirmPassword) {
-      setPassErrorMsg('Mật khẩu xác nhận không khớp.');
+    const passError = validatePasswordStrength(newPassword);
+    if (passError) {
+      setPasswordError(passError);
       return;
     }
 
-    if (newPassword.length < 6) {
-      setPassErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự.');
+    if (newPassword !== confirmPassword) {
+      setConfirmPasswordError('Mật khẩu xác nhận không khớp.');
       return;
     }
 
@@ -134,7 +161,12 @@ export function ProfileSecurityTab() {
               type="password"
               placeholder="••••••••"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                setPasswordError('');
+              }}
+              onBlur={handleBlurNewPassword}
+              error={passwordError}
               required
             />
 
@@ -144,7 +176,12 @@ export function ProfileSecurityTab() {
               type="password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                setConfirmPasswordError('');
+              }}
+              onBlur={handleBlurConfirmPassword}
+              error={confirmPasswordError}
               required
             />
 
@@ -191,7 +228,12 @@ export function ProfileSecurityTab() {
                   type="password"
                   placeholder="••••••••"
                   value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
+                  onChange={(e) => {
+                    setNewPassword(e.target.value);
+                    setPasswordError('');
+                  }}
+                  onBlur={handleBlurNewPassword}
+                  error={passwordError}
                   required
                 />
 
@@ -201,7 +243,12 @@ export function ProfileSecurityTab() {
                   type="password"
                   placeholder="••••••••"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError('');
+                  }}
+                  onBlur={handleBlurConfirmPassword}
+                  error={confirmPasswordError}
                   required
                 />
 
