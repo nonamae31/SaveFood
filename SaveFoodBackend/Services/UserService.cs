@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
@@ -12,16 +13,26 @@ namespace SaveFoodBackend.Services
     {
         private readonly SaveFoodDbContext _context;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IRedisService _redisService;
 
-        public UserService(SaveFoodDbContext context, ICloudinaryService cloudinaryService)
+        public UserService(SaveFoodDbContext context, ICloudinaryService cloudinaryService, IRedisService redisService)
         {
             _context = context;
             _cloudinaryService = cloudinaryService;
+            _redisService = redisService;
         }
 
         public async Task<UserProfileDTO> GetProfileAsync(Guid userId)
         {
+            var cacheKey = $"profile:{userId}";
+            var cachedProfile = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedProfile))
+            {
+                return JsonSerializer.Deserialize<UserProfileDTO>(cachedProfile);
+            }
             var user = await _context.Users
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(u => u.UserRoles)
                     .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == userId);
@@ -31,9 +42,9 @@ namespace SaveFoodBackend.Services
                 throw new InvalidOperationException("User not found.");
             }
 
-            var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == userId);
+            var storeStaff = await _context.StoreStaffs.AsNoTracking().FirstOrDefaultAsync(ss => ss.UserId == userId);
 
-            return new UserProfileDTO
+            var profileDto = new UserProfileDTO
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -52,6 +63,9 @@ namespace SaveFoodBackend.Services
                 StaffRole = storeStaff?.StaffRole,
                 Status = user.UserStatusEnum.ToString()
             };
+
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(profileDto), TimeSpan.FromHours(12));
+            return profileDto;
         }
 
         public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
@@ -94,6 +108,7 @@ namespace SaveFoodBackend.Services
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
             await _context.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile:{userId}");
         }
 
         public async Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
@@ -119,6 +134,7 @@ namespace SaveFoodBackend.Services
             }
 
             await _context.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile:{userId}");
         }
 
         public async Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request)
@@ -137,6 +153,7 @@ namespace SaveFoodBackend.Services
             }
 
             await _context.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile:{userId}");
         }
     }
 }

@@ -22,15 +22,13 @@ public class SubscriptionRepository : ISubscriptionRepository
 
     public async Task<IEnumerable<SubscriptionPlan>> GetAllActivePlansAsync(CancellationToken ct = default)
     {
-        return await _ctx.SubscriptionPlans
-            .Where(p => (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-            .ToListAsync(ct);
+        return await _ctx.SubscriptionPlans.ToListAsync(ct);
     }
 
     public async Task<SubscriptionPlan?> GetPlanByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _ctx.SubscriptionPlans
-            .Where(p => p.Id == id && (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
+            .Where(p => p.Id == id)
             .FirstOrDefaultAsync(ct);
     }
 

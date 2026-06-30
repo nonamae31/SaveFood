@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaveFoodBackend.Common;
 using System.Security.Claims;
@@ -15,13 +16,12 @@ namespace SaveFoodBackend.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
+[Authorize] // Áp dụng Authentication nghiêm ngặt, mặc định bảo vệ tất cả API
 public abstract class ApiControllerBase : ControllerBase
 {
     // ─── Helpers để đọc thông tin người dùng từ JWT Token ─────────────────────
-    // TẠM THỜI: Khi chưa kích hoạt Auth, hệ thống sẽ trả về MOCK DATA để các thành viên khác
-    // có thể code và test API ngay lập tức mà không bị lỗi UnauthorizedException.
 
-    /// <summary>ID của người dùng đang đăng nhập. Có Mock dữ liệu nếu chưa xác thực.</summary>
+    /// <summary>ID của người dùng đang đăng nhập từ JWT claim.</summary>
     protected Guid? CurrentUserId
     {
         get
@@ -29,27 +29,25 @@ public abstract class ApiControllerBase : ControllerBase
             var claim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
             if (claim != null && Guid.TryParse(claim, out var userId)) return userId;
 
-            // Mock User ID mặc định cho môi trường Dev (Khi chưa có Auth)
-            return Guid.Parse("00000000-0000-0000-0000-000000000001");
+            return null;
         }
     }
 
-    /// <summary>Email của người dùng đang đăng nhập. Có Mock dữ liệu nếu chưa xác thực.</summary>
-    protected string? CurrentUserEmail => User.FindFirstValue(ClaimTypes.Email) ?? "test_member@savefood.vn";
+    /// <summary>Email của người dùng đang đăng nhập từ JWT claim.</summary>
+    protected string? CurrentUserEmail => User.FindFirstValue(ClaimTypes.Email);
 
     /// <summary>
-    /// ID cửa hàng của người dùng đang đăng nhập (chỉ có giá trị nếu role là StoreOwner).
-    /// Có Mock dữ liệu nếu chưa xác thực.
+    /// ID cửa hàng của người dùng đang đăng nhập (chỉ có giá trị nếu user thuộc về một cửa hàng).
+    /// Đọc từ custom claim "storeId".
     /// </summary>
     protected Guid? CurrentStoreId
     {
         get
         {
             var claim = User.FindFirstValue("storeId");
-            if (!string.IsNullOrEmpty(claim)) return Guid.Parse(claim);
+            if (!string.IsNullOrEmpty(claim) && Guid.TryParse(claim, out var storeId)) return storeId;
 
-            // Mock Store ID mặc định cho môi trường Dev (Khi chưa có Auth)
-            return Guid.Parse("00000000-0000-0000-0000-000000000002");
+            return null;
         }
     }
 

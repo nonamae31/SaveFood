@@ -53,7 +53,7 @@ public partial class User
 
     public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-    public virtual ICollection<UserSession> UserSessions { get; set; } = new List<UserSession>();
+
 
     public virtual CustomerWallet? CustomerWallet { get; set; }
 }
