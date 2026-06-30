@@ -4,6 +4,7 @@ import {
   Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search
 } from 'lucide-react';
 import { storeStaffApi, type StoreStaffDTO } from '@/api/store.staff.api';
+import { Virtuoso } from 'react-virtuoso';
 import toast from 'react-hot-toast';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -411,34 +412,39 @@ export default function DashboardStaffPage() {
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
-              <Loader2 className="animate-spin w-6 h-6 mr-2" />
-              <span className="text-sm">Đang tải...</span>
-            </div>
-          ) : filteredStaff.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <Users size={40} className="mb-3 opacity-40" />
-              <p className="text-sm font-medium text-gray-500">
-                {searchQuery ? 'Không tìm thấy nhân viên nào.' : 'Chưa có nhân viên nào.'}
-              </p>
-              {!searchQuery && (
-                <p className="text-xs text-gray-400 mt-1">Nhấn "Thêm nhân viên" để bắt đầu.</p>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-gray-400">
+            <Loader2 className="animate-spin w-6 h-6 mr-2" />
+            <span className="text-sm">Đang tải...</span>
+          </div>
+        ) : filteredStaff.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <Users size={40} className="mb-3 opacity-40" />
+            <p className="text-sm font-medium text-gray-500">
+              {searchQuery ? 'Không tìm thấy nhân viên nào.' : 'Chưa có nhân viên nào.'}
+            </p>
+            {!searchQuery && (
+              <p className="text-xs text-gray-400 mt-1">Nhấn "Thêm nhân viên" để bắt đầu.</p>
+            )}
+          </div>
+        ) : (
+          <div className="p-4">
+            <Virtuoso
+              style={{ height: 'min(60vh, 480px)' }}
+              data={filteredStaff}
+              itemContent={(_, member) => (
+                <div className="pb-3 last:pb-0">
+                  <StaffCard
+                    member={member}
+                    currentUserId={currentUserId}
+                    onRemove={(userId, name) => setRemoveTarget({ userId, name })}
+                    isRemoving={isRemoving && removeTarget?.userId === member.userId}
+                  />
+                </div>
               )}
-            </div>
-          ) : (
-            filteredStaff.map(member => (
-              <StaffCard
-                key={member.userId}
-                member={member}
-                currentUserId={currentUserId}
-                onRemove={(userId, name) => setRemoveTarget({ userId, name })}
-                isRemoving={isRemoving && removeTarget?.userId === member.userId}
-              />
-            ))
-          )}
-        </div>
+            />
+          </div>
+        )}
       </div>
 
       {/* Permissions info box */}
