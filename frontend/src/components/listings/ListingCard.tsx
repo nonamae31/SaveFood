@@ -32,6 +32,11 @@ export function ListingCard({ listing }: ListingCardProps) {
     e.preventDefault()
     e.stopPropagation()
     
+    if (!user) {
+      toast.error('Vui lòng đăng nhập để thêm vào giỏ hàng')
+      return
+    }
+
     if (isSoldOut || isMyStore || isStoreClosed || addToCartMutation.isPending) return
     
     addToCartMutation.mutate({ listingId: listing.id, quantity: 1 }, {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useCart } from "@/hooks/useCart";
@@ -41,6 +41,22 @@ export function CheckoutPage() {
         queryFn: customerWalletApi.getMyWallet
     });
 
+    const hasSetDefaultPaymentRef = useRef(false);
+
+    const totalAmount = (cartItems?.filter(item => selectedItemIds.includes(item.id)) || [])
+        .reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+
+    useEffect(() => {
+        if (!isWalletLoading && wallet !== undefined && cartItems && selectedItemIds.length > 0 && !hasSetDefaultPaymentRef.current) {
+            hasSetDefaultPaymentRef.current = true;
+            if (wallet && wallet.balance >= totalAmount) {
+                setPaymentMethod(0);
+            } else {
+                setPaymentMethod(1);
+            }
+        }
+    }, [wallet, isWalletLoading, cartItems, selectedItemIds, totalAmount]);
+
     const checkoutMutation = useMutation({
         mutationFn: checkoutApi.checkout,
         onSuccess: (res) => {
@@ -77,7 +93,7 @@ export function CheckoutPage() {
         );
     }
 
-    const totalAmount = checkoutItems.reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
+    // totalAmount is already calculated above
     
     const groupedItems = checkoutItems.reduce((acc, item) => {
         if (!acc[item.storeId]) {
@@ -220,7 +236,7 @@ export function CheckoutPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
                         <h2 className="text-lg font-semibold mb-4">Phương thức thanh toán</h2>
                         <div className="space-y-3">
-                            <label className={`flex flex-col p-4 border rounded cursor-pointer transition-colors ${paymentMethod === 0 ? 'bg-brand-50 border-brand-500' : 'border-gray-200'}`}>
+                            <label className={`flex flex-col p-4 border rounded transition-colors ${wallet && wallet.balance < totalAmount ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed' : paymentMethod === 0 ? 'bg-brand-50 border-brand-500 cursor-pointer' : 'border-gray-200 cursor-pointer'}`}>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="radio"
@@ -228,10 +244,11 @@ export function CheckoutPage() {
                                         value={0}
                                         checked={paymentMethod === 0}
                                         onChange={() => setPaymentMethod(0)}
-                                        className="w-4 h-4 text-brand-500"
+                                        disabled={wallet && wallet.balance < totalAmount}
+                                        className="w-4 h-4 text-brand-500 disabled:opacity-50"
                                     />
                                     <div className="flex-1">
-                                        <span className="font-medium text-gray-900 flex items-center gap-2">
+                                        <span className={`font-medium flex items-center gap-2 ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'}`}>
                                             Ví SaveFood
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                                 <ShieldCheckIcon className="w-3 h-3" /> SaveFood Guarantee
@@ -239,15 +256,17 @@ export function CheckoutPage() {
                                         </span>
                                     </div>
                                     <div className="text-right">
-                                        <span className="text-sm font-medium">Số dư: {wallet?.balance.toLocaleString("vi-VN")} đ</span>
+                                        <span className={`text-sm font-medium ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : ''}`}>Số dư: {wallet?.balance.toLocaleString("vi-VN")} đ</span>
                                     </div>
                                 </div>
-                                {paymentMethod === 0 && (
+                                
+                                {wallet && wallet.balance < totalAmount ? (
+                                    <div className="mt-2 ml-7 text-sm text-red-500 font-medium">
+                                        Số dư ví hiện tại: {wallet?.balance.toLocaleString("vi-VN")} đ — không đủ để thanh toán đơn này
+                                    </div>
+                                ) : paymentMethod === 0 && (
                                     <div className="mt-3 ml-7 text-sm text-gray-600">
                                         Thanh toán an toàn, hoàn tiền 100% ngay lập tức nếu quán chưa xác nhận hoặc từ chối đơn hàng.
-                                        {wallet && wallet.balance < totalAmount && (
-                                            <p className="text-red-500 mt-1 font-medium">Số dư không đủ. Vui lòng chọn phương thức khác.</p>
-                                        )}
                                     </div>
                                 )}
                             </label>

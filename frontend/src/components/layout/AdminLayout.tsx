@@ -6,6 +6,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
 import { AdminProfileModal } from '../admin/AdminProfileModal';
 import { NotificationDropdown } from './NotificationDropdown';
+import { GlobalCommandPalette } from './GlobalCommandPalette';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -171,6 +172,8 @@ export function AdminLayout() {
         isOpen={isProfileModalOpen} 
         onClose={() => setIsProfileModalOpen(false)} 
       />
+      
+      <GlobalCommandPalette />
     </div>
   );
 }

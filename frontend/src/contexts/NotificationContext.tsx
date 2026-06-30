@@ -29,8 +29,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     if (!user) return;
 
     const token = localStorage.getItem('token');
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api').replace('/api', '');
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(import.meta.env.VITE_API_URL + '/hubs/notifications', {
+      .withUrl(`${baseUrl}/hubs/notifications`, {
         accessTokenFactory: () => token || '',
         skipNegotiation: true,
         transport: signalR.HttpTransportType.WebSockets
