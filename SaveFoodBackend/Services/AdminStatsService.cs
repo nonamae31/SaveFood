@@ -21,14 +21,14 @@ public class AdminStatsService : IAdminStatsService
 
     public async Task<AdminRevenueStatsResponse> GetRevenueStatsAsync()
     {
-        var query = _financeRepo.GetPlatformFeeTransactionsQuery();
+        var platformFeeTransactions = await _financeRepo.GetPlatformFeeTransactionsAsync();
 
         var totalRevenue = platformFeeTransactions.Sum(t => t.Amount);
-        
+
         // Cửa hàng nhận 95%, hệ thống nhận 5%. Vậy doanh thu ròng của cửa hàng = phí nền tảng * 19
         var totalShopNetRevenue = totalRevenue * 19;
 
-        var monthlyRevenues = await query
+        var monthlyRevenues = platformFeeTransactions
             .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
             .Select(g => new MonthlyRevenue
             {
@@ -37,7 +37,7 @@ public class AdminStatsService : IAdminStatsService
                 Revenue = g.Sum(t => t.Amount)
             })
             .OrderBy(m => m.Year).ThenBy(m => m.Month)
-            .ToListAsync();
+            .ToList();
 
         return new AdminRevenueStatsResponse
         {

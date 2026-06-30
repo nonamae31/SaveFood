@@ -100,6 +100,13 @@ public class FinanceRepository : IFinanceRepository
             .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed);
     }
 
+    public async Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default)
+    {
+        return await _ctx.WalletTransactions
+            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed)
+            .ToListAsync(ct);
+    }
+
     public void AddWalletTransaction(WalletTransaction transaction)
     {
         _ctx.WalletTransactions.Add(transaction);

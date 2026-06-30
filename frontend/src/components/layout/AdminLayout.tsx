@@ -32,7 +32,7 @@ export function AdminLayout() {
   };
 
   const navItems = [
-    { name: 'Bảng điều khiển (🚧)', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
+    { name: 'Bảng điều khiển', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
     { name: 'Tài khoản', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
     { name: 'Quản lý cửa hàng', href: ROUTES.ADMIN_APPROVALS, icon: Store },
     { name: 'Tài chính', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },

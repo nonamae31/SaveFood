@@ -220,7 +220,14 @@ export function Navbar() {
                       </div>
                     )}
                   </Link>
-                  <button onClick={() => logoutMutation.mutate()} className={`text-sm font-medium mr-2 ${isDark ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}>Thoát</button>
+                  <button onClick={async () => {
+                    try {
+                      await logoutMutation.mutateAsync();
+                      navigate(ROUTES.LOGIN);
+                    } catch (e) {
+                      navigate(ROUTES.LOGIN);
+                    }
+                  }} className={`text-sm font-medium mr-2 ${isDark ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}>Thoát</button>
                 </div>
               ) : (
                 <div className="hidden md:flex items-center gap-3 ml-1">
