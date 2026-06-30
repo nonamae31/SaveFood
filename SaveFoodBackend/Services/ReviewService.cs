@@ -62,7 +62,7 @@ namespace SaveFoodBackend.Services
                 throw new UnauthorizedAccessException("Bạn không có quyền đánh giá đơn hàng này.");
 
             // Check if order is completed
-            if (orderItem.Order.OrderStatus != (byte)OrderStatusEnum.Completed)
+            if (orderItem.Order.OrderStatus != OrderStatusEnum.Completed)
                 throw new InvalidOperationException("Chỉ có thể đánh giá các đơn hàng đã hoàn thành.");
 
             // Check 7 day window

@@ -9,14 +9,74 @@ import { useCart } from '@/hooks/useCart'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { LocationPickerMap } from '@/components/map/LocationPickerMap'
+
 function CartBadge() {
   const { data: cartItems } = useCart()
   if (!cartItems || cartItems.length === 0) return null
 
+  const count = cartItems.length
   return (
-    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none">
-      {cartItems.length > 9 ? '9+' : cartItems.length}
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full pointer-events-none">
+      {count > 9 ? '9+' : count}
     </span>
+  )
+}
+
+function MiniCartPopover() {
+  const { data: cartItems } = useCart()
+  
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="absolute top-full right-0 pt-2 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+        <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 flex flex-col items-center justify-center text-center">
+          <ShoppingCart className="text-gray-300 mb-3" size={40} />
+          <p className="text-gray-500 font-medium">Chưa có sản phẩm</p>
+        </div>
+      </div>
+    )
+  }
+
+  const recentItems = [...cartItems].reverse().slice(0, 5)
+
+  return (
+    <div className="absolute top-full right-0 pt-2 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+      <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
+        <div className="p-3 bg-gray-50 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-500">Sản phẩm mới thêm</h3>
+        </div>
+      <div className="max-h-80 overflow-y-auto">
+        {recentItems.map(item => (
+          <div key={item.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+            <div className="w-12 h-12 rounded bg-gray-100 shrink-0 overflow-hidden border border-gray-200">
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">No Img</div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-gray-900 truncate">{item.title}</h4>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-brand-600 text-sm font-bold">{item.salePrice.toLocaleString()}đ</span>
+                <span className="text-xs text-gray-500">x{item.quantity}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="p-3 border-t border-gray-100 bg-white">
+        <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+          <span>{cartItems.length > 5 ? `${cartItems.length - 5} sản phẩm khác` : ''}</span>
+        </div>
+        <Link 
+          to={ROUTES.CART}
+          className="block w-full py-2 bg-brand-500 text-white text-center rounded-lg font-bold hover:bg-brand-600 transition-colors"
+        >
+          Xem giỏ hàng
+        </Link>
+      </div>
+      </div>
+    </div>
   )
 }
 
@@ -184,18 +244,20 @@ export function Navbar() {
               </Link>
             )}
 
-
-
             {/* Cart (Desktop Only) */}
             {!isSearchOpen && (
-              <Link
-                to={ROUTES.CART}
-                className={`hidden md:flex relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
-                title="Giỏ hàng"
-              >
-                <ShoppingCart width={18} height={18} />
-                {isAuthenticated && <CartBadge />}
-              </Link>
+              <div className="hidden md:flex relative group">
+                <Link
+                  to={ROUTES.CART}
+                  className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                  title="Giỏ hàng"
+                >
+                  <ShoppingCart width={18} height={18} />
+                  {isAuthenticated && <CartBadge />}
+                </Link>
+                {/* Popover Hover */}
+                {isAuthenticated && <MiniCartPopover />}
+              </div>
             )}
 
             {/* ── Auth buttons (Desktop Only) ── */}

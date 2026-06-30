@@ -204,17 +204,26 @@ export function CheckoutPage() {
                             Vui lòng chọn thời gian bạn sẽ đến lấy. Các món ăn sắp hết hạn cần được lấy sớm để đảm bảo
                             chất lượng.
                         </p>
-                        <select
-                            value={expectedPickupTime}
-                            onChange={(e) => setExpectedPickupTime(e.target.value)}
-                            className="w-full p-3 border rounded border-gray-300 focus:outline-none focus:ring-2 focus:ring-brand-500"
-                        >
-                            {timeOptions.map((time, idx) => (
-                                <option key={idx} value={time.toISOString()}>
-                                    {time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })} - Hôm nay
-                                </option>
-                            ))}
-                        </select>
+                        <div className="flex flex-wrap gap-2">
+                            {timeOptions.map((time, idx) => {
+                                const timeStr = time.toISOString();
+                                const isSelected = expectedPickupTime === timeStr;
+                                return (
+                                    <button
+                                        key={idx}
+                                        type="button"
+                                        onClick={() => setExpectedPickupTime(timeStr)}
+                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
+                                            isSelected 
+                                                ? 'bg-brand-500 text-white border-brand-500' 
+                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-300 hover:bg-brand-50'
+                                        }`}
+                                    >
+                                        {time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                                    </button>
+                                );
+                            })}
+                        </div>
                     </div>
 
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
