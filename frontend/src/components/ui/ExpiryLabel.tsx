@@ -20,9 +20,11 @@ interface ExpiryLabelProps {
   size?: 'sm' | 'md'
   /** Hiện icon đồng hồ hay không */
   showIcon?: boolean
+  /** Thêm class custom (ví dụ: w-full justify-center) */
+  className?: string
 }
 
-export function ExpiryLabel({ expiresAt, size = 'md', showIcon = true }: ExpiryLabelProps) {
+export function ExpiryLabel({ expiresAt, size = 'md', showIcon = true, className = '' }: ExpiryLabelProps) {
   const status   = getExpiryStatus(expiresAt)
   const label    = formatExpiryCountdown(expiresAt)
   const textSize = size === 'sm' ? 'text-[--text-caption]' : 'text-[--text-body-sm]'
@@ -31,9 +33,10 @@ export function ExpiryLabel({ expiresAt, size = 'md', showIcon = true }: ExpiryL
   return (
     <span
       className={[
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge] font-medium whitespace-nowrap',
+        'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-medium whitespace-nowrap',
         textSize,
         statusStyles[status],
+        className
       ].join(' ')}
       title={`Hạn lấy hàng: ${new Date(expiresAt).toLocaleDateString('vi-VN')} ${new Date(expiresAt).toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}`}
     >

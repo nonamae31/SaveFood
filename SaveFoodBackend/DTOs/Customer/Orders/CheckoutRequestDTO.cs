@@ -16,4 +16,7 @@ public class CheckoutRequestDTO
 
     [Required]
     public bool AgreedToNoRefundPolicy { get; set; }
+
+    public string? ReturnUrl { get; set; }
+    public string? CancelUrl { get; set; }
 }

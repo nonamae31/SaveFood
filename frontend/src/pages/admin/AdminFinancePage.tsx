@@ -184,10 +184,21 @@ export default function AdminFinancePage() {
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>
                     <td className="px-6 py-4 text-[14px] text-mint-stone">{t.description || '-'}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-right">
-                      {t.amount > 0 ? (
-                        <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                      {t.type === 1 ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-mint-stone text-[12px] font-normal">
+                            Đơn hàng: {formatCurrency(t.amount)}
+                          </span>
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1">
+                            <ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount * 0.05)}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> {formatCurrency(t.amount)}</span>
+                        t.amount > 0 ? (
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                        ) : (
+                          <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> {formatCurrency(t.amount)}</span>
+                        )
                       )}
                     </td>
                     <td className="px-6 py-4">{renderStatus(t.status, 'tx')}</td>

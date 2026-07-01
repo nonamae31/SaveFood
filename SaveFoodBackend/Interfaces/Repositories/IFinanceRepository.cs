@@ -22,6 +22,7 @@ public interface IFinanceRepository
     Task<WalletTransaction?> GetPendingWalletTransactionByReferenceIdAsync(Guid referenceId, CancellationToken ct = default);
     Task<CustomerWalletTransaction?> GetPendingCustomerWalletTransactionByReferenceIdAsync(Guid referenceId, CancellationToken ct = default);
     void AddWithdrawalRequest(WithdrawalRequest request);
+    void AddStoreWallet(StoreWallet storeWallet);
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

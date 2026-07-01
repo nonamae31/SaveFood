@@ -11,7 +11,7 @@ namespace SaveFoodBackend.Controllers.Store
 {
     [ApiController]
     [Route("api/store/reviews")]
-    [Authorize(Roles = "STORE,Store")]
+    [Authorize]
     public class ReviewsController : ApiControllerBase
     {
         private readonly IReviewService _reviewService;

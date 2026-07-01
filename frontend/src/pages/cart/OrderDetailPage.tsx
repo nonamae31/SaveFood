@@ -58,32 +58,21 @@ export function OrderDetailPage() {
     });
   };
 
-  // Setup SignalR connection
+  // Lắng nghe sự kiện cập nhật trạng thái từ GlobalNotificationListener
   useEffect(() => {
-    const token = localStorage.getItem('accessToken')
-    if (!id || !isAuthenticated || !token) return
+    if (!id) return;
 
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL || 'https://localhost:7251'}/hubs/notifications`, {
-        accessTokenFactory: () => token
-      })
-      .withAutomaticReconnect()
-      .build()
-
-    connection.on('OrderStatusChanged', (orderId: string, newStatus: number) => {
-      if (orderId === id) {
-        // Invalidate and refetch
-        queryClient.invalidateQueries({ queryKey: ['order', id] })
-        queryClient.invalidateQueries({ queryKey: ['myOrders'] })
+    const handleStatusUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.orderId === id) {
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+        queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       }
-    })
+    };
 
-    connection.start().catch(console.error)
-
-    return () => {
-      connection.stop()
-    }
-  }, [id, isAuthenticated])
+    window.addEventListener('order-status-updated', handleStatusUpdate);
+    return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
+  }, [id]);
 
   // Verify payment if pending
   useEffect(() => {
@@ -110,16 +99,17 @@ export function OrderDetailPage() {
 
   const getStatusDisplay = (status: number) => {
     switch (status) {
-      case 0: return { text: 'Chờ lấy hàng', color: 'text-orange-600 bg-orange-100' }
-      case 1: return { text: 'Đã thanh toán', color: 'text-blue-600 bg-blue-100' }
-      case 2: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
+      case 0: return { text: 'Chờ xác nhận', color: 'text-orange-600 bg-orange-100' }
+      case 1: return { text: 'Đã xác nhận', color: 'text-blue-600 bg-blue-100' }
+      case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-100' }
+      case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-100' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-100' }
     }
   }
 
   const status = getStatusDisplay(order.orderStatus)
-  const isCompleted = order.orderStatus === 2
+  const isCompleted = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
 
   return (
@@ -146,7 +136,7 @@ export function OrderDetailPage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
                 <div 
                   className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500" 
-                  style={{ width: isCompleted ? '100%' : (order.confirmedById || order.orderStatus >= 1) ? '50%' : '0%' }}
+                  style={{ width: order.orderStatus >= 3 ? '100%' : order.orderStatus >= 2 ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
                 ></div>
 
                 {/* Step 1: Đặt hàng */}
@@ -159,18 +149,26 @@ export function OrderDetailPage() {
 
                 {/* Step 2: Xác nhận */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${(order.confirmedById || order.orderStatus >= 1) ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 1 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     2
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${(order.confirmedById || order.orderStatus >= 1) ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 1 ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
                 </div>
 
-                {/* Step 3: Nhận hàng */}
+                {/* Step 3: Chờ lấy hàng */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 2 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     3
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${isCompleted ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Chờ lấy hàng</span>
+                </div>
+
+                {/* Step 4: Nhận hàng */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                    4
+                  </div>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
                 </div>
               </div>
             </div>

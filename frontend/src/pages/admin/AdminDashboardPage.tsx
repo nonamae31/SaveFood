@@ -96,8 +96,14 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard 
           title="Tổng doanh thu nền tảng" 
-          value={formatCurrency(revenueStats?.totalRevenue || 0)} 
+          value={formatCurrency((revenueStats?.totalRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0))} 
           icon={<DollarSign className="w-5 h-5" />} 
+          trend="Toàn thời gian"
+        />
+        <StatCard 
+          title="Doanh thu từ phí (5%)" 
+          value={formatCurrency(revenueStats?.totalRevenue || 0)} 
+          icon={<TrendingUp className="w-5 h-5" />} 
           trend="Toàn thời gian"
         />
         <StatCard 
@@ -111,11 +117,6 @@ export default function AdminDashboardPage() {
           value={(subStats?.totalActiveSubscriptions || 0).toString()} 
           icon={<Users className="w-5 h-5" />} 
           trend="Hiện tại"
-        />
-        <StatCard 
-          title="Doanh thu TB / Gói ĐK" 
-          value={formatCurrency(subStats?.totalActiveSubscriptions ? (subStats.totalSubscriptionRevenue / subStats.totalActiveSubscriptions) : 0)} 
-          icon={<TrendingUp className="w-5 h-5" />} 
         />
       </div>
 

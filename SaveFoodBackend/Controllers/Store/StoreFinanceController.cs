@@ -13,7 +13,7 @@ namespace SaveFoodBackend.Controllers.Store;
 
 [Route("api/store/finance")]
 [ApiController]
-[Authorize(Roles = "STORE,Store")]
+[Authorize]
 public class StoreFinanceController : ControllerBase
 {
     private readonly IStoreFinanceService _storeFinanceService;

@@ -18,4 +18,5 @@ public interface IOrderRepository
     Task<Order?> GetOrderByPickupCodeAsync(Guid storeId, string pickupCode, CancellationToken ct = default);
     Task<bool> HasActiveOrdersAsync(Guid userId, CancellationToken ct = default);
     Task<double> GetReturnCustomerRateAsync(Guid storeId, CancellationToken ct = default);
+    Task<decimal> GetPendingRevenueAsync(Guid storeId, CancellationToken ct = default);
 }

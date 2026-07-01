@@ -3,7 +3,7 @@
 // Dùng trong ProductListPage (lưới) và trang gợi ý.
 
 import { Link } from 'react-router-dom'
-import { ShoppingBag, Package, Store, Hash, ShoppingCart } from 'lucide-react'
+import { ShoppingBag, Package, Store, ShoppingCart, ArrowRight } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
@@ -43,9 +43,9 @@ export function ListingCard({ listing }: ListingCardProps) {
     <Link
       to={ROUTES.PRODUCT_DETAIL(listing.id)}
       id={`listing-card-${listing.id}`}
-      className="group block rounded-[1.5rem] bg-[--color-surface-base] shadow-[--shadow-card]
-                 hover:shadow-[--shadow-card-hover] transition-all duration-300 overflow-hidden
-                 hover:-translate-y-1 hover:shadow-[0_8px_30px_rgba(34,197,94,0.08)] focus-visible:outline-2 focus-visible:outline-[--color-brand-500]"
+      className="group flex flex-col h-full rounded-[1.5rem] bg-white border border-gray-100 shadow-sm
+                 hover:shadow-lg transition-all duration-300 overflow-hidden
+                 hover:-translate-y-1 hover:border-green-100 hover:shadow-[0_8px_30px_rgba(34,197,94,0.12)] focus-visible:outline-2 focus-visible:outline-green-500"
       aria-label={`${listing.title} — ${formatVND(listing.salePrice)}`}
     >
       {/* ── Ảnh / Placeholder ── */}
@@ -74,7 +74,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         {/* Surprise Bag badge — góc trên phải */}
         {listing.isSurpriseBag && (
           <div className="absolute top-2.5 left-2.5 mt-8">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
                              bg-amber-400 text-white text-[--text-caption] font-bold shadow-sm">
               🎁 Surprise
             </span>
@@ -99,7 +99,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         {/* Featured Badge — góc dưới phải (hoặc góc trên phải nếu không phải Surprise) */}
         {listing.hasFeaturedBadge && !listing.isSurpriseBag && (
           <div className="absolute top-2.5 right-2.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
                              bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
               ✨ Nổi bật
             </span>
@@ -107,7 +107,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         )}
         {listing.hasFeaturedBadge && listing.isSurpriseBag && (
           <div className="absolute bottom-2.5 right-2.5">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[--radius-badge]
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md
                              bg-gradient-to-r from-purple-500 to-indigo-500 text-white text-[--text-caption] font-bold shadow-sm">
               ✨ Nổi bật
             </span>
@@ -117,7 +117,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         {/* Sold out overlay */}
         {isSoldOut && (
           <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
-            <span className="text-[--text-body-sm] font-bold text-[--color-ink-tertiary] bg-white px-3 py-1 rounded-[--radius-badge] shadow">
+            <span className="text-[--text-body-sm] font-bold text-[--color-ink-tertiary] bg-white px-3 py-1 rounded-md shadow">
               Đã hết hàng
             </span>
           </div>
@@ -125,63 +125,56 @@ export function ListingCard({ listing }: ListingCardProps) {
       </div>
 
       {/* ── Thông tin sản phẩm ── */}
-      <div className="p-[--spacing-card-p] flex flex-col gap-2">
+      <div className="p-5 sm:p-6 flex flex-col gap-3 flex-1 bg-white">
         {/* Tên */}
         <h3 className="text-[--text-body-md] font-semibold text-[--color-ink-primary] leading-snug
-                       group-hover:text-[--color-brand-700] transition-colors line-clamp-2">
+                       group-hover:text-[--color-brand-700] transition-colors line-clamp-2 min-h-[2.75rem]">
           {listing.title}
         </h3>
 
         {/* Cửa hàng */}
-        <div className="flex items-center justify-between text-[--text-body-sm] text-[--color-ink-secondary]">
-          <div className="flex items-center gap-1">
-            <Store size={13} strokeWidth={2} aria-hidden="true" />
-            <span className="truncate max-w-[150px]">{listing.storeName}</span>
+        <div className="flex items-center justify-between text-[--text-body-sm] text-[--color-ink-secondary] gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Store size={14} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+            <span className="truncate">{listing.storeName}</span>
           </div>
           {listing.distance !== undefined && listing.distance !== null && (
-            <span className="text-sm font-bold text-brand-700 bg-brand-100 px-2.5 py-1 rounded-full shadow-sm">
+            <span className="text-sm font-bold text-brand-700 bg-brand-100 px-2.5 py-1 rounded-full shadow-sm shrink-0">
               {listing.distance} km
             </span>
           )}
         </div>
 
         {/* Expiry label */}
-        <ExpiryLabel expiresAt={listing.expiryDate} size="sm" />
+        <ExpiryLabel expiresAt={listing.expiryDate} size="sm" className="w-full flex justify-center" />
 
         {/* Giá */}
-        <div className="flex items-baseline gap-2 mt-1">
-          <span className="text-[--text-heading-sm] font-bold text-[--color-brand-700]">
+        <div className="flex items-baseline gap-2 mt-2">
+          <span className="text-xl font-extrabold text-[--color-brand-700]">
             {formatVND(listing.salePrice)}
           </span>
           {discount > 0 && (
-            <span className="text-[--text-body-sm] text-[--color-ink-tertiary] line-through">
+            <span className="text-sm font-medium text-[--color-ink-tertiary] line-through">
               {formatVND(listing.originalPrice)}
             </span>
           )}
         </div>
 
         {/* Số lượng còn lại */}
-        <div className="flex items-center justify-between mt-1">
-          <div className="flex items-center gap-1">
-            <Hash size={12} strokeWidth={2.5} className="text-[--color-ink-tertiary]" aria-hidden="true" />
-            <span className={[
-              'text-[--text-caption] font-medium',
-              isLowStock ? 'text-red-500' : 'text-[--color-ink-tertiary]',
-            ].join(' ')}>
-              {isSoldOut
-                ? 'Hết hàng'
-                : isLowStock
-                  ? `Còn ${listing.quantityAvailable} phần`
-                  : `${listing.quantityAvailable} phần`}
-            </span>
-          </div>
+        <div className="flex items-center justify-between mt-auto pt-3 h-10">
+          <span className={`text-sm font-bold px-2.5 py-1 rounded-md ${
+            isSoldOut ? 'bg-gray-100 text-gray-500' 
+            : isLowStock ? 'bg-red-50 text-red-600' 
+            : 'bg-green-50 text-green-700'
+          }`}>
+            {isSoldOut ? 'Hết hàng' : isLowStock ? `Chỉ còn ${listing.quantityAvailable} phần` : `Còn ${listing.quantityAvailable} phần`}
+          </span>
 
           {/* Nút xem nhanh */}
           <span
-            className="text-[--text-caption] font-bold text-[--color-brand-600] bg-[--color-brand-50] px-3 py-1 rounded-full
-                       group-hover:bg-[--color-brand-500] group-hover:text-white transition-all duration-300"
+            className="text-sm font-bold text-[--color-brand-600] group-hover:text-[--color-brand-700] transition-all duration-300 flex items-center gap-1 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
           >
-            Xem chi tiết →
+            Xem chi tiết <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
           </span>
         </div>
       </div>

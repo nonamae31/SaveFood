@@ -61,14 +61,27 @@ public class CustomerListingService : ICustomerListingService
             return dto;
         }).ToList();
 
-        if (filter.RadiusKm.HasValue && filter.RadiusKm.Value > 0)
-        {
-            dtos = dtos.Where(d => d.Distance == null || d.Distance <= filter.RadiusKm.Value).ToList();
-        }
+        // User requirement: Do not hard filter by Radius, just prioritize items <= 5km.
+        // If there's an explicit RadiusKm (e.g. from UI slider), we could filter, but user requested:
+        // "Nếu có kết quả phù hợp nhất nhưng quá 5km thì vẫn phải xếp sau đơn hàng gần hơn"
+        // So we will apply a multi-level sort to ALWAYS put <= 5km items first.
 
         if (filter.SortBy == "distance" && filter.UserLat.HasValue && filter.UserLng.HasValue)
         {
-            dtos = dtos.OrderBy(d => d.Distance.HasValue ? 0 : 1).ThenBy(d => d.Distance).ThenByDescending(d => d.PriorityLevel).ToList();
+            dtos = dtos.OrderBy(d => d.Distance.HasValue && d.Distance <= 5 ? 0 : 1)
+                       .ThenBy(d => d.Distance.HasValue ? 0 : 1)
+                       .ThenBy(d => d.Distance)
+                       .ThenByDescending(d => d.PriorityLevel).ToList();
+        }
+        else
+        {
+            // For any other sort (like price, priority, expiry), we STILL push > 5km to the bottom
+            // Since we already got the data from DB (sorted by DB), we use OrderBy to stably sort the <=5km group vs >5km group
+            // We must preserve the original order within the groups.
+            var within5km = dtos.Where(d => !d.Distance.HasValue || d.Distance <= 5).ToList();
+            var outside5km = dtos.Where(d => d.Distance.HasValue && d.Distance > 5).ToList();
+            
+            dtos = within5km.Concat(outside5km).ToList();
         }
 
         return dtos;

@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Search, MapPin } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 // Fix Leaflet's default icon path issues in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -101,11 +103,11 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
         setPosition(newPos);
         onLocationChange(lat, lon);
       } else {
-        alert('Không tìm thấy tọa độ cho địa chỉ này, vui lòng nhập chi tiết hơn hoặc tự chấm ghim!');
+        toast.error('Không tìm thấy tọa độ cho địa chỉ này, vui lòng nhập chi tiết hơn hoặc tự chấm ghim!');
       }
     } catch (error) {
       console.error('Error searching location:', error);
-      alert('Lỗi khi tìm kiếm địa chỉ!');
+      toast.error('Lỗi khi tìm kiếm địa chỉ!');
     } finally {
       setIsSearching(false);
     }
@@ -155,7 +157,7 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
                 },
                 (err) => {
                   console.error(err);
-                  alert('Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí của trình duyệt!');
+                  toast.error('Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí của trình duyệt!');
                 }
               );
             }

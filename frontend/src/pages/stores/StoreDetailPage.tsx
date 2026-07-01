@@ -8,11 +8,18 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ReviewSection } from '@/components/reviews/ReviewSection'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { calculateDistance } from '@/utils/distance'
 
 export function StoreDetailPage() {
   const { id } = useParams()
 
   const { data: store, isLoading: isStoreLoading, isError: isStoreError } = useStoreDetail(id)
+  const { location } = useLocationContext()
+
+  const isFar = store && store.latitude && store.longitude && location
+    ? calculateDistance(location.lat, location.lng, store.latitude, store.longitude) > 5
+    : false;
   
   const { 
     data: listings, 
@@ -82,7 +89,18 @@ export function StoreDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {isFar && (
+          <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 animate-fade-in">
+            <MapPin className="shrink-0 mt-0.5 text-orange-600" size={20} />
+            <div className="text-sm leading-relaxed">
+              <p className="font-bold mb-1">Cửa hàng cách xa hơn 5km</p>
+              <p>Vui lòng cân nhắc khoảng cách. Hãy đảm bảo bạn có thể đến lấy hàng đúng thời gian quy định để tránh bị hủy đơn và mất tiền (không hỗ trợ hoàn tiền).</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
         {/* ── Main Content (Listings) ── */}
         <div className="lg:col-span-2 space-y-8">
@@ -171,6 +189,7 @@ export function StoreDetailPage() {
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   )

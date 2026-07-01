@@ -102,4 +102,79 @@ public class StoreRepository : IStoreRepository
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync(ct);
     }
+
+    public async Task<(IEnumerable<AdminStoreListDTO> Items, int TotalCount)> GetAdminStoresAsync(string? search, byte? status, int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var query = _set.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(s => s.Name.Contains(search) || 
+                                     (s.StoreStaffs.Any(ss => ss.StaffRole == 0 && ss.User.FullName.Contains(search))) || 
+                                     (s.StoreStaffs.Any(ss => ss.StaffRole == 0 && ss.User.Email.Contains(search))));
+        }
+
+        if (status.HasValue)
+        {
+            query = query.Where(s => s.Status == status.Value);
+        }
+
+        var totalCount = await query.CountAsync(ct);
+
+        var items = await query
+            .OrderByDescending(s => s.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(s => new AdminStoreListDTO
+            {
+                Id = s.Id,
+                Name = s.Name,
+                AddressLine = s.DetailedAddress + ", " + s.Ward + ", " + s.City,
+                OwnerName = s.StoreStaffs.Where(ss => ss.StaffRole == 0).Select(ss => ss.User.FullName).FirstOrDefault(),
+                OwnerEmail = s.StoreStaffs.Where(ss => ss.StaffRole == 0).Select(ss => ss.User.Email).FirstOrDefault(),
+                Status = s.Status,
+                AvailableBalance = s.StoreWallet != null ? s.StoreWallet.AvailableBalance : 0,
+                CreatedAt = s.CreatedAt
+            })
+            .ToListAsync(ct);
+
+        return (items, totalCount);
+    }
+
+    public async Task<AdminStoreDetailsDTO?> GetAdminStoreDetailsAsync(Guid storeId, CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+
+        return await _set
+            .Where(s => s.Id == storeId)
+            .Select(s => new AdminStoreDetailsDTO
+            {
+                Id = s.Id,
+                Name = s.Name,
+                AddressLine = s.DetailedAddress + ", " + s.Ward + ", " + s.City,
+                PhoneNumber = s.PhoneNumber,
+                Description = s.Description,
+                Status = s.Status,
+                StorefrontImageUrl = s.StorefrontImageUrl,
+                ReferenceLink = s.ReferenceLink,
+                CreatedAt = s.CreatedAt,
+                
+                OwnerName = s.StoreStaffs.Where(ss => ss.StaffRole == 0).Select(ss => ss.User.FullName).FirstOrDefault(),
+                OwnerEmail = s.StoreStaffs.Where(ss => ss.StaffRole == 0).Select(ss => ss.User.Email).FirstOrDefault(),
+                OwnerPhone = s.StoreStaffs.Where(ss => ss.StaffRole == 0).Select(ss => ss.User.PhoneNumber).FirstOrDefault(),
+
+                AvailableBalance = s.StoreWallet != null ? s.StoreWallet.AvailableBalance : 0,
+                PendingBalance = s.StoreWallet != null ? s.StoreWallet.PendingBalance : 0,
+
+                CurrentPlanName = s.StoreSubscriptions
+                    .Where(sub => sub.StartDate <= now && sub.EndDate >= now && sub.Status == 1)
+                    .Select(sub => sub.Plan.Name)
+                    .FirstOrDefault(),
+                PlanExpiryDate = s.StoreSubscriptions
+                    .Where(sub => sub.StartDate <= now && sub.EndDate >= now && sub.Status == 1)
+                    .Select(sub => (DateTime?)sub.EndDate)
+                    .FirstOrDefault()
+            })
+            .FirstOrDefaultAsync(ct);
+    }
 }

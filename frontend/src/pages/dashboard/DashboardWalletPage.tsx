@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { PageHeader } from '@/components/layout/PageHeader'
-import { Wallet, Clock, XCircle, Plus } from 'lucide-react'
+import { Wallet, Clock, XCircle, Plus, TrendingUp, TrendingDown, Percent, FileText } from 'lucide-react'
 import {
   useStoreWallet,
   useStoreTransactions,
@@ -23,6 +23,24 @@ const getTxTypeLabel = (type: number) => {
     case 4: return 'Hoàn tiền'
     case 5: return 'Phạt'
     default: return 'Khác'
+  }
+}
+
+const getTxIcon = (type: number) => {
+  switch (type) {
+    case 1: return <TrendingUp className="w-6 h-6 text-green-600" />
+    case 2: return <Percent className="w-6 h-6 text-purple-600" />
+    case 3: return <TrendingDown className="w-6 h-6 text-orange-600" />
+    default: return <FileText className="w-6 h-6 text-gray-400" />
+  }
+}
+
+const getTxIconBg = (type: number) => {
+  switch (type) {
+    case 1: return 'bg-green-100'
+    case 2: return 'bg-purple-100'
+    case 3: return 'bg-orange-100'
+    default: return 'bg-gray-100'
   }
 }
 
@@ -120,7 +138,7 @@ export default function DashboardWalletPage() {
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm relative overflow-hidden">
               <div className="relative z-10">
                 <p className="text-sm font-medium text-gray-500 mb-1">Số dư khả dụng</p>
-                <h3 className="text-3xl font-bold text-gray-900 font-display">
+                <h3 className="text-3xl font-bold text-gray-900">
                   {walletLoading ? '...' : formatVND(wallet?.availableBalance || 0)}
                 </h3>
                 <p className="text-xs text-gray-400 mt-2">Tiền có thể rút ngay</p>
@@ -131,7 +149,7 @@ export default function DashboardWalletPage() {
             <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm relative overflow-hidden">
               <div className="relative z-10">
                 <p className="text-sm font-medium text-gray-500 mb-1">Số dư chờ duyệt</p>
-                <h3 className="text-3xl font-bold text-gray-900 font-display">
+                <h3 className="text-3xl font-bold text-gray-900">
                   {walletLoading ? '...' : formatVND(wallet?.pendingBalance || 0)}
                 </h3>
                 <p className="text-xs text-gray-400 mt-2">Tiền từ các đơn hàng chưa hoàn tất</p>
@@ -140,55 +158,70 @@ export default function DashboardWalletPage() {
             </div>
           </div>
 
-          {/* Transactions Table */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-bold text-gray-900">Lịch sử giao dịch</h3>
+          {/* Transactions List */}
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
+              <h3 className="text-lg font-bold text-gray-900 font-display">Lịch sử giao dịch</h3>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-gray-50 text-gray-500 font-medium">
-                  <tr>
-                    <th className="px-6 py-3">Mã GD</th>
-                    <th className="px-6 py-3">Ngày</th>
-                    <th className="px-6 py-3">Loại</th>
-                    <th className="px-6 py-3 text-right">Số tiền</th>
-                    <th className="px-6 py-3 text-center">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {txLoading ? (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Đang tải...</td></tr>
-                  ) : txData?.items.length === 0 ? (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-gray-500">Chưa có giao dịch nào</td></tr>
-                  ) : (
-                    txData?.items.map(tx => (
-                      <tr key={tx.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 font-mono text-xs text-gray-500">
-                          {tx.id.substring(0, 8)}...
-                        </td>
-                        <td className="px-6 py-4 text-gray-600">
-                          {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <span className="font-medium text-gray-900">{getTxTypeLabel(tx.type)}</span>
-                            {tx.description && <p className="text-xs text-gray-500 mt-0.5">{tx.description}</p>}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <span className={`font-medium ${tx.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {tx.amount > 0 ? '+' : ''}{formatVND(tx.amount)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {getTxStatusLabel(tx.status)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+            
+            <div className="divide-y divide-gray-100">
+              {txLoading ? (
+                <div className="p-8 text-center text-gray-500">Đang tải...</div>
+              ) : txData?.items.length === 0 ? (
+                <div className="p-12 text-center flex flex-col items-center justify-center">
+                  <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                    <FileText className="w-8 h-8 text-gray-300" />
+                  </div>
+                  <p className="text-gray-500 font-medium">Chưa có giao dịch nào</p>
+                </div>
+              ) : (
+                txData?.items.map(tx => (
+                  <div key={tx.id} className="p-5 hover:bg-gray-50/80 transition-colors flex items-center gap-4">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${getTxIconBg(tx.type)}`}>
+                      {getTxIcon(tx.type)}
+                    </div>
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-bold text-gray-900 truncate">{getTxTypeLabel(tx.type)}</h4>
+                        {getTxStatusLabel(tx.status)}
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded text-gray-500">#{tx.id.substring(0, 8)}</span>
+                        <span>•</span>
+                        <span>{new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      {tx.description && (
+                        <p className="text-sm text-gray-500 mt-1.5 truncate">{tx.description}</p>
+                      )}
+                      {tx.type === 1 && (
+                        <div className="mt-3 flex gap-4 p-3 bg-white rounded-lg border border-gray-100 shadow-sm text-sm">
+                           <div className="flex-1">
+                              <p className="text-gray-400 text-xs">Tiền đơn hàng</p>
+                              <p className="font-semibold text-gray-700">{formatVND(tx.amount)}</p>
+                           </div>
+                           <div className="flex-1">
+                              <p className="text-gray-400 text-xs">Phí nền tảng (5%)</p>
+                              <p className="font-semibold text-red-500">-{formatVND(tx.amount * 0.05)}</p>
+                           </div>
+                           <div className="flex-1">
+                              <p className="text-brand-600 text-xs font-bold">Thực nhận</p>
+                              <p className="font-bold text-brand-600">+{formatVND(tx.amount * 0.95)}</p>
+                           </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                      {tx.type !== 1 && (
+                        <div className={`text-xl font-bold tracking-tight ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                          {tx.amount > 0 ? '+' : ''}{formatVND(tx.amount)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>

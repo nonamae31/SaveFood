@@ -156,6 +156,8 @@ public class CartService : ICartService
             OriginalPrice = listing.Product.OriginalPrice,
             StoreId = listing.Product.StoreId,
             StoreName = listing.Product.Store.Name,
+            StoreLatitude = listing.Product.Store.Latitude,
+            StoreLongitude = listing.Product.Store.Longitude,
             Quantity = item.Quantity,
             AvailableQuantity = listing.QuantityAvailable,
             ExpiryDate = listing.ExpiryDate

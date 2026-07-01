@@ -2,9 +2,9 @@
 // Route: /products
 // Trang duyệt Clearance Listings cho Customer (Người 3).
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Sparkles, RefreshCw } from 'lucide-react'
+import { Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
@@ -60,6 +60,21 @@ export function ProductListPage() {
   } = useRecommendations()
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
+
+  // -- Pagination Logic --
+  const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 9
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchParams])
+
+  const paginatedListings = useMemo(() => {
+    if (!listings) return []
+    return listings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  }, [listings, currentPage])
+
+  const totalPages = listings ? Math.ceil(listings.length / ITEMS_PER_PAGE) : 0
 
   return (
     <>
@@ -173,11 +188,52 @@ export function ProductListPage() {
 
           {/* Data */}
           {!isLoading && !isError && listings && listings.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {listings.map(listing => (
-                <ListingCard key={listing.id} listing={listing} />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {paginatedListings.map(listing => (
+                  <ListingCard key={listing.id} listing={listing} />
+                ))}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-10">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-full border border-[--color-surface-border] hover:bg-green-50 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Trang trước"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                      <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center transition-all ${
+                          currentPage === page 
+                            ? 'bg-green-600 text-white shadow-md' 
+                            : 'text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-full border border-[--color-surface-border] hover:bg-green-50 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    aria-label="Trang sau"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

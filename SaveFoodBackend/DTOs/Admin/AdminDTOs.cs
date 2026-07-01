@@ -85,4 +85,44 @@ namespace SaveFoodBackend.DTOs.Admin
         public string Password { get; set; } = null!;
         public string RoleCode { get; set; } = null!;
     }
+
+    public class AdminStoreListDTO
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string AddressLine { get; set; } = null!;
+        public string? OwnerName { get; set; }
+        public string? OwnerEmail { get; set; }
+        public byte Status { get; set; }
+        public decimal AvailableBalance { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class AdminStoreDetailsDTO
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string AddressLine { get; set; } = null!;
+        public string? PhoneNumber { get; set; }
+        public string? Description { get; set; }
+        public byte Status { get; set; }
+        public string? StorefrontImageUrl { get; set; }
+        public string? ReferenceLink { get; set; }
+        public DateTime CreatedAt { get; set; }
+        
+        public string? OwnerName { get; set; }
+        public string? OwnerEmail { get; set; }
+        public string? OwnerPhone { get; set; }
+
+        public decimal AvailableBalance { get; set; }
+        public decimal PendingBalance { get; set; }
+
+        public string? CurrentPlanName { get; set; }
+        public DateTime? PlanExpiryDate { get; set; }
+    }
+
+    public class UpdateStoreStatusRequest
+    {
+        public byte NewStatus { get; set; }
+    }
 }

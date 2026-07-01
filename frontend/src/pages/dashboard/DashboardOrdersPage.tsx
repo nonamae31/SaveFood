@@ -269,6 +269,15 @@ export default function DashboardOrdersPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<StoreOrderDTO | null>(null);
 
+  useEffect(() => {
+    if (selectedOrder) {
+      const updated = orders.find(o => o.id === selectedOrder.id);
+      if (updated && updated.orderStatus !== selectedOrder.orderStatus) {
+        setSelectedOrder(updated);
+      }
+    }
+  }, [orders, selectedOrder]);
+
   const storeId = user?.storeId ?? '';
 
   const fetchOrders = () => setRefreshKey(k => k + 1);
@@ -285,31 +294,37 @@ export default function DashboardOrdersPage() {
           setIsLoading(false);
         }
       });
-    return () => { cancelled = true; };
+      
+    const handleStatusUpdate = () => {
+      setRefreshKey(k => k + 1);
+    };
+    window.addEventListener('order-status-updated', handleStatusUpdate);
+
+    return () => { 
+      cancelled = true; 
+      window.removeEventListener('order-status-updated', handleStatusUpdate);
+    };
   }, [storeId, refreshKey]);
 
   // Lắng nghe sự kiện đơn hàng mới qua SignalR
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (!storeId || !token) return;
+    if (!storeId) return;
+
+    // Lấy origin từ VITE_API_BASE_URL hoặc mặc định
+    const baseUrl = (import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api').replace('/api', '');
 
     const connection = new HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL || 'https://localhost:7251'}/hubs/notifications`, {
-        accessTokenFactory: () => token
+      .withUrl(`${baseUrl}/hubs/notifications`, {
+        withCredentials: true
       })
       .withAutomaticReconnect()
       .build();
 
     connection.on('NewOrderReceived', (orderId: string) => {
-      toast.success('🛒 Cửa hàng vừa có đơn hàng mới!', {
-        duration: 5000,
-        position: 'top-right',
-        style: {
-          background: '#16a34a',
-          color: '#fff',
-          fontWeight: 'bold'
-        }
-      });
+      setRefreshKey(k => k + 1);
+    });
+
+    connection.on('OrderStatusUpdated', (orderId: string, status: number) => {
       setRefreshKey(k => k + 1);
     });
 
@@ -340,14 +355,6 @@ export default function DashboardOrdersPage() {
             Xác nhận đơn hàng và cập nhật trạng thái giao nhận.
           </p>
         </div>
-        <button
-          onClick={fetchOrders}
-          disabled={isLoading}
-          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer disabled:opacity-50"
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-          Làm mới
-        </button>
       </div>
 
       {/* Filter tabs */}

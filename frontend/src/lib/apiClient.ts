@@ -109,15 +109,18 @@ export async function apiClient<T>(
 ): Promise<T> {
   const token = getAccessToken()
 
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...options?.headers,
+  const mergedHeaders = new Headers(options?.headers)
+  if (token && !mergedHeaders.has('Authorization')) {
+    mergedHeaders.set('Authorization', `Bearer ${token}`)
+  }
+  // Let the browser automatically set the Content-Type (with boundary) for FormData
+  if (!(options?.body instanceof FormData) && !mergedHeaders.has('Content-Type')) {
+    mergedHeaders.set('Content-Type', 'application/json')
   }
 
   const response = await fetch(`${BASE_URL}${path}`, { 
     ...options, 
-    headers,
+    headers: mergedHeaders,
     credentials: 'include' // <-- Thêm dòng này để trình duyệt gửi kèm HttpOnly Cookie (jwt)
   })
 

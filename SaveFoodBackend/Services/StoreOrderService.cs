@@ -8,6 +8,10 @@ using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models.Enums;
 using SaveFoodBackend.Models;
+using SaveFoodBackend.Hubs;
+using SaveFoodBackend.Data;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 
 namespace SaveFoodBackend.Services;
 
@@ -16,12 +20,16 @@ public class StoreOrderService : IStoreOrderService
     private readonly IOrderRepository _orderRepo;
     private readonly IStoreRepository _storeRepo;
     private readonly IFinanceRepository _financeRepo;
+    private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly SaveFoodDbContext _ctx;
 
-    public StoreOrderService(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo)
+    public StoreOrderService(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext, SaveFoodDbContext ctx)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _financeRepo = financeRepo;
+        _hubContext = hubContext;
+        _ctx = ctx;
     }
 
     private static string GetStatusLabel(byte status) => (OrderStatusEnum)status switch
@@ -87,6 +95,8 @@ public class StoreOrderService : IStoreOrderService
         order.ConfirmedById  = userId;
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
+        
+        await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
     }
 
     public async Task MarkReadyForPickupAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default)
@@ -105,6 +115,8 @@ public class StoreOrderService : IStoreOrderService
         order.OrderStatus = (byte)OrderStatusEnum.ReadyForPickup;
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
+        
+        await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
     }
 
     public async Task CompleteOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default)
@@ -124,28 +136,54 @@ public class StoreOrderService : IStoreOrderService
 
         // Process store wallet (add money to store - minus 5% platform fee)
         var storeWallet = await _financeRepo.GetStoreWalletByStoreIdAsync(storeId, ct);
-        if (storeWallet != null)
+        if (storeWallet == null)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
-            decimal storeIncome = order.TotalAmount - platformFee;
-
-            storeWallet.AvailableBalance += storeIncome;
-            
-            _financeRepo.AddWalletTransaction(new WalletTransaction
+            storeWallet = new StoreWallet
             {
                 Id = Guid.NewGuid(),
-                StoreWalletId = storeWallet.Id,
-                OrderId = order.Id,
-                Amount = storeIncome,
-                Type = 1, // Income
-                Status = 1, // Completed
-                Description = $"Thu nhập từ đơn hàng {order.OrderCode ?? 0} (Đã trừ 5% phí nền tảng)"
-            });
+                StoreId = storeId,
+                AvailableBalance = 0,
+                PendingBalance = 0,
+                UpdatedAt = DateTime.UtcNow
+            };
+            _financeRepo.AddStoreWallet(storeWallet);
         }
+
+        decimal platformFee = order.TotalAmount * 0.05m;
+        decimal storeIncome = order.TotalAmount - platformFee;
+
+        storeWallet.AvailableBalance += storeIncome;
+        storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+
+        // Log Shop Income (Full Amount)
+        _financeRepo.AddWalletTransaction(new WalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            StoreWalletId = storeWallet.Id,
+            OrderId = order.Id,
+            Amount = order.TotalAmount,
+            Type = (byte)TransactionTypeEnum.OrderRevenue, // 1
+            Status = (byte)TransactionStatusEnum.Completed, // 1
+            Description = $"Doanh thu từ đơn hàng {order.OrderCode ?? 0}"
+        });
+
+        // Log Platform Fee Deduction (5%)
+        _financeRepo.AddWalletTransaction(new WalletTransaction
+        {
+            Id = Guid.NewGuid(),
+            StoreWalletId = storeWallet.Id,
+            OrderId = order.Id,
+            Amount = platformFee,
+            Type = (byte)TransactionTypeEnum.PlatformFee, // 2
+            Status = (byte)TransactionStatusEnum.Completed, // 1
+            Description = $"Phí nền tảng (5%) từ đơn hàng {order.OrderCode ?? 0}"
+        });
 
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
         await _financeRepo.SaveChangesAsync(ct);
+        
+        await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
     }
 
     public async Task CancelOrderAsync(Guid orderId, Guid storeId, Guid userId, CancellationToken ct = default)
@@ -162,8 +200,53 @@ public class StoreOrderService : IStoreOrderService
             throw new InvalidOperationException($"Chỉ có thể hủy đơn hàng đang ở trạng thái 'Chờ xác nhận'. Trạng thái hiện tại: {GetStatusLabel(order.OrderStatus)}.");
 
         order.OrderStatus = (byte)OrderStatusEnum.Cancelled;
+
+        // Process Refund if paid
+        if (order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
+        {
+            var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, ct);
+            if (customerWallet == null)
+            {
+                customerWallet = new CustomerWallet
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = order.UserId,
+                    Balance = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _ctx.CustomerWallets.Add(customerWallet);
+            }
+
+            customerWallet.Balance += order.TotalAmount;
+            customerWallet.UpdatedAt = DateTime.UtcNow;
+
+            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                CustomerWalletId = customerWallet.Id,
+                Amount = order.TotalAmount,
+                Type = 0, // Refund / Deposit
+                Status = 1, // Completed
+                OrderId = order.Id,
+                CreatedAt = DateTime.UtcNow,
+                Description = $"Hoàn tiền cho đơn hàng bị cửa hàng hủy {order.OrderCode ?? 0}"
+            });
+            await _ctx.SaveChangesAsync(ct);
+        }
+
+        var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == storeId, ct);
+        if (storeWallet != null && order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
+        {
+            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal storeIncome = order.TotalAmount - platformFee;
+            storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+        }
+
         _orderRepo.Update(order);
         await _orderRepo.SaveChangesAsync(ct);
+        
+        await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
     }
 
     public async Task<StoreOrderDTO> LookupOrderByPickupCodeAsync(Guid storeId, string pickupCode, Guid userId, CancellationToken ct = default)
