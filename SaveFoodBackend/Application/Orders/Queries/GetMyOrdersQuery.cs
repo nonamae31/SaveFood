@@ -34,8 +34,19 @@ public class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, Paginat
 
         if (request.Status.HasValue)
         {
-            var statusEnum = (OrderStatusEnum)request.Status.Value;
-            query = query.Where(o => o.OrderStatus == statusEnum);
+            if (request.Status.Value == -2)
+            {
+                query = query.Where(o => o.OrderStatus == OrderStatusEnum.Pending && o.Payment != null && o.Payment.PaymentMethod == 1 && (o.Payment.Status == 0 || o.Payment.Status == 2));
+            }
+            else if (request.Status.Value == 0)
+            {
+                query = query.Where(o => o.OrderStatus == OrderStatusEnum.Pending && (o.Payment == null || o.Payment.PaymentMethod == 0 || (o.Payment.PaymentMethod == 1 && o.Payment.Status == 1)));
+            }
+            else
+            {
+                var statusEnum = (OrderStatusEnum)request.Status.Value;
+                query = query.Where(o => o.OrderStatus == statusEnum);
+            }
         }
 
         var totalRecords = await query.CountAsync(cancellationToken);
