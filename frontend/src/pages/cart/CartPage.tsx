@@ -7,12 +7,16 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import type { CartItem } from '@/types/cart.types'
 import { toast } from 'react-hot-toast'
+import { MapPin } from 'lucide-react'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { calculateDistance } from '@/utils/distance'
 
 export function CartPage() {
   const navigate = useNavigate()
   const { data: cartItems, isLoading, isError, error, refetch } = useCart()
   const updateItemMutation = useUpdateCartItem()
   const removeItemMutation = useRemoveFromCart()
+  const { location } = useLocationContext()
 
   // Manage selection (array of selected listingIds or cartItemIds)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -142,6 +146,9 @@ export function CartPage() {
                   {storeGroup.items.map(item => {
                     const isDisabled = item.isExpired || item.availableQuantity <= 0
                     const hasStockWarning = item.availableQuantity > 0 && item.quantity > item.availableQuantity
+                    const isFar = location && item.storeLatitude && item.storeLongitude
+                      ? calculateDistance(location.lat, location.lng, item.storeLatitude, item.storeLongitude) > 5
+                      : false;
 
                     return (
                       <div key={item.id} className={`p-5 flex items-start gap-4 transition-colors ${isDisabled ? 'bg-red-50/50' : 'hover:bg-gray-50/50'}`}>
@@ -177,6 +184,12 @@ export function CartPage() {
                             <span className="font-bold text-brand-600 text-lg">{item.salePrice.toLocaleString()}đ</span>
                             <span className="text-sm text-[--color-ink-tertiary] line-through">{item.originalPrice.toLocaleString()}đ</span>
                           </div>
+
+                          {isFar && !isDisabled && (
+                            <p className="mt-1 text-xs font-semibold text-orange-600 flex items-center gap-1">
+                              <MapPin size={12} /> Cửa hàng cách xa &gt; 5km (Hãy lưu ý thời gian di chuyển)
+                            </p>
+                          )}
 
                           {/* Cảnh báo */}
                           {isDisabled ? (

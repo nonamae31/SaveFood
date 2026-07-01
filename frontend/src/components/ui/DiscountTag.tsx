@@ -28,7 +28,7 @@ export function DiscountTag({ percent, size = 'md', variant = 'solid' }: Discoun
   return (
     <span
       className={[
-        'inline-flex items-center font-bold rounded-[--radius-badge]',
+        'inline-flex items-center font-bold rounded-md',
         sizeMap[size],
         variant === 'solid'
           ? 'bg-red-500 text-white'

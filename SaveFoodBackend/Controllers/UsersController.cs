@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -10,6 +11,8 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.DTOs.Auth;
+using MediatR;
+using SaveFood.Application.Features.Auth;
 
 namespace SaveFoodBackend.Controllers
 {
@@ -17,100 +20,17 @@ namespace SaveFoodBackend.Controllers
     [ApiController]
     public class UsersController : ControllerBase
     {
-        private readonly SaveFoodDbContext _context;
-        private readonly IAuthService _authService;
         private readonly IUserService _userService;
+        private readonly IMediator _mediator;
 
-        public UsersController(SaveFoodDbContext context, IAuthService authService, IUserService userService)
+        public UsersController(IUserService userService, IMediator mediator)
         {
-            _context = context;
-            _authService = authService;
             _userService = userService;
+            _mediator = mediator;
         }
 
-        // GET: api/Users
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
-        {
-            return await _context.Users.ToListAsync();
-        }
 
-        // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(Guid id)
-        {
-            var user = await _context.Users.FindAsync(id);
 
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
-        }
-
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(Guid id, User user)
-        {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
-        {
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
-        }
-
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(Guid id)
-        {
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool UserExists(Guid id)
-        {
-            return _context.Users.Any(e => e.Id == id);
-        }
 
         /// <summary>
         /// Đăng ký tài khoản người dùng mới (Customer)
@@ -129,7 +49,7 @@ namespace SaveFoodBackend.Controllers
 
             try
             {
-                var userId = await _authService.RegisterAsync(request);
+                var userId = await _mediator.Send(new RegisterCommand(request));
                 return Ok(new { message = "Registration successful", userId });
             }
             catch (InvalidOperationException ex)
@@ -146,9 +66,7 @@ namespace SaveFoodBackend.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                var response = await _authService.GoogleLoginAsync(request);
+                var response = await _mediator.Send(new GoogleLoginCommand(request));
 
                 // Set JWT Cookie
                 var cookieOptions = new CookieOptions
@@ -170,43 +88,20 @@ namespace SaveFoodBackend.Controllers
                 Response.Cookies.Append("refreshToken", response.RefreshToken, refreshCookieOptions);
 
                 return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Unauthorized(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
         }
 
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            try
-            {
-                await _authService.ForgotPasswordAsync(request);
-                return Ok(new { message = "Nếu email hợp lệ, một mã xác nhận đã được gửi đến email của bạn." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _mediator.Send(new ForgotPasswordCommand(request));
+            return Ok(new { message = "Nếu email hợp lệ, một mã xác nhận đã được gửi đến email của bạn." });
         }
 
         [HttpPost("reset-password")]
         public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
         {
-            try
-            {
-                await _authService.ResetPasswordAsync(request);
-                return Ok(new { message = "Khôi phục mật khẩu thành công." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _mediator.Send(new ResetPasswordCommand(request));
+            return Ok(new { message = "Khôi phục mật khẩu thành công." });
         }
 
         [HttpPost("verify-otp")]
@@ -217,15 +112,8 @@ namespace SaveFoodBackend.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                await _authService.VerifyOtpAsync(request);
-                return Ok(new { message = "Email verified successfully" });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _mediator.Send(new VerifyOtpCommand(request));
+            return Ok(new { message = "Email verified successfully" });
         }
 
         [HttpPost("resend-otp")]
@@ -236,15 +124,8 @@ namespace SaveFoodBackend.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
-            {
-                await _authService.ResendOtpAsync(request);
-                return Ok(new { message = "A new OTP has been sent" });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _mediator.Send(new ResendOtpCommand(request));
+            return Ok(new { message = "A new OTP has been sent" });
         }
 
         /// <summary>
@@ -263,42 +144,27 @@ namespace SaveFoodBackend.Controllers
                 return BadRequest(ModelState);
             }
 
-            try
+            var response = await _mediator.Send(new LoginCommand(request));
+
+            var cookieOptions = new CookieOptions
             {
-                var response = await _authService.LoginAsync(request);
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("jwt", response.AccessToken, cookieOptions);
 
-                var cookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTime.UtcNow.AddDays(7)
-                };
-                Response.Cookies.Append("jwt", response.AccessToken, cookieOptions);
-
-                var refreshCookieOptions = new CookieOptions
-                {
-                    HttpOnly = true,
-                    Secure = true,
-                    SameSite = SameSiteMode.None,
-                    Expires = DateTime.UtcNow.AddMonths(1)
-                };
-                Response.Cookies.Append("refreshToken", response.RefreshToken, refreshCookieOptions);
-
-                return Ok(response);
-            }
-            catch (UnauthorizedAccessException ex)
+            var refreshCookieOptions = new CookieOptions
             {
-                if (ex.Message.StartsWith("UNVERIFIED_ACCOUNT:"))
-                {
-                    return StatusCode(403, new { 
-                        code = "UNVERIFIED_ACCOUNT", 
-                        message = ex.Message.Substring("UNVERIFIED_ACCOUNT:".Length).Trim(),
-                        email = request.Email
-                    });
-                }
-                return Unauthorized(new { message = ex.Message });
-            }
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddMonths(1)
+            };
+            Response.Cookies.Append("refreshToken", response.RefreshToken, refreshCookieOptions);
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -309,19 +175,66 @@ namespace SaveFoodBackend.Controllers
         [HttpPost("logout")]
         public async Task<IActionResult> Logout()
         {
-            var sessionIdStr = User.FindFirst("sessionId")?.Value;
-            if (!string.IsNullOrEmpty(sessionIdStr) && Guid.TryParse(sessionIdStr, out Guid sessionId))
+            var accessToken = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+            if (string.IsNullOrEmpty(accessToken))
             {
-                var session = await _context.UserSessions.FindAsync(sessionId);
-                if (session != null)
-                {
-                    session.RevokedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                }
+                accessToken = Request.Cookies["jwt"];
+            }
+            var refreshToken = Request.Cookies["refreshToken"];
+
+            try
+            {
+                await _mediator.Send(new LogoutCommand(accessToken, refreshToken));
+            }
+            catch (Exception)
+            {
+                // Bỏ qua lỗi trong quá trình logout để vẫn xóa cookies
             }
 
-            Response.Cookies.Delete("jwt");
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None
+            };
+            Response.Cookies.Delete("jwt", cookieOptions);
+            Response.Cookies.Delete("refreshToken", cookieOptions);
             return Ok(new { message = "Logged out successfully" });
+        }
+
+        /// <summary>
+        /// Xin cấp lại Access Token mới dựa vào Refresh Token (lưu trong Cookie)
+        /// </summary>
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken()
+        {
+            var refreshToken = Request.Cookies["refreshToken"];
+            if (string.IsNullOrEmpty(refreshToken))
+            {
+                return Unauthorized(new { message = "Refresh token is missing." });
+            }
+
+            var response = await _mediator.Send(new RefreshTokenCommand(refreshToken));
+
+            var cookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(7)
+            };
+            Response.Cookies.Append("jwt", response.AccessToken, cookieOptions);
+
+            var refreshCookieOptions = new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddMonths(1) // 30 ngày
+            };
+            Response.Cookies.Append("refreshToken", response.RefreshToken, refreshCookieOptions);
+
+            return Ok(response);
         }
 
         /// <summary>
@@ -344,15 +257,8 @@ namespace SaveFoodBackend.Controllers
                 return Unauthorized(new { message = "User not logged in." });
             }
 
-            try
-            {
-                var profile = await _userService.GetProfileAsync(userId);
-                return Ok(profile);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            var profile = await _userService.GetProfileAsync(userId);
+            return Ok(profile);
         }
 
         /// <summary>
@@ -381,15 +287,8 @@ namespace SaveFoodBackend.Controllers
                 return Unauthorized(new { message = "User not logged in." });
             }
 
-            try
-            {
-                await _userService.UpdateProfileAsync(userId, request);
-                return Ok(new { message = "Profile updated successfully." });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            await _userService.UpdateProfileAsync(userId, request);
+            return Ok(new { message = "Profile updated successfully." });
         }
 
         /// <summary>
@@ -412,15 +311,8 @@ namespace SaveFoodBackend.Controllers
                 return Unauthorized(new { message = "User not logged in." });
             }
 
-            try
-            {
-                await _userService.ChangePasswordAsync(userId, request);
-                return Ok(new { message = "Đổi mật khẩu thành công." });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _userService.ChangePasswordAsync(userId, request);
+            return Ok(new { message = "Đổi mật khẩu thành công." });
         }
 
         /// <summary>
@@ -443,15 +335,8 @@ namespace SaveFoodBackend.Controllers
                 return Unauthorized(new { message = "User not logged in." });
             }
 
-            try
-            {
-                await _userService.UpdateLocationAsync(userId, request);
-                return Ok(new { message = "Location updated successfully." });
-            }
-            catch (InvalidOperationException ex)
-            {
-                return NotFound(new { message = ex.Message });
-            }
+            await _userService.UpdateLocationAsync(userId, request);
+            return Ok(new { message = "Location updated successfully." });
         }
     }
 }

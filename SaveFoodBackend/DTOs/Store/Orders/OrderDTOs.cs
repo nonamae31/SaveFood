@@ -10,7 +10,7 @@ namespace SaveFoodBackend.DTOs.Store.Orders
         public string CustomerName { get; set; } = null!;
         public string CustomerEmail { get; set; } = null!;
         public decimal TotalAmount { get; set; }
-        public byte OrderStatus { get; set; }
+        public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
         public string OrderStatusLabel { get; set; } = null!;
         public DateTime CreatedAt { get; set; }
         public List<StoreOrderItemDTO> Items { get; set; } = new();

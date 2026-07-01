@@ -23,13 +23,8 @@ public class ProductRepository : IProductRepository
 
     public async Task<Product?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        // Need to check IsDeleted flag which is a property derived from ProductFlags
-        // We will fetch and then filter in memory for IsDeleted since it's NotMapped,
-        // OR better, we use bitwise operation on ProductFlags in DB.
-        // IsDeleted is 1.
         return await _set
             .Include(p => p.ProductImages)
-            .Where(p => (p.ProductFlags & 1) == 0) // Not deleted
             .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
 
@@ -37,7 +32,7 @@ public class ProductRepository : IProductRepository
     {
         return await _set
             .Include(p => p.ProductImages)
-            .Where(p => p.StoreId == storeId && (p.ProductFlags & 1) == 0)
+            .Where(p => p.StoreId == storeId)
             .AsNoTracking()
             .ToListAsync(ct);
     }
@@ -70,6 +65,6 @@ public class ProductRepository : IProductRepository
 
     public async Task<bool> ExistsAsync(Guid id, CancellationToken ct = default)
     {
-        return await _set.AnyAsync(p => p.Id == id && (p.ProductFlags & 1) == 0, ct);
+        return await _set.AnyAsync(p => p.Id == id, ct);
     }
 }

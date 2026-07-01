@@ -21,22 +21,20 @@ public class ListingRepository : IListingRepository
         _ctx = ctx;
         _set = ctx.Set<ClearanceListing>();
     }
-
+    //
     public async Task<ClearanceListing?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _set
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0) // IsDeleted = 1
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
 
     public async Task<ClearanceListing?> GetByIdWithRulesAsync(Guid id, CancellationToken ct = default)
     {
         return await _set
-            .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0)) // Rule IsDeleted = 2
+            .Include(l => l.ListingDiscountRules)
             .Include(l => l.ListingImages)
             .Include(l => l.Product)
-            .Where(l => (l.ListingFlags & 1) == 0)
             .FirstOrDefaultAsync(l => l.Id == id, ct);
     }
 
@@ -44,9 +42,9 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
-            .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0))
+            .Include(l => l.ListingDiscountRules)
             .Include(l => l.ListingImages)
-            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0)
+            .Where(l => l.Product.StoreId == storeId)
             .AsNoTracking()
             .ToListAsync(ct);
     }
@@ -55,7 +53,8 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
-            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+                .ThenInclude(p => p.Store)
+            .Where(l => l.Product.StoreId == storeId && (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
             .CountAsync(ct);
     }
 
@@ -63,9 +62,10 @@ public class ListingRepository : IListingRepository
     {
         return await _set
             .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
             .Include(l => l.ListingDiscountRules.Where(r => (r.RuleFlags & 2) == 0))
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.Product.Store.Status == (byte)StoreStatus.Active)
             .AsNoTracking()
             .ToListAsync(ct);
     }
@@ -75,12 +75,12 @@ public class ListingRepository : IListingRepository
         var query = _set
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
-                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
                         .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow);
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {

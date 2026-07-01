@@ -10,6 +10,8 @@ export interface OrderHistoryDTO {
   createdAt: string
   firstItemImageUrl?: string
   totalItems: number
+  paymentMethod: number
+  paymentStatus?: number
 }
 
 export interface OrderDetailDTO {
@@ -40,11 +42,26 @@ export interface OrderDetailDTO {
   }>
 }
 
-export function useMyOrders() {
+export interface PagedResult<T> {
+  data: T[]
+  totalRecords: number
+  totalPages: number
+  currentPage: number
+  pageSize: number
+}
+
+export function useMyOrders(status?: number | null, page: number = 1, pageSize: number = 5) {
   return useQuery({
-    queryKey: ['myOrders'],
+    queryKey: ['myOrders', status, page, pageSize],
     queryFn: async () => {
-      const res = await apiClient<OrderHistoryDTO[]>('/orders')
+      const params = new URLSearchParams()
+      if (status !== undefined && status !== null) {
+        params.append('status', status.toString())
+      }
+      params.append('page', page.toString())
+      params.append('pageSize', pageSize.toString())
+      
+      const res = await apiClient<PagedResult<OrderHistoryDTO>>(`/orders?${params.toString()}`)
       return res
     }
   })
@@ -78,6 +95,17 @@ export function useCancelOrder(orderId: string) {
       return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/cancel`, {
         method: 'POST',
         body: JSON.stringify(req)
+      })
+    }
+  })
+}
+
+export function useBatchPay() {
+  return useMutation({
+    mutationFn: async (data: { orderIds: string[], returnUrl?: string, cancelUrl?: string }) => {
+      return apiClient<{ orderId: string, checkoutUrl?: string, reservationExpiresAt?: string }>('/orders/pay-batch', {
+        method: 'POST',
+        body: JSON.stringify(data)
       })
     }
   })

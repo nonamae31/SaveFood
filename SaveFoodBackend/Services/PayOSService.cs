@@ -28,8 +28,8 @@ namespace SaveFoodBackend.Services
                 ChecksumKey = configuration["PayOS:ChecksumKey"],
             };
             
-            _returnUrl = configuration["PayOS:ReturnUrl"] ?? "http://localhost:5173/checkout/success";
-            _cancelUrl = configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/checkout/cancel";
+            _returnUrl = configuration["PayOS:ReturnUrl"] ?? throw new InvalidOperationException("PayOS:ReturnUrl is missing in configuration.");
+            _cancelUrl = configuration["PayOS:CancelUrl"] ?? throw new InvalidOperationException("PayOS:CancelUrl is missing in configuration.");
 
             _payOS = new PayOSClient(options);
         }

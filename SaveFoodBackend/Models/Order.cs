@@ -15,7 +15,7 @@ public partial class Order
 
     public Guid? ConfirmedById { get; set; }
 
-    public byte OrderStatus { get; set; }
+    public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
 
     public DateTime CreatedAt { get; set; }
 

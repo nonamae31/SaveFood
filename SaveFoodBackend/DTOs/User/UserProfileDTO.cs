@@ -13,6 +13,7 @@ namespace SaveFoodBackend.DTOs.User
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public string? AvatarUrl { get; set; }
+        public int? Gender { get; set; }
         
         // Trả về danh sách tên Role thay vì toàn bộ object Role
         public List<string> Roles { get; set; } = new List<string>();

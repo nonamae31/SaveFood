@@ -13,22 +13,37 @@ namespace SaveFoodBackend.Services;
 public class StoreFinanceService : IStoreFinanceService
 {
     private readonly IFinanceRepository _financeRepo;
+    private readonly IOrderRepository _orderRepo;
 
-    public StoreFinanceService(IFinanceRepository financeRepo)
+    public StoreFinanceService(IFinanceRepository financeRepo, IOrderRepository orderRepo)
     {
         _financeRepo = financeRepo;
+        _orderRepo = orderRepo;
     }
 
     public async Task<StoreWalletDTO?> GetStoreWalletAsync(Guid storeId)
     {
         var wallet = await _financeRepo.GetStoreWalletByStoreIdAsync(storeId);
-        if (wallet == null) return null;
+        
+        // Calculate Pending Balance dynamically from active orders
+        var pendingBalance = await _orderRepo.GetPendingRevenueAsync(storeId);
+
+        if (wallet == null) 
+        {
+            return new StoreWalletDTO
+            {
+                Id = Guid.Empty,
+                AvailableBalance = 0,
+                PendingBalance = pendingBalance,
+                UpdatedAt = DateTime.UtcNow
+            };
+        }
 
         return new StoreWalletDTO
         {
             Id = wallet.Id,
             AvailableBalance = wallet.AvailableBalance,
-            PendingBalance = wallet.PendingBalance,
+            PendingBalance = pendingBalance,
             UpdatedAt = wallet.UpdatedAt
         };
     }

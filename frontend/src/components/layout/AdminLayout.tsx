@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid } from 'lucide-react';
+import { Users, Store, LogOut, Menu, X, Shield, ChevronRight, CreditCard, LayoutGrid, ShieldCheck } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
 import { AdminProfileModal } from '../admin/AdminProfileModal';
+import { NotificationDropdown } from './NotificationDropdown';
+import { GlobalCommandPalette } from './GlobalCommandPalette';
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -34,10 +36,11 @@ export function AdminLayout() {
   const navItems = [
     { name: 'Bảng điều khiển', href: ROUTES.ADMIN_DASHBOARD, icon: Store },
     { name: 'Tài khoản', href: ROUTES.ADMIN_ACCOUNTS, icon: Users },
-    { name: 'Duyệt cửa hàng', href: ROUTES.ADMIN_APPROVALS, icon: Store },
+    { name: 'Quản lý cửa hàng', href: ROUTES.ADMIN_APPROVALS, icon: Store },
     { name: 'Tài chính', href: ROUTES.ADMIN_FINANCE, icon: CreditCard },
     { name: 'Gói đăng ký', href: ROUTES.ADMIN_SUBSCRIPTIONS, icon: CreditCard },
     { name: 'Danh mục', href: ROUTES.ADMIN_CATEGORIES, icon: LayoutGrid },
+    { name: 'Kiểm toán', href: ROUTES.ADMIN_AUDIT, icon: ShieldCheck },
   ];
 
   return (
@@ -105,6 +108,10 @@ export function AdminLayout() {
 
         {/* User Profile Area */}
         <div className="p-4 border-t border-gray-100">
+          <div className="flex justify-between items-center mb-2 px-2">
+            <span className="text-sm font-semibold text-gray-500">Thông báo</span>
+            <NotificationDropdown isDark={false} placement="top-right" />
+          </div>
           <div 
             onClick={() => setIsProfileModalOpen(true)}
             className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors mb-2 group"
@@ -150,6 +157,9 @@ export function AdminLayout() {
             <Shield className="w-5 h-5 text-indigo-600" />
             Quản trị SaveFood
           </div>
+          <div className="ml-auto">
+            <NotificationDropdown isDark={false} />
+          </div>
         </header>
 
         {/* Outlet Content */}
@@ -162,6 +172,8 @@ export function AdminLayout() {
         isOpen={isProfileModalOpen} 
         onClose={() => setIsProfileModalOpen(false)} 
       />
+      
+      <GlobalCommandPalette />
     </div>
   );
 }

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SaveFoodBackend.Models;
 
 namespace SaveFoodBackend.DTOs.Auth;
 
@@ -23,4 +24,6 @@ public class RegisterRequest
     public string FullName { get; set; } = string.Empty;
 
     public string? PhoneNumber { get; set; }
+
+    public int? Gender { get; set; } = 0;
 }

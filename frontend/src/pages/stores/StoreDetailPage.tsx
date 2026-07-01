@@ -8,11 +8,18 @@ import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ReviewSection } from '@/components/reviews/ReviewSection'
+import { useLocationContext } from '@/contexts/LocationContext'
+import { calculateDistance } from '@/utils/distance'
 
 export function StoreDetailPage() {
   const { id } = useParams()
 
   const { data: store, isLoading: isStoreLoading, isError: isStoreError } = useStoreDetail(id)
+  const { location } = useLocationContext()
+
+  const isFar = store && store.latitude && store.longitude && location
+    ? calculateDistance(location.lat, location.lng, store.latitude, store.longitude) > 5
+    : false;
   
   const { 
     data: listings, 
@@ -59,9 +66,17 @@ export function StoreDetailPage() {
         <div className="absolute bottom-0 inset-x-0 p-6 sm:p-10 max-w-[--spacing-container] mx-auto">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <span className="text-xs font-bold text-[#8ced7f] bg-[#8ced7f]/20 border border-[#8ced7f]/30 px-3 py-1 rounded-full mb-3 inline-block">
-                {store.category}
-              </span>
+              <div className="flex gap-2 items-center mb-3">
+                <span className="text-xs font-bold text-[#8ced7f] bg-[#8ced7f]/20 border border-[#8ced7f]/30 px-3 py-1 rounded-full inline-block">
+                  {store.category}
+                </span>
+                {/* @ts-ignore */}
+                {store.status === 2 && (
+                  <span className="text-xs font-bold text-gray-200 bg-gray-800/80 border border-gray-600 px-3 py-1 rounded-full inline-block">
+                    Tạm đóng cửa
+                  </span>
+                )}
+              </div>
               <h1 className="text-3xl sm:text-4xl font-bold text-white font-[--font-display] mb-2">{store.name}</h1>
               <div className="flex flex-wrap items-center gap-4 text-white/80 text-sm">
                 <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full">
@@ -82,7 +97,18 @@ export function StoreDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 mt-8">
+        {isFar && (
+          <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-orange-50 border border-orange-200 text-orange-800 animate-fade-in">
+            <MapPin className="shrink-0 mt-0.5 text-orange-600" size={20} />
+            <div className="text-sm leading-relaxed">
+              <p className="font-bold mb-1">Cửa hàng cách xa hơn 5km</p>
+              <p>Vui lòng cân nhắc khoảng cách. Hãy đảm bảo bạn có thể đến lấy hàng đúng thời gian quy định để tránh bị hủy đơn và mất tiền (không hỗ trợ hoàn tiền).</p>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         
         {/* ── Main Content (Listings) ── */}
         <div className="lg:col-span-2 space-y-8">
@@ -95,7 +121,7 @@ export function StoreDetailPage() {
           
           {/* Listings State */}
           {isListingsLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-5">
               <SkeletonCard count={4} />
             </div>
           )}
@@ -113,7 +139,7 @@ export function StoreDetailPage() {
           )}
 
           {!isListingsLoading && !isListingsError && listings && listings.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-5">
               {listings.map(listing => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
@@ -171,6 +197,7 @@ export function StoreDetailPage() {
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   )

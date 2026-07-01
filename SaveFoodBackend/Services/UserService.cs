@@ -1,39 +1,48 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using SaveFoodBackend.Data;
+using System.Collections.Generic;
+using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.DTOs.User;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Interfaces.Repositories;
 
 namespace SaveFoodBackend.Services
 {
     public class UserService : IUserService
     {
-        private readonly SaveFoodDbContext _context;
+        private readonly IUserRepository _userRepo;
+        private readonly IStoreStaffRepository _storeStaffRepo;
         private readonly ICloudinaryService _cloudinaryService;
+        private readonly IRedisService _redisService;
 
-        public UserService(SaveFoodDbContext context, ICloudinaryService cloudinaryService)
+        public UserService(IUserRepository userRepo, IStoreStaffRepository storeStaffRepo, ICloudinaryService cloudinaryService, IRedisService redisService)
         {
-            _context = context;
+            _userRepo = userRepo;
+            _storeStaffRepo = storeStaffRepo;
             _cloudinaryService = cloudinaryService;
+            _redisService = redisService;
         }
 
         public async Task<UserProfileDTO> GetProfileAsync(Guid userId)
         {
-            var user = await _context.Users
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var cacheKey = $"profile_v2:{userId}";
+            var cachedProfile = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedProfile))
+            {
+                return JsonSerializer.Deserialize<UserProfileDTO>(cachedProfile);
+            }
+            var user = await _userRepo.GetAdminUserDetailsAsync(userId);
 
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
             }
 
-            var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == userId);
+            var storeStaff = user.StoreStaffs.FirstOrDefault();
 
-            return new UserProfileDTO
+            var profileDto = new UserProfileDTO
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -43,6 +52,7 @@ namespace SaveFoodBackend.Services
                 Latitude = user.Latitude,
                 Longitude = user.Longitude,
                 AvatarUrl = user.AvatarUrl,
+                Gender = user.IsMale ? 1 : 0,
                 Roles = user.UserRoles
                             .Where(ur => ur.Role != null)
                             .Select(ur => ur.Role.Code)
@@ -52,11 +62,14 @@ namespace SaveFoodBackend.Services
                 StaffRole = storeStaff?.StaffRole,
                 Status = user.UserStatusEnum.ToString()
             };
+
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(profileDto), TimeSpan.FromHours(12));
+            return profileDto;
         }
 
         public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
@@ -93,12 +106,14 @@ namespace SaveFoodBackend.Services
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
 
             if (user == null)
             {
@@ -107,7 +122,10 @@ namespace SaveFoodBackend.Services
 
             user.FullName = request.FullName;
             user.PhoneNumber = request.PhoneNumber;
-
+            if (request.Gender.HasValue)
+            {
+                user.IsMale = (request.Gender.Value == 1);
+            }
             if (request.AvatarFile != null)
             {
                 var uploadResult = await _cloudinaryService.UploadImageAsync(request.AvatarFile, user.ImgCloudinaryId);
@@ -118,12 +136,14 @@ namespace SaveFoodBackend.Services
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
@@ -136,7 +156,10 @@ namespace SaveFoodBackend.Services
                 user.Address = request.Address;
             }
 
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
+            await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
+
     }
 }

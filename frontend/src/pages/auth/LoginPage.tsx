@@ -1,20 +1,37 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { ROUTES } from '@/lib/constants';
 import { useLogin, useGoogleLoginMutation } from '@/hooks/useAuth';
 import { useGoogleLogin } from '@react-oauth/google';
 
+const loginSchema = z.object({
+  email: z.string().min(1, 'Email là bắt buộc').email('Email không hợp lệ'),
+  password: z.string().min(1, 'Mật khẩu là bắt buộc'),
+});
+
+type LoginFormInputs = z.infer<typeof loginSchema>;
+
 export function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const loginMutation = useLogin();
   const googleLoginMutation = useGoogleLoginMutation();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormInputs>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onBlur',
+  });
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: (codeResponse) => {
@@ -22,7 +39,7 @@ export function LoginPage() {
       googleLoginMutation.mutate(
         { token: codeResponse.access_token },
         {
-          onSuccess: (response: any) => {
+          onSuccess: (response: { role?: string; staffRole?: number }) => {
             const role = response?.role?.toLowerCase() || '';
             if (role === 'admin') {
               navigate(ROUTES.ADMIN_ACCOUNTS);
@@ -36,30 +53,23 @@ export function LoginPage() {
               navigate(ROUTES.HOME);
             }
           },
-          onError: (err: any) => {
+          onError: (err: Error) => {
             setError(err.message || 'Đăng nhập Google thất bại.');
           }
         }
       );
     },
-    onError: (error) => {
-      console.error('Google Login Failed', error);
+    onError: (err) => {
+      console.error('Google Login Failed', err);
       setError('Lỗi khi kết nối với Google.');
     }
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = (data: LoginFormInputs) => {
     setError('');
     
-    if (!email || !password) {
-      setError('Vui lòng nhập đầy đủ email và mật khẩu');
-      return;
-    }
-
-    loginMutation.mutate({ email, password }, {
-      onSuccess: (response: any) => {
-        // Đăng nhập thành công, context sẽ tự động fetch lại profile
+    loginMutation.mutate({ email: data.email, password: data.password }, {
+      onSuccess: (response: { role?: string; staffRole?: number }) => {
         const role = response?.role?.toLowerCase() || '';
         if (role === 'admin') {
           navigate(ROUTES.ADMIN_ACCOUNTS);
@@ -73,9 +83,9 @@ export function LoginPage() {
           navigate(ROUTES.HOME);
         }
       },
-      onError: (err: any) => {
+      onError: (err: Error & { code?: string; details?: { email?: string } }) => {
         if (err.code === 'UNVERIFIED_ACCOUNT') {
-          navigate(ROUTES.VERIFY_OTP, { state: { email: err.details?.email || email } });
+          navigate(ROUTES.VERIFY_OTP, { state: { email: err.details?.email || data.email, autoSend: true } });
         } else {
           setError(err.message || 'Sai email hoặc mật khẩu.');
         }
@@ -120,15 +130,14 @@ export function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             <Input
               id="email"
               type="email"
               label="Email"
               placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              {...register('email')}
+              error={errors.email?.message}
             />
             
             <div>
@@ -147,9 +156,8 @@ export function LoginPage() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
+                {...register('password')}
+                error={errors.password?.message}
               />
             </div>
 
@@ -237,3 +245,4 @@ export function LoginPage() {
     </div>
   );
 }
+

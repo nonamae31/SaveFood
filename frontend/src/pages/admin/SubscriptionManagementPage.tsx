@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { subscriptionPlansApi, type SubscriptionPlanDTO, type CreateSubscriptionPlanRequest, type UpdateSubscriptionPlanRequest } from '../../api/subscription-plans.api';
 import { CreditCard, Plus, X, Pencil, Trash2, ArrowUp, ArrowDown, Copy } from 'lucide-react';
+import { Select } from '@/components/ui/Select';
 
 function SubscriptionPlanModal({
   plan,
@@ -171,15 +172,16 @@ function SubscriptionPlanModal({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-mint-stone font-medium text-[14px] mb-1">Cấp Độ Phân Tích (0=Cơ bản, 1=Nâng cao)</label>
-              <select
+              <Select
                 value={analyticsLevel}
-                onChange={e => setAnalyticsLevel(e.target.value)}
-                className="w-full px-4 py-2 bg-mint-surface border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] transition-all"
-              >
-                <option value="0">0 - Cơ bản (Doanh thu & Đơn hàng)</option>
-                <option value="1">1 - Biểu đồ (Ngày/Tuần & Top Sản phẩm)</option>
-                <option value="2">2 - Chuyên sâu (Tỉ lệ giữ chân, Xuất báo cáo)</option>
-              </select>
+                onChange={(val) => setAnalyticsLevel(val.toString())}
+                options={[
+                  { label: "0 - Cơ bản (Doanh thu & Đơn hàng)", value: "0" },
+                  { label: "1 - Biểu đồ (Ngày/Tuần & Top Sản phẩm)", value: "1" },
+                  { label: "2 - Chuyên sâu (Tỉ lệ giữ chân, Xuất báo cáo)", value: "2" }
+                ]}
+                className="w-full"
+              />
             </div>
             <div className="flex flex-col justify-center gap-3">
               <label className="flex items-center gap-2 cursor-pointer">
@@ -231,19 +233,18 @@ function SubscriptionPlanModal({
             {showCopySection && (
               <div className="bg-mint-surface-soft p-4 rounded-[8px] border border-mint-hairline animate-in slide-in-from-top-2">
                 <h4 className="text-[13px] font-medium text-mint-ink mb-3">Sao chép tính năng từ:</h4>
-                <select 
-                  className="w-full px-3 py-2 border border-mint-hairline rounded-[6px] text-[13px] mb-3"
+                <Select 
                   value={selectedPlanToCopy}
-                  onChange={(e) => {
-                    setSelectedPlanToCopy(e.target.value);
+                  onChange={(val) => {
+                    setSelectedPlanToCopy(val.toString());
                     setSelectedFeaturesToCopy([]);
                   }}
-                >
-                  <option value="">Chọn một gói...</option>
-                  {allPlans.filter(p => p.id !== plan?.id).map(p => (
-                    <option key={p.id} value={p.id}>{p.name}</option>
-                  ))}
-                </select>
+                  options={[
+                    { label: "Chọn một gói...", value: "" },
+                    ...allPlans.filter(p => p.id !== plan?.id).map(p => ({ label: p.name, value: p.id }))
+                  ]}
+                  className="mb-3"
+                />
 
                 {featuresOfPlanToCopy.length > 0 && (
                   <div className="space-y-2 mb-3 max-h-40 overflow-y-auto pr-2">

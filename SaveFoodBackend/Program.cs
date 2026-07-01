@@ -12,7 +12,23 @@ var builder = WebApplication.CreateBuilder(args);
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new SaveFoodBackend.Extensions.UtcDateTimeConverter());
+    })
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = string.Join(" | ", context.ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage));
+            return new Microsoft.AspNetCore.Mvc.BadRequestObjectResult(new SaveFoodBackend.Common.ApiResponse
+            {
+                Success = false,
+                Message = "Dữ liệu không hợp lệ: " + errors
+            });
+        };
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
 
@@ -34,11 +50,23 @@ builder.Services.AddDbContext<SaveFoodDbContext>(options =>
 // ─── 4. Authentication (JWT) & Authorization ──────────────────────────────────
 builder.Services.AddJwtAuthentication(builder.Configuration);
 
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// ─── 4.1 Options Configuration ────────────────────────────────────────────────
+builder.Services.Configure<SaveFoodBackend.Models.Config.PlatformConfig>(builder.Configuration.GetSection("PlatformConfig"));
+
 // ─── 5. CORS Policy ───────────────────────────────────────────────────────────
 builder.Services.AddSaveFoodCors(builder.Configuration);
 
 // ─── 6. HTTP Context Accessor (dùng trong Services nếu cần) ───────────────────
 builder.Services.AddHttpContextAccessor();
+
+// ─── 7. Redis Cache ───────────────────────────────────────────────────────────
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "SaveFood_";
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.
@@ -46,13 +74,15 @@ builder.Services.AddHttpContextAccessor();
 // builder.Services.AddScoped<IProductRepository, ProductRepository>();
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBackend.Services.CartService>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAuthService, SaveFoodBackend.Services.AuthService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IRedisService, SaveFoodBackend.Services.RedisService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IJwtProvider, SaveFoodBackend.Services.JwtProvider>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
 
 // Admin Repositories
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUnitOfWork, SaveFoodBackend.Repositories.UnitOfWork>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreRepository, SaveFoodBackend.Repositories.StoreRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IFinanceRepository, SaveFoodBackend.Repositories.FinanceRepository>();
@@ -73,9 +103,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, S
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBackend.Services.OrderService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFoodBackend.Services.StoreOrderService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUnitOfWork, SaveFoodBackend.Data.UnitOfWork>();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
 
@@ -83,6 +113,11 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, S
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreStaffRepository, SaveFoodBackend.Repositories.StoreStaffRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFoodBackend.Services.StoreStaffService>();
 
+// Sentiment analysis
+builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
+
+// Notification Service
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, SaveFoodBackend.Services.NotificationService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
@@ -105,9 +140,9 @@ app.UseRouting();
 app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
-// TẠM THỜI VÔ HIỆU HÓA ĐỂ CÁC THÀNH VIÊN KHÁC DỄ DÀNG CODE/TEST MỌI ENDPOINT MÀ KHÔNG BỊ CHẶN LỖI 401/403.
-app.UseAuthentication(); // Vẫn bật Authentication để đọc thông tin user từ Token/Cookie nếu có
-app.UseAuthorization(); // RE-ENABLED: Kiểm tra phân quyền
+app.UseMiddleware<SaveFoodBackend.Middleware.JwtBlacklistMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ─── 12. Controllers ─────────────────────────────────────────────────────────
 app.MapControllers();

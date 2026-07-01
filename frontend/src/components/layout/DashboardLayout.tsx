@@ -5,6 +5,7 @@ import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
 import { useStoreProfile } from '@/hooks/useStores'
+import { NotificationDropdown } from './NotificationDropdown'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -134,6 +135,10 @@ export function DashboardLayout() {
 
         {/* User & Store Profile Area */}
         <div className="p-4 border-t border-gray-100">
+          <div className="flex justify-between items-center mb-2 px-2">
+            <span className="text-sm font-semibold text-gray-500">Thông báo</span>
+            <NotificationDropdown isDark={false} placement="top-right" />
+          </div>
           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors mb-2 group">
             <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center overflow-hidden shrink-0 border border-brand-200">
               {storeProfile?.logoUrl ? (
@@ -153,6 +158,14 @@ export function DashboardLayout() {
               </p>
             </div>
           </div>
+          
+          <button 
+            onClick={() => navigate(ROUTES.HOME)}
+            className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-xl transition-colors cursor-pointer mb-2"
+          >
+            <ShoppingCart className="w-4 h-4" />
+            Về trang mua hàng
+          </button>
           
           <button 
             onClick={handleLogout}
@@ -177,6 +190,9 @@ export function DashboardLayout() {
           <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
             <Store className="w-5 h-5 text-brand-600" />
             SaveFood Store
+          </div>
+          <div className="ml-auto">
+            <NotificationDropdown isDark={false} />
           </div>
         </header>
 

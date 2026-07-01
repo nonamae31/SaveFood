@@ -55,6 +55,7 @@ export const updateProfile = (data: import('@/types/auth.types').UpdateProfileRe
   const formData = new FormData();
   formData.append('fullName', data.fullName);
   if (data.phoneNumber) formData.append('phoneNumber', data.phoneNumber);
+  if (data.gender !== undefined && data.gender !== null) formData.append('gender', data.gender.toString());
   if (data.avatarFile) formData.append('avatarFile', data.avatarFile);
 
   return apiClient('/Users/profile', {

@@ -54,7 +54,7 @@ function CustomSelect({
     <div className={`relative ${className}`} ref={ref}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full gap-2 px-4 py-2 rounded-full hover:bg-gray-50 text-sm font-bold text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors whitespace-nowrap"
+        className="flex items-center justify-between w-full gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-full bg-gray-50 sm:bg-transparent hover:bg-gray-100 sm:hover:bg-gray-50 text-sm font-bold text-[--color-ink-secondary] hover:text-[--color-brand-600] transition-colors whitespace-nowrap"
       >
         <div className="flex items-center gap-2">
           {Icon && <Icon size={16} className={value ? "text-[--color-brand-500]" : "text-gray-400"} />}
@@ -162,42 +162,52 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="bg-white border border-gray-100 shadow-[--shadow-card] rounded-[1.5rem] sm:rounded-full p-3 flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full transition-all duration-300 hover:shadow-[--shadow-card-hover]"
+        className="bg-white border border-gray-100 shadow-[--shadow-card] rounded-[1.5rem] sm:rounded-full p-4 sm:p-3 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-5 sm:gap-3 w-full transition-all duration-300 hover:shadow-[--shadow-card-hover]"
         role="search"
         aria-label="Bộ lọc sản phẩm"
       >
-      {/* Icon (removed text as requested) */}
-      <div className="w-10 h-10 rounded-full bg-[--color-brand-50] flex items-center justify-center shrink-0 ml-1">
+      {/* Header on Mobile */}
+      <div className="flex items-center gap-3 sm:hidden pb-3 border-b border-gray-100">
+        <div className="w-10 h-10 rounded-full bg-[--color-brand-50] flex items-center justify-center shrink-0">
+          <SlidersHorizontal size={18} className="text-[--color-brand-600]" strokeWidth={2.5} aria-hidden="true" />
+        </div>
+        <span className="font-bold text-[--color-ink-primary]">Lọc sản phẩm</span>
+      </div>
+
+      {/* Icon on Desktop */}
+      <div className="hidden sm:flex w-10 h-10 rounded-full bg-[--color-brand-50] items-center justify-center shrink-0 ml-1">
         <SlidersHorizontal size={18} className="text-[--color-brand-600]" strokeWidth={2.5} aria-hidden="true" />
       </div>
 
       <div className="h-6 w-px bg-gray-200 hidden sm:block mx-1" aria-hidden="true" />
 
       {/* ── Custom Selects ── */}
-      <div className="flex items-center gap-2 w-full sm:w-auto justify-center">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto justify-center">
         <CustomSelect
           options={SORT_OPTIONS}
           value={localFilter.sortBy ?? ''}
           onChange={val => setLocalFilter({ ...localFilter, sortBy: (val as ListingFilter['sortBy']) || undefined })}
           icon={SortDesc}
-          className="w-[150px]"
+          className="w-full sm:w-[150px]"
         />
         <CustomSelect
           options={TYPE_OPTIONS}
           value={typeValue}
           onChange={handleTypeChange}
-          className="w-[130px]"
+          className="w-full sm:w-[130px]"
         />
         <button
           onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold transition-colors ${
+          className={`flex items-center justify-between sm:justify-start gap-2 px-4 py-2.5 sm:py-2 rounded-xl sm:rounded-full text-sm font-bold transition-colors w-full sm:w-auto ${
             isCategoriesOpen || selectedCategoryIds.length > 0
               ? 'bg-[--color-brand-50] text-[--color-brand-600]'
-              : 'hover:bg-gray-50 text-[--color-ink-secondary] hover:text-[--color-brand-600]'
+              : 'bg-gray-50 sm:bg-transparent hover:bg-gray-100 sm:hover:bg-gray-50 text-[--color-ink-secondary] hover:text-[--color-brand-600]'
           }`}
         >
-          <Tag size={16} className={isCategoriesOpen || selectedCategoryIds.length > 0 ? 'text-[--color-brand-500]' : 'text-gray-400'} />
-          <span className="whitespace-nowrap">Danh mục {selectedCategoryIds.length > 0 && `(${selectedCategoryIds.length})`}</span>
+          <div className="flex items-center gap-2">
+            <Tag size={16} className={isCategoriesOpen || selectedCategoryIds.length > 0 ? 'text-[--color-brand-500]' : 'text-gray-400'} />
+            <span className="whitespace-nowrap">Danh mục {selectedCategoryIds.length > 0 && `(${selectedCategoryIds.length})`}</span>
+          </div>
           <ChevronDown size={14} className={`transition-transform duration-300 ${isCategoriesOpen ? 'rotate-180' : ''}`} />
         </button>
       </div>
@@ -205,12 +215,12 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
       <div className="h-6 w-px bg-gray-200 hidden sm:block mx-2" aria-hidden="true" />
 
       {/* ── Thanh trượt khoảng giá (Dual Range) ── */}
-      <div className="flex items-center gap-4 flex-1 min-w-[250px] w-full px-4 sm:px-2 pt-4 sm:pt-0 pb-2 sm:pb-0">
-        <div className="text-xs font-bold text-[--color-ink-secondary] whitespace-nowrap hidden md:block">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1 min-w-[250px] w-full px-2 pt-2 sm:pt-0 pb-2 sm:pb-0">
+        <div className="text-sm sm:text-xs font-bold text-[--color-ink-secondary] whitespace-nowrap block sm:hidden md:block mb-6 sm:mb-0">
           Khoảng giá:
         </div>
 
-        <div className="flex-1 relative h-6 flex items-center group">
+        <div className="flex-1 relative h-6 flex items-center group mt-4 sm:mt-0">
           {/* Background Track */}
           <div className="absolute w-full h-1.5 bg-gray-200 rounded-lg" />
 
@@ -250,15 +260,24 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
           />
 
           {/* Tooltips visible always */}
-          <div className="absolute -top-7 left-0 right-0 flex justify-between pointer-events-none transition-opacity duration-300">
-            <span className="text-[10px] font-bold text-[--color-brand-700] bg-[--color-brand-50] px-1.5 py-0.5 rounded shadow-sm"
-              style={{ position: 'absolute', left: `calc(${((currentMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}% - 12px)` }}>
-              {formatPrice(currentMin)}
-            </span>
-            <span className="text-[10px] font-bold text-[--color-brand-700] bg-[--color-brand-50] px-1.5 py-0.5 rounded shadow-sm"
-              style={{ position: 'absolute', right: `calc(${100 - ((currentMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}% - 12px)` }}>
-              {formatPrice(currentMax)}
-            </span>
+          <div className="absolute -top-7 left-0 right-0 pointer-events-none transition-opacity duration-300">
+            {((currentMax - currentMin) / (MAX_PRICE - MIN_PRICE)) * 100 < 15 ? (
+              <span className="text-[10px] font-bold text-[--color-brand-700] bg-[--color-brand-50] px-2 py-0.5 rounded shadow-sm absolute transform -translate-x-1/2 whitespace-nowrap"
+                style={{ left: `calc(${(((currentMin + currentMax) / 2 - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%)` }}>
+                {formatPrice(currentMin)} - {formatPrice(currentMax)}
+              </span>
+            ) : (
+              <>
+                <span className="text-[10px] font-bold text-[--color-brand-700] bg-[--color-brand-50] px-1.5 py-0.5 rounded shadow-sm absolute transform -translate-x-1/2 whitespace-nowrap"
+                  style={{ left: `calc(${((currentMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%)` }}>
+                  {formatPrice(currentMin)}
+                </span>
+                <span className="text-[10px] font-bold text-[--color-brand-700] bg-[--color-brand-50] px-1.5 py-0.5 rounded shadow-sm absolute transform translate-x-1/2 whitespace-nowrap"
+                  style={{ right: `calc(${100 - ((currentMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%)` }}>
+                  {formatPrice(currentMax)}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -266,7 +285,7 @@ export function ListingFilters({ filter, onChange, totalCount }: ListingFiltersP
       <div className="h-6 w-px bg-gray-200 hidden sm:block mx-1" aria-hidden="true" />
 
       {/* ── Spacer + reset ── */}
-      <div className="flex items-center gap-3 ml-auto w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-gray-100 pt-3 sm:pt-0 pr-2">
+      <div className="flex items-center gap-3 ml-auto w-full sm:w-auto justify-between sm:justify-end border-t sm:border-0 border-gray-100 pt-4 sm:pt-0 pr-2 mt-2 sm:mt-0">
         {totalCount !== undefined && (
           <span className="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full">
             {totalCount} món

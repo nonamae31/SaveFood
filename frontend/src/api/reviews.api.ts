@@ -21,11 +21,31 @@ export interface ReviewDTO {
   images: string[]
   customerName: string
   customerAvatar: string | null
+  sentimentLabel?: string | null
+  sentimentScore?: number | null
+}
+
+export interface StoreReviewStatsDTO {
+  totalReviews: number
+  averageRating: number
+  pendingReply: number
+  highRated: number
+  ratingDistribution: Record<number, number>
 }
 
 /** GET reviews theo store */
 export function getReviewsByStore(storeId: string): Promise<ReviewDTO[]> {
   return apiClient<ReviewDTO[]>(`/customer/reviews/store/${storeId}`)
+}
+
+/** GET review stats theo store (customer public) */
+export function getStoreReviewStats(storeId: string): Promise<StoreReviewStatsDTO> {
+  return apiClient<StoreReviewStatsDTO>(`/customer/reviews/store/${storeId}/stats`)
+}
+
+/** GET my store review stats (store dashboard) */
+export function getMyStoreReviewStats(): Promise<StoreReviewStatsDTO> {
+  return apiClient<StoreReviewStatsDTO>(`/store/reviews/stats`)
 }
 
 /** GET reviews theo listing */
@@ -48,7 +68,6 @@ export function createReview(orderItemId: string, data: { rating: number; commen
   }
   return apiClient<ReviewDTO>(`/customer/reviews/${orderItemId}`, {
     method: 'POST',
-    headers: { 'Content-Type': '' },
     body: formData,
   })
 }
@@ -63,7 +82,6 @@ export function updateReview(reviewId: string, data: { rating: number; comment?:
   }
   return apiClient<ReviewDTO>(`/customer/reviews/${reviewId}`, {
     method: 'PUT',
-    headers: { 'Content-Type': '' },
     body: formData,
   })
 }

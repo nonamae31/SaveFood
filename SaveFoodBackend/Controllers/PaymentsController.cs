@@ -3,9 +3,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using PayOS.Models.Webhooks;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Interfaces.Repositories;
+using IUnitOfWork = SaveFoodBackend.Interfaces.Repositories.IUnitOfWork;
+using SaveFoodBackend.Models.Config;
 using SaveFoodBackend.Services;
 
 namespace SaveFoodBackend.Controllers;
@@ -16,11 +20,19 @@ public class PaymentsController : ControllerBase
 {
     private readonly SaveFoodDbContext _ctx;
     private readonly IPayOSService _payOSService;
+    private readonly IUnitOfWork _uow;
+    private readonly PlatformConfig _platformConfig;
 
-    public PaymentsController(SaveFoodDbContext ctx, IPayOSService payOSService)
+    public PaymentsController(
+        SaveFoodDbContext ctx, 
+        IPayOSService payOSService, 
+        IUnitOfWork uow, 
+        IOptions<PlatformConfig> platformConfig)
     {
         _ctx = ctx;
         _payOSService = payOSService;
+        _uow = uow;
+        _platformConfig = platformConfig.Value;
     }
 
     [HttpPost("payos-webhook")]
@@ -34,38 +46,82 @@ public class PaymentsController : ControllerBase
             if (data.Code == "00")
             {
                 var orderCode = data.OrderCode;
-                var order = await _ctx.Orders.Include(o => o.Payment)
-                                             .FirstOrDefaultAsync(o => o.OrderCode == orderCode);
                 
-                if (order != null)
+                await _uow.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+                try
                 {
-                    if (order.Payment != null && order.Payment.Status == 0) // Pending
+                    var orders = await _ctx.Orders.Include(o => o.Payment)
+                                                 .Where(o => o.OrderCode == orderCode)
+                                                 .ToListAsync();
+                    
+                    if (orders.Any())
                     {
-                        order.Payment.Status = 1; // Paid
-                        order.Payment.PaidAt = DateTime.UtcNow;
-                        order.OrderStatus = 1; // Paid / Confirmed
-                        
-                        await _ctx.SaveChangesAsync();
-                    }
-                }
-                else
-                {
-                    var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
-                    if (subscription != null && subscription.Status == 0)
-                    {
-                        subscription.Status = 1; // Active
-                        
-                        // We must cancel any other active subscriptions for this store to prevent overlap
-                        var activeSubs = await _ctx.StoreSubscriptions
-                                                   .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
-                                                   .ToListAsync();
-                        foreach(var sub in activeSubs)
+                        foreach (var order in orders)
                         {
-                            sub.Status = 2; // Cancelled/Expired
-                        }
+                            // Idempotency Check (Race condition safe due to Serializable IsolationLevel)
+                            if (order.Payment != null && order.Payment.Status == 0) // Pending
+                            {
+                                order.Payment.Status = 1; // Paid
+                                order.Payment.PaidAt = DateTime.UtcNow;
+                                order.ReservationExpiresAt = null; // Clear payment timer
 
-                        await _ctx.SaveChangesAsync();
+                                // --- AUDIT TRAIL: Save PayOS evidence ---
+                                order.Payment.PayOsReference = data.Reference;
+                                order.Payment.PayerAccountNumber = data.CounterAccountNumber;
+                                order.Payment.PayerName = data.CounterAccountName;
+                                order.Payment.PayerBankId = data.CounterAccountBankId;
+
+                                var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId);
+                                if (storeWallet == null)
+                                {
+                                    storeWallet = new SaveFoodBackend.Models.StoreWallet
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        StoreId = order.StoreId,
+                                        AvailableBalance = 0,
+                                        PendingBalance = 0,
+                                        UpdatedAt = DateTime.UtcNow
+                                    };
+                                    _ctx.StoreWallets.Add(storeWallet);
+                                }
+                                decimal platformFee = order.TotalAmount * _platformConfig.AdminFeePercentage;
+                                storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+                            }
+                        }
+                        await _uow.SaveChangesAsync();
                     }
+                    else
+                    {
+                        var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
+                        if (subscription != null && subscription.Status == 0)
+                        {
+                            subscription.Status = 1; // Active
+
+                            // --- AUDIT TRAIL: Save PayOS evidence ---
+                            subscription.PayOsTransactionId = data.Reference;
+                            subscription.PayerAccountNumber = data.CounterAccountNumber;
+                            subscription.PayerName = data.CounterAccountName;
+                            subscription.PayerBankId = data.CounterAccountBankId;
+                            
+                            // We must cancel any other active subscriptions for this store to prevent overlap
+                            var activeSubs = await _ctx.StoreSubscriptions
+                                                       .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                       .ToListAsync();
+                            foreach(var sub in activeSubs)
+                            {
+                                sub.Status = 2; // Cancelled/Expired
+                            }
+
+                            await _uow.SaveChangesAsync();
+                        }
+                    }
+
+                    await _uow.CommitTransactionAsync();
+                }
+                catch
+                {
+                    await _uow.RollbackTransactionAsync();
+                    throw;
                 }
             }
 
@@ -78,8 +134,8 @@ public class PaymentsController : ControllerBase
         }
     }
 
-    [HttpGet("verify/{orderId}")]
-    public async Task<IActionResult> VerifyPayment(Guid orderId, [FromServices] Microsoft.Extensions.Configuration.IConfiguration configuration)
+    [HttpGet("verify/{orderIdOrCode}")]
+    public async Task<IActionResult> VerifyPayment(string orderIdOrCode, [FromServices] Microsoft.Extensions.Configuration.IConfiguration configuration)
     {
         try
         {
@@ -92,42 +148,127 @@ public class PaymentsController : ControllerBase
                 }
             );
 
+            bool isGuid = Guid.TryParse(orderIdOrCode, out Guid parsedGuid);
+            bool isLong = long.TryParse(orderIdOrCode, out long parsedLong);
+
             var order = await _ctx.Orders.Include(o => o.Payment)
-                                         .FirstOrDefaultAsync(o => o.Id == orderId);
+                                         .FirstOrDefaultAsync(o => (isGuid && o.Id == parsedGuid) || (isLong && o.OrderCode == parsedLong));
             
             if (order != null && order.Payment != null && order.Payment.Status == 0 && order.OrderCode.HasValue)
             {
-                var payOSInfo = await payOSClient.PaymentRequests.GetAsync(order.OrderCode.Value);
-                if (payOSInfo.Status.ToString().ToUpper() == "PAID")
+                try
                 {
-                    order.Payment.Status = 1; // Paid
-                    order.Payment.PaidAt = DateTime.UtcNow;
-                    order.OrderStatus = 1; // Paid / Confirmed
-                    await _ctx.SaveChangesAsync();
-                }
-            }
-            else
-            {
-                // check if it's a subscription (orderId could be subscriptionId)
-                var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.Id == orderId);
-                if (subscription != null && subscription.Status == 0 && subscription.OrderCode.HasValue)
-                {
-                    var payOSInfo = await payOSClient.PaymentRequests.GetAsync(subscription.OrderCode.Value);
+                    var payOSInfo = await payOSClient.PaymentRequests.GetAsync(order.OrderCode.Value);
+                    
+                    if (payOSInfo.Status.ToString().ToUpper() == "CANCELLED")
+                    {
+                        order.Payment.Status = 2; // Failed / Cancelled
+                        await _ctx.SaveChangesAsync();
+                        return Ok(new { success = false, message = "Thanh toán đã bị hủy bởi người dùng.", orderId = order.Id });
+                    }
+
                     if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                     {
-                        subscription.Status = 1; // Active
-                        var activeSubs = await _ctx.StoreSubscriptions
-                                                   .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
-                                                   .ToListAsync();
-                        foreach(var sub in activeSubs)
+                        var allOrders = await _ctx.Orders.Include(o => o.Payment)
+                                             .Where(o => o.OrderCode == order.OrderCode)
+                                             .ToListAsync();
+                        
+                        foreach (var o in allOrders)
                         {
-                            sub.Status = 2; // Cancelled/Expired
+                            if (o.Payment != null && o.Payment.Status == 0)
+                            {
+                                o.Payment.Status = 1;
+                                o.Payment.PaidAt = DateTime.UtcNow;
+                                o.ReservationExpiresAt = null; // Clear payment timer
+                                
+                                // --- AUDIT TRAIL: Save PayOS evidence ---
+                                var tx = payOSInfo.Transactions?.FirstOrDefault();
+                                if (tx != null)
+                                {
+                                    o.Payment.PayOsReference = tx.Reference;
+                                    o.Payment.PayerAccountNumber = tx.CounterAccountNumber;
+                                    o.Payment.PayerName = tx.CounterAccountName;
+                                    o.Payment.PayerBankId = tx.CounterAccountBankId;
+                                }
+                                
+                                var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == o.StoreId);
+                                if (storeWallet == null)
+                                {
+                                    storeWallet = new SaveFoodBackend.Models.StoreWallet
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        StoreId = o.StoreId,
+                                        AvailableBalance = 0,
+                                        PendingBalance = 0,
+                                        UpdatedAt = DateTime.UtcNow
+                                    };
+                                    _ctx.StoreWallets.Add(storeWallet);
+                                }
+                                decimal platformFee = o.TotalAmount * _platformConfig.AdminFeePercentage;
+                                storeWallet.PendingBalance += (o.TotalAmount - platformFee);
+                            }
                         }
                         await _ctx.SaveChangesAsync();
+                        return Ok(new { success = true });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
+                }
+                return Ok(new { success = false, status = "UNKNOWN" });
+            }
+            else if (order == null)
+            {
+                // check if it's a subscription (orderId could be subscriptionId)
+                var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => (isGuid && s.Id == parsedGuid) || (isLong && s.OrderCode == parsedLong));
+                if (subscription != null && subscription.Status == 0 && subscription.OrderCode.HasValue)
+                {
+                    try
+                    {
+                        var payOSInfo = await payOSClient.PaymentRequests.GetAsync(subscription.OrderCode.Value);
+
+                        if (payOSInfo.Status.ToString().ToUpper() == "PAID")
+                        {
+                            subscription.Status = 1; // Active
+                            
+                            // --- AUDIT TRAIL: Save PayOS evidence ---
+                            var tx = payOSInfo.Transactions?.FirstOrDefault();
+                            if (tx != null)
+                            {
+                                subscription.PayOsTransactionId = tx.Reference;
+                                subscription.PayerAccountNumber = tx.CounterAccountNumber;
+                                subscription.PayerName = tx.CounterAccountName;
+                                subscription.PayerBankId = tx.CounterAccountBankId;
+                            }
+
+                            var activeSubs = await _ctx.StoreSubscriptions
+                                                       .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                       .ToListAsync();
+                            foreach(var sub in activeSubs)
+                            {
+                                sub.Status = 2; // Cancelled/Expired
+                            }
+                            await _ctx.SaveChangesAsync();
+                            return Ok(new { success = true });
+                        }
+                        else if (payOSInfo.Status.ToString().ToUpper() == "CANCELLED")
+                        {
+                            subscription.Status = 2; // Cancelled
+                            await _ctx.SaveChangesAsync();
+                            return Ok(new { success = false, status = "CANCELLED" });
+                        }
+
+                        return Ok(new { success = false, status = payOSInfo.Status.ToString() });
+                    }
+                    catch (Exception ex)
+                    {
+                        return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
                     }
                 }
             }
-            return Ok(new { success = true });
+
+            return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch đã hoàn tất." });
         }
         catch (Exception ex)
         {

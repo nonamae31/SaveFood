@@ -6,16 +6,34 @@ import {
   createReview,
   updateReview,
   deleteReview,
+  getStoreReviewStats,
+  getMyStoreReviewStats,
   type ReviewDTO,
+  type StoreReviewStatsDTO
 } from '@/api/reviews.api'
 
-export type { ReviewDTO }
+export type { ReviewDTO, StoreReviewStatsDTO }
 
 export function useStoreReviews(storeId?: string) {
   return useQuery({
     queryKey: ['reviews', 'store', storeId],
     queryFn: () => getReviewsByStore(storeId!),
     enabled: !!storeId,
+  })
+}
+
+export function useCustomerStoreReviewStats(storeId?: string) {
+  return useQuery({
+    queryKey: ['reviews', 'store', storeId, 'stats'],
+    queryFn: () => getStoreReviewStats(storeId!),
+    enabled: !!storeId,
+  })
+}
+
+export function useMyStoreReviewStats() {
+  return useQuery({
+    queryKey: ['reviews', 'my-store', 'stats'],
+    queryFn: () => getMyStoreReviewStats(),
   })
 }
 

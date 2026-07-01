@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, LayersControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { Search, MapPin } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 // Fix Leaflet's default icon path issues in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -76,8 +78,18 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
+  // Sync external position changes (e.g. from Google Maps link extraction)
   useEffect(() => {
-    if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn') {
+    if (defaultPosition) {
+      const newPos = new L.LatLng(defaultPosition.lat, defaultPosition.lng);
+      if (!position || position.lat !== newPos.lat || position.lng !== newPos.lng) {
+        setPosition(newPos);
+      }
+    }
+  }, [defaultPosition?.lat, defaultPosition?.lng]);
+
+  useEffect(() => {
+    if (searchTriggerAddress && searchTriggerAddress !== 'Vị trí hiện tại' && searchTriggerAddress !== 'Vị trí đã chọn' && searchTriggerAddress !== 'Vị trí') {
       setSearchQuery(searchTriggerAddress);
     }
   }, [searchTriggerAddress]);
@@ -101,11 +113,11 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
         setPosition(newPos);
         onLocationChange(lat, lon);
       } else {
-        alert('Không tìm thấy tọa độ cho địa chỉ này, vui lòng nhập chi tiết hơn hoặc tự chấm ghim!');
+        toast.error('Không tìm thấy tọa độ cho địa chỉ này, vui lòng nhập chi tiết hơn hoặc tự chấm ghim!');
       }
     } catch (error) {
       console.error('Error searching location:', error);
-      alert('Lỗi khi tìm kiếm địa chỉ!');
+      toast.error('Lỗi khi tìm kiếm địa chỉ!');
     } finally {
       setIsSearching(false);
     }
@@ -145,18 +157,27 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
           type="button"
           onClick={() => {
             if ('geolocation' in navigator) {
+              const toastId = toast.loading('Đang lấy vị trí hiện tại...');
               navigator.geolocation.getCurrentPosition(
                 (pos) => {
+                  toast.dismiss(toastId);
                   const lat = pos.coords.latitude;
                   const lng = pos.coords.longitude;
                   const newPos = new L.LatLng(lat, lng);
                   setPosition(newPos);
                   onLocationChange(lat, lng);
+                  toast.success('Đã lấy được vị trí hiện tại!');
                 },
                 (err) => {
+                  toast.dismiss(toastId);
                   console.error(err);
-                  alert('Không thể lấy vị trí hiện tại. Hãy kiểm tra quyền truy cập vị trí của trình duyệt!');
-                }
+                  if (err.code === 3) { // TIMEOUT
+                    toast.error('Quá thời gian lấy vị trí. Thử lại ở khu vực thoáng hơn.');
+                  } else {
+                    toast.error('Không thể lấy vị trí. Kiểm tra cài đặt Vị trí trên thiết bị!');
+                  }
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
               );
             }
           }}

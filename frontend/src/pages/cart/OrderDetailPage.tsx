@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder, useExtendPickup, useCancelOrder } from '@/hooks/useOrders'
+import { useOrder, useExtendPickup, useCancelOrder, useBatchPay } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -12,6 +12,31 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { apiClient } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
+const PaymentCountdown = ({ expiresAt }: { expiresAt: string }) => {
+  const [timeLeft, setTimeLeft] = useState(0)
+
+  useEffect(() => {
+    const target = new Date(expiresAt).getTime()
+    const update = () => {
+      const now = new Date().getTime()
+      setTimeLeft(Math.max(0, Math.floor((target - now) / 1000)))
+    }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [expiresAt])
+
+  if (timeLeft === 0) return <span className="text-red-500 font-bold">(Đã hết hạn)</span>
+
+  const m = Math.floor(timeLeft / 60)
+  const s = timeLeft % 60
+  return (
+    <span className="text-orange-600 font-bold flex items-center gap-1 ml-2">
+      <Clock size={16} /> {m}:{s.toString().padStart(2, '0')}
+    </span>
+  )
+}
+
 export function OrderDetailPage() {
   const { id: pathId } = useParams()
   const [searchParams] = useSearchParams()
@@ -21,6 +46,22 @@ export function OrderDetailPage() {
   const cancelMutation = useCancelOrder(id)
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
+  const batchPayMutation = useBatchPay()
+
+  const handleRetryPayment = () => {
+    batchPayMutation.mutate(
+      { 
+        orderIds: [id],
+        returnUrl: window.location.origin + '/payment/success',
+        cancelUrl: window.location.origin + '/payment/cancel'
+      },
+      {
+        onSuccess: (res) => {
+          if (res.checkoutUrl) window.location.href = res.checkoutUrl
+        }
+      }
+    )
+  }
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [cancelForm, setCancelForm] = useState({ reason: '' })
@@ -58,32 +99,21 @@ export function OrderDetailPage() {
     });
   };
 
-  // Setup SignalR connection
+  // Lắng nghe sự kiện cập nhật trạng thái từ GlobalNotificationListener
   useEffect(() => {
-    const token = localStorage.getItem('accessToken')
-    if (!id || !isAuthenticated || !token) return
+    if (!id) return;
 
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL || 'https://localhost:7251'}/hubs/notifications`, {
-        accessTokenFactory: () => token
-      })
-      .withAutomaticReconnect()
-      .build()
-
-    connection.on('OrderStatusChanged', (orderId: string, newStatus: number) => {
-      if (orderId === id) {
-        // Invalidate and refetch
-        queryClient.invalidateQueries({ queryKey: ['order', id] })
-        queryClient.invalidateQueries({ queryKey: ['myOrders'] })
+    const handleStatusUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.orderId === id) {
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+        queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       }
-    })
+    };
 
-    connection.start().catch(console.error)
-
-    return () => {
-      connection.stop()
-    }
-  }, [id, isAuthenticated])
+    window.addEventListener('order-status-updated', handleStatusUpdate);
+    return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
+  }, [id]);
 
   // Verify payment if pending
   useEffect(() => {
@@ -108,18 +138,19 @@ export function OrderDetailPage() {
     )
   }
 
-  const getStatusDisplay = (status: number) => {
+  const getStatusDisplay = (status: number, paymentMethod?: number, paymentStatus?: number) => {
     switch (status) {
-      case 0: return { text: 'Chờ lấy hàng', color: 'text-orange-600 bg-orange-100' }
-      case 1: return { text: 'Đã thanh toán', color: 'text-blue-600 bg-blue-100' }
-      case 2: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
+      case 0: return { text: paymentMethod === 1 && (paymentStatus === 0 || paymentStatus === 2) ? 'Chờ thanh toán' : 'Chờ xác nhận', color: 'text-orange-600 bg-orange-100' }
+      case 1: return { text: 'Đã xác nhận', color: 'text-blue-600 bg-blue-100' }
+      case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-100' }
+      case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-100' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-100' }
     }
   }
 
-  const status = getStatusDisplay(order.orderStatus)
-  const isCompleted = order.orderStatus === 2
+  const status = getStatusDisplay(order.orderStatus, order.payment?.paymentMethod, order.payment?.status)
+  const isCompleted = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
 
   return (
@@ -137,6 +168,9 @@ export function OrderDetailPage() {
           <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold mb-8 ${status.color}`}>
             {isCompleted && <CheckCircle className="w-4 h-4" />}
             {status.text}
+            {order.orderStatus === 0 && order.reservationExpiresAt && (
+              <PaymentCountdown expiresAt={order.reservationExpiresAt} />
+            )}
           </div>
 
           {/* Stepper */}
@@ -146,7 +180,7 @@ export function OrderDetailPage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
                 <div 
                   className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500" 
-                  style={{ width: isCompleted ? '100%' : (order.confirmedById || order.orderStatus >= 1) ? '50%' : '0%' }}
+                  style={{ width: order.orderStatus >= 3 ? '100%' : order.orderStatus >= 2 ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
                 ></div>
 
                 {/* Step 1: Đặt hàng */}
@@ -159,18 +193,26 @@ export function OrderDetailPage() {
 
                 {/* Step 2: Xác nhận */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${(order.confirmedById || order.orderStatus >= 1) ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 1 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     2
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${(order.confirmedById || order.orderStatus >= 1) ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 1 ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
                 </div>
 
-                {/* Step 3: Nhận hàng */}
+                {/* Step 3: Chờ lấy hàng */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 2 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     3
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${isCompleted ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Chờ lấy hàng</span>
+                </div>
+
+                {/* Step 4: Nhận hàng */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                    4
+                  </div>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
                 </div>
               </div>
             </div>
@@ -281,6 +323,18 @@ export function OrderDetailPage() {
                 className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-1 transition-colors"
               >
                 <AlertCircle className="w-4 h-4" /> Hủy đơn hàng
+              </button>
+            </div>
+          )}
+
+          {order.orderStatus === 0 && order.payment?.paymentMethod === 1 && (order.payment?.status === 0 || order.payment?.status === 2) && (
+            <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={handleRetryPayment}
+                disabled={batchPayMutation.isPending}
+                className="bg-brand-500 text-white px-6 py-2 rounded-full font-bold hover:bg-brand-600 transition-colors disabled:opacity-50"
+              >
+                {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Thanh toán lại'}
               </button>
             </div>
           )}

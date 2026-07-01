@@ -9,6 +9,7 @@ export interface User {
   avatarUrl: string | null;
   role:      UserRole;
   phone:     string | null;
+  gender?:   number | null;
   createdAt: string;
 }
 
@@ -61,6 +62,7 @@ export interface LoginResponse {
 export interface UpdateProfileRequest {
   fullName: string;
   phoneNumber?: string | null;
+  gender?: number | null;
   avatarFile?: File | null;
 }
 
@@ -81,6 +83,7 @@ export interface UserProfileDTO {
   fullName: string;
   avatarUrl: string | null;
   phoneNumber: string | null;
+  gender?: number | null;
   address: string | null;
   latitude: number | null;
   longitude: number | null;

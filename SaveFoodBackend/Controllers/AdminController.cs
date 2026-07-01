@@ -15,14 +15,17 @@ namespace SaveFoodBackend.Controllers
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
+        private readonly MediatR.IMediator _mediator;
 
-        public AdminController(IAdminService adminService)
+        public AdminController(IAdminService adminService, MediatR.IMediator mediator)
         {
             _adminService = adminService;
+            _mediator = mediator;
         }
 
         // GET: api/admin/users
         [HttpGet("users")]
+        [Authorize(Roles = "ADMIN,Admin")]
         public async Task<ActionResult<PaginatedList<AdminUserListDTO>>> GetUsers([FromQuery] GetUsersRequestDTO request)
         {
             var users = await _adminService.GetUsersAsync(request);
@@ -86,15 +89,21 @@ namespace SaveFoodBackend.Controllers
         [HttpPut("stores/{id}/approve")]
         public async Task<IActionResult> ApproveStore(Guid id)
         {
-            try
+            var adminIdClaim = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(adminIdClaim) || !Guid.TryParse(adminIdClaim, out Guid adminId))
             {
-                await _adminService.ApproveStoreAsync(id);
-                return Ok(new { message = "Store approved successfully" });
+                // Fallback for development if needed
+                adminId = Guid.Empty;
             }
-            catch (InvalidOperationException ex)
+
+            var command = new SaveFoodBackend.Application.Features.Stores.Commands.ApproveStoreCommand
             {
-                return BadRequest(new { message = ex.Message });
-            }
+                StoreId = id,
+                AdminId = adminId
+            };
+
+            await _mediator.Send(command);
+            return Ok(new { message = "Store approved successfully" });
         }
 
         // PUT: api/admin/stores/{id}/reject
@@ -109,6 +118,43 @@ namespace SaveFoodBackend.Controllers
             catch (InvalidOperationException ex)
             {
                 return BadRequest(new { message = ex.Message });
+            }
+        }
+        // GET: api/admin/stores
+        [HttpGet("stores")]
+        public async Task<ActionResult<PaginatedList<AdminStoreListDTO>>> GetStores([FromQuery] string? search, [FromQuery] byte? status, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+        {
+            var stores = await _adminService.GetStoresAsync(search, status, pageNumber, pageSize);
+            return Ok(stores);
+        }
+
+        // GET: api/admin/stores/{id}
+        [HttpGet("stores/{id}")]
+        public async Task<ActionResult<AdminStoreDetailsDTO>> GetStoreDetails(Guid id)
+        {
+            try
+            {
+                var storeDetails = await _adminService.GetStoreDetailsAsync(id);
+                return Ok(storeDetails);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        // PUT: api/admin/stores/{id}/status
+        [HttpPut("stores/{id}/status")]
+        public async Task<IActionResult> UpdateStoreStatus(Guid id, [FromBody] UpdateStoreStatusRequest request)
+        {
+            try
+            {
+                await _adminService.UpdateStoreStatusAsync(id, request.NewStatus);
+                return Ok(new { message = "Store status updated successfully" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
             }
         }
     }

@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFoodBackend.Repositories;
 
@@ -27,7 +28,7 @@ public class OrderRepository : IOrderRepository
             .Include(o => o.User)
             .Include(o => o.OrderItems)
             .Include(o => o.Payment)
-            .Where(o => o.StoreId == storeId)
+            .Where(o => o.StoreId == storeId && (o.Payment == null || o.Payment.Status != 0))
             .OrderByDescending(o => o.CreatedAt)
             .AsNoTracking()
             .ToListAsync(ct);
@@ -38,6 +39,7 @@ public class OrderRepository : IOrderRepository
         return await _set
             .Include(o => o.User)
             .Include(o => o.OrderItems)
+            .Include(o => o.Payment)
             .Include(o => o.Store)
                 .ThenInclude(s => s.StoreStaffs)
             .FirstOrDefaultAsync(o => o.Id == orderId, ct);
@@ -66,7 +68,7 @@ public class OrderRepository : IOrderRepository
     public async Task<(int count, decimal revenue)> GetStoreAnalyticsByDateRangeAsync(Guid storeId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
     {
         // Status = 3 is Completed
-        var query = _set.Where(o => o.StoreId == storeId && o.OrderStatus == 3 && o.CreatedAt >= startDate && o.CreatedAt <= endDate);
+        var query = _set.Where(o => o.StoreId == storeId && o.OrderStatus == OrderStatusEnum.Completed && o.CreatedAt >= startDate && o.CreatedAt <= endDate);
         var count = await query.CountAsync(ct);
         var revenue = await query.SumAsync(o => o.TotalAmount * 0.95m, ct); // Deduct 5% platform fee
         return (count, revenue);
@@ -75,7 +77,7 @@ public class OrderRepository : IOrderRepository
     public async Task<List<decimal>> GetWeeklyRevenueAsync(Guid storeId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
     {
         var orders = await _set
-            .Where(o => o.StoreId == storeId && o.OrderStatus == 3 && o.CreatedAt >= startDate && o.CreatedAt <= endDate)
+            .Where(o => o.StoreId == storeId && o.OrderStatus == OrderStatusEnum.Completed && o.CreatedAt >= startDate && o.CreatedAt <= endDate)
             .GroupBy(o => o.CreatedAt.Date)
             .Select(g => new { Date = g.Key, Revenue = g.Sum(o => o.TotalAmount * 0.95m) }) // Deduct 5% platform fee
             .ToListAsync(ct);
@@ -95,7 +97,7 @@ public class OrderRepository : IOrderRepository
             .Include(oi => oi.Order)
             .Include(oi => oi.Listing)
                 .ThenInclude(l => l.Product)
-            .Where(oi => oi.Order != null && oi.Order.StoreId == storeId && oi.Order.OrderStatus == 3)
+            .Where(oi => oi.Order != null && oi.Order.StoreId == storeId && oi.Order.OrderStatus == OrderStatusEnum.Completed)
             .GroupBy(oi => oi.Listing.Product.Name)
             .Select(g => new SaveFoodBackend.DTOs.Store.TopSellingProductDTO
             {
@@ -110,13 +112,13 @@ public class OrderRepository : IOrderRepository
     public async Task<bool> HasActiveOrdersAsync(Guid userId, CancellationToken ct = default)
     {
         // 0: Pending, 1: Confirmed, 2: AwaitingPickup
-        return await _set.AnyAsync(o => o.UserId == userId && (o.OrderStatus == 0 || o.OrderStatus == 1 || o.OrderStatus == 2), ct);
+        return await _set.AnyAsync(o => o.UserId == userId && (o.OrderStatus == OrderStatusEnum.Pending || o.OrderStatus == OrderStatusEnum.Confirmed || o.OrderStatus == OrderStatusEnum.ReadyForPickup), ct);
     }
 
     public async Task<double> GetReturnCustomerRateAsync(Guid storeId, CancellationToken ct = default)
     {
         var userOrders = await _set
-            .Where(o => o.StoreId == storeId && o.OrderStatus == 3) // Only completed orders
+            .Where(o => o.StoreId == storeId && o.OrderStatus == OrderStatusEnum.Completed) // Only completed orders
             .GroupBy(o => o.UserId)
             .Select(g => new { UserId = g.Key, OrderCount = g.Count() })
             .ToListAsync(ct);
@@ -127,5 +129,71 @@ public class OrderRepository : IOrderRepository
         var returningCustomers = userOrders.Count(u => u.OrderCount > 1);
 
         return Math.Round((double)returningCustomers / totalCustomers * 100, 1);
+    }
+
+    public async Task<decimal> GetPendingRevenueAsync(Guid storeId, CancellationToken ct = default)
+    {
+        // Active orders: 0 (Pending), 1 (Confirmed), 2 (ReadyForPickup)
+        var query = _set.Include(o => o.Payment)
+                        .Where(o => o.StoreId == storeId 
+                                 && (o.OrderStatus == OrderStatusEnum.Pending || o.OrderStatus == OrderStatusEnum.Confirmed || o.OrderStatus == OrderStatusEnum.ReadyForPickup)
+                                 && o.Payment != null && o.Payment.Status == 1);
+        var revenue = await query.SumAsync(o => o.TotalAmount * 0.95m, ct); // Deduct 5% platform fee
+        return revenue;
+    }
+
+    public async Task<int> GetOrdersCountByStatusAsync(Guid storeId, int status, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        return await _set.Where(o => o.StoreId == storeId && (int)o.OrderStatus == status && o.CreatedAt >= startDate && o.CreatedAt <= endDate).CountAsync(ct);
+    }
+
+    public async Task<List<int>> GetWeeklyOrdersCountByStatusAsync(Guid storeId, int status, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        var orders = await _set
+            .Where(o => o.StoreId == storeId && (int)o.OrderStatus == status && o.CreatedAt >= startDate && o.CreatedAt <= endDate)
+            .GroupBy(o => o.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
+
+        var result = new List<int>();
+        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+        {
+            var dailyCount = orders.FirstOrDefault(o => o.Date == date)?.Count ?? 0;
+            result.Add(dailyCount);
+        }
+        return result;
+    }
+
+    public async Task<List<double>> GetWeeklyAverageRatingAsync(Guid storeId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        var reviews = await _ctx.Reviews
+            .Include(r => r.OrderItem)
+                .ThenInclude(oi => oi.Order)
+            .Where(r => r.OrderItem != null && r.OrderItem.Order != null && r.OrderItem.Order.StoreId == storeId && r.CreatedAt >= startDate && r.CreatedAt <= endDate)
+            .GroupBy(r => r.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, AvgRating = g.Average(r => (double)r.Rating) })
+            .ToListAsync(ct);
+
+        var result = new List<double>();
+        for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
+        {
+            var dailyRating = reviews.FirstOrDefault(r => r.Date == date)?.AvgRating ?? 0;
+            result.Add(Math.Round(dailyRating, 1));
+        }
+        return result;
+    }
+
+    public async Task<(int TotalCustomers, int ReturningCustomers)> GetCustomerMetricsAsync(Guid storeId, DateTime startDate, DateTime endDate, CancellationToken ct = default)
+    {
+        var userOrders = await _set
+            .Where(o => o.StoreId == storeId && o.OrderStatus == OrderStatusEnum.Completed && o.CreatedAt >= startDate && o.CreatedAt <= endDate)
+            .GroupBy(o => o.UserId)
+            .Select(g => new { UserId = g.Key, OrderCount = g.Count() })
+            .ToListAsync(ct);
+
+        int totalCustomers = userOrders.Count;
+        int returningCustomers = userOrders.Count(u => u.OrderCount > 1);
+
+        return (totalCustomers, returningCustomers);
     }
 }
