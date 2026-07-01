@@ -2,22 +2,25 @@ using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using SaveFoodBackend.Data;
+using System.Collections.Generic;
+using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.DTOs.User;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Interfaces.Repositories;
 
 namespace SaveFoodBackend.Services
 {
     public class UserService : IUserService
     {
-        private readonly SaveFoodDbContext _context;
+        private readonly IUserRepository _userRepo;
+        private readonly IStoreStaffRepository _storeStaffRepo;
         private readonly ICloudinaryService _cloudinaryService;
         private readonly IRedisService _redisService;
 
-        public UserService(SaveFoodDbContext context, ICloudinaryService cloudinaryService, IRedisService redisService)
+        public UserService(IUserRepository userRepo, IStoreStaffRepository storeStaffRepo, ICloudinaryService cloudinaryService, IRedisService redisService)
         {
-            _context = context;
+            _userRepo = userRepo;
+            _storeStaffRepo = storeStaffRepo;
             _cloudinaryService = cloudinaryService;
             _redisService = redisService;
         }
@@ -30,19 +33,14 @@ namespace SaveFoodBackend.Services
             {
                 return JsonSerializer.Deserialize<UserProfileDTO>(cachedProfile);
             }
-            var user = await _context.Users
-                .AsNoTracking()
-                .AsSplitQuery()
-                .Include(u => u.UserRoles)
-                    .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetAdminUserDetailsAsync(userId);
 
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
             }
 
-            var storeStaff = await _context.StoreStaffs.AsNoTracking().FirstOrDefaultAsync(ss => ss.UserId == userId);
+            var storeStaff = user.StoreStaffs.FirstOrDefault();
 
             var profileDto = new UserProfileDTO
             {
@@ -71,7 +69,7 @@ namespace SaveFoodBackend.Services
 
         public async Task ChangePasswordAsync(Guid userId, ChangePasswordRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
@@ -108,13 +106,14 @@ namespace SaveFoodBackend.Services
             }
 
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
             await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
 
             if (user == null)
             {
@@ -137,13 +136,14 @@ namespace SaveFoodBackend.Services
                 }
             }
 
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
             await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
 
         public async Task UpdateLocationAsync(Guid userId, UpdateLocationRequest request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            var user = await _userRepo.GetByIdAsync(userId);
             if (user == null)
             {
                 throw new InvalidOperationException("User not found.");
@@ -156,8 +156,10 @@ namespace SaveFoodBackend.Services
                 user.Address = request.Address;
             }
 
-            await _context.SaveChangesAsync();
+            _userRepo.Update(user);
+            await _userRepo.SaveChangesAsync();
             await _redisService.DeleteAsync($"profile_v2:{userId}");
         }
+
     }
 }
