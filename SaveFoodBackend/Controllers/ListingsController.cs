@@ -9,6 +9,7 @@ namespace SaveFoodBackend.Controllers;
 
 [ApiController]
 [Route("api/stores/{storeId}/listings")]
+[Microsoft.AspNetCore.Authorization.Authorize(Roles = "STORE")]
 public class ListingsController : ControllerBase
 {
     private readonly IListingService _listingService;
