@@ -20,3 +20,11 @@ public class CheckoutRequestDTO
     public string? ReturnUrl { get; set; }
     public string? CancelUrl { get; set; }
 }
+
+public class BatchPayRequestDTO
+{
+    public List<Guid> OrderIds { get; set; } = new();
+    public byte PaymentMethod { get; set; } = 0; // Default to Wallet
+    public string? ReturnUrl { get; set; }
+    public string? CancelUrl { get; set; }
+}

@@ -4,6 +4,7 @@ import type { AdminStoreListDTO, AdminStoreDetailsDTO } from '../../api/admin.ap
 import { Building, MapPin, Phone, User, Check, X, Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, Store, CreditCard, Calendar } from 'lucide-react';
 import { formatVND } from '../../lib/formatters';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 function CustomSelect({ value, onChange, options, icon }: { value: string, onChange: (val: string) => void, options: {label: string, value: string}[], icon?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -124,13 +125,41 @@ export default function StoreManagementPage() {
     }
   };
 
-  const handleUpdateStatus = async (id: string, newStatus: number) => {
-    setConfirmAction({
-      id,
-      newStatus,
-      actionType: 'updateStatus',
-      message: 'Bạn có chắc chắn muốn cập nhật trạng thái cửa hàng này?'
-    });
+  const handleUpdateStatus = async (id: string, newStatus: number, oldStatus: number) => {
+    try {
+      await adminApi.updateStoreStatus(id, newStatus);
+      fetchStores();
+      if (selectedStore?.id === id) {
+        viewDetails(id);
+      }
+      
+      const actionText = newStatus === 1 ? 'tạm ngưng' : newStatus === 2 ? 'đóng cửa' : 'mở khóa';
+      
+      toast((t) => (
+        <div className="flex items-center gap-4">
+          <span>Đã {actionText} cửa hàng.</span>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await adminApi.updateStoreStatus(id, oldStatus);
+                fetchStores();
+                if (selectedStore?.id === id) viewDetails(id);
+                toast.success('Đã hoàn tác thao tác!');
+              } catch (e) {
+                toast.error('Lỗi khi hoàn tác');
+              }
+            }}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-mint-brand-green rounded-md hover:bg-mint-brand-green/90 transition-colors"
+          >
+            Hoàn tác
+          </button>
+        </div>
+      ), { duration: 5000, position: 'bottom-center' });
+
+    } catch (e) {
+      toast.error('Không thể thực hiện hành động này');
+    }
   };
 
   const handleApprove = async (id: string) => {
@@ -366,12 +395,12 @@ export default function StoreManagementPage() {
                     )
                   ) : selectedStore.status === 0 ? (
                     // Active
-                    <button onClick={() => handleUpdateStatus(selectedStore.id, 1)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-red-200">
+                    <button onClick={() => handleUpdateStatus(selectedStore.id, 1, selectedStore.status)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-red-200">
                       <XCircle className="w-4 h-4" /> Khóa cửa hàng
                     </button>
                   ) : selectedStore.status === 1 || selectedStore.status === 2 ? (
                     // Suspended / Closed
-                    <button onClick={() => handleUpdateStatus(selectedStore.id, 0)} className="w-full bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-green-200">
+                    <button onClick={() => handleUpdateStatus(selectedStore.id, 0, selectedStore.status)} className="w-full bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-green-200">
                       <Check className="w-4 h-4" /> Mở khóa
                     </button>
                   ) : (

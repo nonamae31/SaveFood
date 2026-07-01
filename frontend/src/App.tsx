@@ -61,7 +61,7 @@ function PlaceholderPage({ title }: { title: string }) {
     <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-[--spacing-section-y]">
       <div className="text-center py-20">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[--color-brand-100] mb-4">
-          <span className="text-2xl" aria-hidden="true">🚧</span>
+          <span className="text-2xl" aria-hidden="true">⏳</span>
         </div>
         <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] mb-2">
           {title}
@@ -77,7 +77,9 @@ function PlaceholderPage({ title }: { title: string }) {
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 import { LocationProvider } from '@/contexts/LocationContext'
+import { CartProvider } from '@/contexts/CartContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { Toaster } from 'react-hot-toast'
 import { GlobalNotificationListener } from '@/components/layout/GlobalNotificationListener'
@@ -86,8 +88,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationProvider>
         <LocationProvider>
-          <BrowserRouter>
+          <CartProvider>
+            <BrowserRouter>
             <ScrollToTop />
             <Toaster position="top-right" />
             <GlobalNotificationListener />
@@ -165,7 +169,9 @@ function App() {
             <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
           </Routes>
           </BrowserRouter>
+          </CartProvider>
         </LocationProvider>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

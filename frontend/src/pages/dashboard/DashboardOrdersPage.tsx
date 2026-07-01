@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
   ClipboardList, CheckCircle, PackageCheck, Truck,
@@ -89,8 +90,8 @@ function OrderDetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex justify-end bg-black/30 backdrop-blur-sm transition-opacity" onClick={onClose}>
+      <div className="bg-white shadow-2xl w-full max-w-md h-full overflow-hidden flex flex-col transform transition-transform duration-300 ease-in-out translate-x-0" onClick={e => e.stopPropagation()}>
         
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
@@ -217,9 +218,9 @@ function OrderDetailModal({
 
 // ─── Order Row ─────────────────────────────────────────────────────────────────
 function OrderRow({
-  order, onClick
+  order, onClick, isSelected, onToggleSelect
 }: {
-  order: StoreOrderDTO; onClick: () => void;
+  order: StoreOrderDTO; onClick: () => void; isSelected?: boolean; onToggleSelect?: (e: React.MouseEvent) => void;
 }) {
   const cfg = STATUS_CONFIG[order.orderStatus] ?? STATUS_CONFIG[4];
 
@@ -229,6 +230,15 @@ function OrderRow({
       onClick={onClick}
     >
       <div className="flex items-center gap-3 p-4">
+        {onToggleSelect && (
+          <input 
+            type="checkbox"
+            checked={isSelected}
+            onChange={() => {}}
+            onClick={onToggleSelect}
+            className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+          />
+        )}
         {/* Status badge */}
         <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.color} flex-shrink-0`}>
           <span className={`w-1.5 h-1.5 rounded-full ${cfg.dot}`} />
@@ -264,6 +274,8 @@ export default function DashboardOrdersPage() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [refreshKey, setRefreshKey] = useState(0);
   const [selectedOrder, setSelectedOrder] = useState<StoreOrderDTO | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
+  const parentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (selectedOrder) {
@@ -338,6 +350,42 @@ export default function DashboardOrdersPage() {
   const countFor = (key: string) =>
     key === 'all' ? orders.length : orders.filter(o => o.orderStatus === Number(key)).length;
 
+  const virtualizer = useVirtualizer({
+    count: filtered.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 76,
+    overscan: 5,
+  });
+
+  const handleToggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedOrderIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedOrderIds(filtered.map(o => o.id));
+    } else {
+      setSelectedOrderIds([]);
+    }
+  };
+
+  const hasSelected = selectedOrderIds.length > 0;
+  const isAllSelected = filtered.length > 0 && selectedOrderIds.length === filtered.length;
+
+  const handleBulkAction = async (action: (storeId: string, orderId: string) => Promise<void>, label: string) => {
+    try {
+      await Promise.all(selectedOrderIds.map(id => action(storeId, id)));
+      toast.success(`${label} hàng loạt thành công!`);
+      setSelectedOrderIds([]);
+      fetchOrders();
+    } catch (e: unknown) {
+      toast.error(`Có lỗi khi ${label} hàng loạt.`);
+    }
+  };
+
   return (
     <div className="space-y-6 max-w-full">
       {/* Header */}
@@ -396,14 +444,69 @@ export default function DashboardOrdersPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {filtered.map(order => (
-            <OrderRow
-              key={order.id}
-              order={order}
-              onClick={() => setSelectedOrder(order)}
-            />
-          ))}
+        <div className="space-y-4">
+          {/* Bulk action header */}
+          <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={isAllSelected}
+                onChange={handleSelectAll}
+                className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+              />
+              <span className="text-sm font-semibold text-gray-700">Chọn tất cả</span>
+            </label>
+            {hasSelected && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-500 mr-2">Đã chọn {selectedOrderIds.length}</span>
+                {activeFilter === '0' && (
+                  <button onClick={() => handleBulkAction(storeOrdersApi.confirm, 'Xác nhận')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
+                    Xác nhận
+                  </button>
+                )}
+                {activeFilter === '1' && (
+                  <button onClick={() => handleBulkAction(storeOrdersApi.markReady, 'Chuẩn bị xong')} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
+                    Chuẩn bị xong
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div ref={parentRef} className="h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'relative',
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const order = filtered[virtualItem.index];
+                return (
+                  <div
+                    key={virtualItem.key}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
+                      paddingBottom: '12px'
+                    }}
+                  >
+                    <OrderRow
+                      order={order}
+                      onClick={() => setSelectedOrder(order)}
+                      isSelected={selectedOrderIds.includes(order.id)}
+                      onToggleSelect={(e) => handleToggleSelect(order.id, e)}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
 

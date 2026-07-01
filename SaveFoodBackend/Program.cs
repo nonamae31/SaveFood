@@ -52,6 +52,9 @@ builder.Services.AddJwtAuthentication(builder.Configuration);
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
+// ─── 4.1 Options Configuration ────────────────────────────────────────────────
+builder.Services.Configure<SaveFoodBackend.Models.Config.PlatformConfig>(builder.Configuration.GetSection("PlatformConfig"));
+
 // ─── 5. CORS Policy ───────────────────────────────────────────────────────────
 builder.Services.AddSaveFoodCors(builder.Configuration);
 
@@ -79,6 +82,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, Save
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
 
 // Admin Repositories
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUnitOfWork, SaveFoodBackend.Repositories.UnitOfWork>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUserRepository, SaveFoodBackend.Repositories.UserRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IStoreRepository, SaveFoodBackend.Repositories.StoreRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IFinanceRepository, SaveFoodBackend.Repositories.FinanceRepository>();
@@ -99,9 +103,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, S
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IOrderService, SaveFoodBackend.Services.OrderService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreOrderService, SaveFoodBackend.Services.StoreOrderService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUnitOfWork, SaveFoodBackend.Data.UnitOfWork>();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
 
@@ -111,6 +115,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFo
 
 // Sentiment analysis
 builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
+
+// Notification Service
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, SaveFoodBackend.Services.NotificationService>();
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();

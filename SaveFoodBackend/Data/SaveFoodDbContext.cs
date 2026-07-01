@@ -72,6 +72,8 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<CustomerWalletTransaction> CustomerWalletTransactions { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
@@ -557,7 +559,29 @@ public partial class SaveFoodDbContext : DbContext
         modelBuilder.Entity<SubscriptionPlan>().HasQueryFilter(e => (e.PlanFlags & (byte)SaveFoodBackend.Models.Enums.PlanFlagsEnum.IsDeleted) == 0);
         modelBuilder.Entity<User>().HasQueryFilter(e => (e.UserFlags & (byte)SaveFoodBackend.Models.Enums.UserFlagsEnum.IsDeleted) == 0);
 
+        // ─── Notification ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Body).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         OnModelCreatingPartial(modelBuilder);
+
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

@@ -78,12 +78,23 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
             if (role != null) user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
             _context.Users.Add(user);
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                _context.Entry(user).State = EntityState.Detached;
+                user = await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role).FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, ct);
+                if (user == null) throw new UnauthorizedAccessException("Could not create or fetch user account.");
+            }
         }
         else
         {
             if (user.UserStatusEnum != UserStatus.Active) throw new UnauthorizedAccessException("Account is locked or inactive.");
             if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payloadPicture)) user.AvatarUrl = payloadPicture;
             if (!user.EmailVerified) user.EmailVerified = true;
+            await _context.SaveChangesAsync(ct);
         }
 
         await _context.SaveChangesAsync(ct);

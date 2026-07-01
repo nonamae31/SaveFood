@@ -21,7 +21,7 @@ public class StoreFinanceService : IStoreFinanceService
         _orderRepo = orderRepo;
     }
 
-    public async Task<StoreWalletDTO> GetStoreWalletAsync(Guid storeId)
+    public async Task<StoreWalletDTO?> GetStoreWalletAsync(Guid storeId)
     {
         var wallet = await _financeRepo.GetStoreWalletByStoreIdAsync(storeId);
         

@@ -15,17 +15,19 @@ using SaveFoodBackend.Hubs;
 
 namespace SaveFoodBackend.Services;
 
-public class OrderService : IOrderService
+public class OrderService
 {
     private readonly SaveFoodDbContext _ctx;
     private readonly IPayOSService _payOSService;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notifService;
 
-    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext)
+    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _hubContext = hubContext;
+        _notifService = notifService;
     }
 
     public async Task<CheckoutResponseDTO> CheckoutAsync(Guid userId, CheckoutRequestDTO req, CancellationToken ct = default)
@@ -160,9 +162,19 @@ public class OrderService : IOrderService
 
         await _ctx.SaveChangesAsync(ct);
 
-        // Notify Store Staff & Owner via SignalR
+        // Notify Store Staff & Owner via Notification Service (lưu DB + SignalR)
         foreach (var order in createdOrders)
         {
+            // Notify customer
+            await _notifService.SendAsync(
+                order.UserId,
+                "Đặt hàng thành công! 🎉",
+                $"Đơn hàng #{order.OrderCode} đã được tạo. Vui lòng thanh toán và đến lấy hàng đúng giờ.",
+                "ORDER_PLACED",
+                order.Id
+            );
+
+            // Notify store staff
             var staffIds = await _ctx.StoreStaffs
                 .Where(s => s.StoreId == order.StoreId)
                 .Select(s => s.UserId)
@@ -170,7 +182,13 @@ public class OrderService : IOrderService
 
             foreach (var uid in staffIds.Distinct())
             {
-                await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: ct);
+                await _notifService.SendAsync(
+                    uid,
+                    "Có đơn hàng mới! 🛒",
+                    $"Đơn #{order.OrderCode} vừa được đặt. Hãy chuẩn bị hàng cho khách.",
+                    "ORDER_PLACED",
+                    order.Id
+                );
             }
         }
 
@@ -261,9 +279,9 @@ public class OrderService : IOrderService
         if (!isStaff)
             throw new Exception("Bạn không có quyền xác nhận đơn hàng của cửa hàng này.");
 
-        if (order.OrderStatus == 4)
+        if (order.OrderStatus == OrderStatusEnum.Cancelled)
             throw new Exception("Đơn hàng đã bị huỷ.");
-        if (order.OrderStatus == 3)
+        if (order.OrderStatus == OrderStatusEnum.Completed)
             throw new Exception("Đơn hàng đã được xác nhận lấy hàng trước đó.");
         
         if (order.PickupCode != pickupCode)
@@ -274,7 +292,7 @@ public class OrderService : IOrderService
             throw new Exception("Đơn hàng thanh toán online chưa hoàn tất thanh toán. Vui lòng kiểm tra lại.");
         }
 
-        order.OrderStatus = 3; // Completed / Delivered
+        order.OrderStatus = OrderStatusEnum.Completed; // Completed / Delivered
         order.ConfirmedById = userId;
 
         // Process store wallet (add money to store - minus 5% platform fee)
@@ -333,7 +351,7 @@ public class OrderService : IOrderService
 
         if (status.HasValue)
         {
-            query = query.Where(o => o.OrderStatus == status.Value);
+            query = query.Where(o => o.OrderStatus == (OrderStatusEnum)status.Value);
         }
 
         var totalRecords = await query.CountAsync(ct);
@@ -417,7 +435,7 @@ public class OrderService : IOrderService
         if (order == null)
             throw new Exception("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != 1)
+        if (order.OrderStatus != OrderStatusEnum.Confirmed)
             throw new Exception("Chỉ có thể gia hạn giờ lấy cho đơn hàng đã thanh toán và đang chờ lấy.");
 
         if (!order.ExpectedPickupTime.HasValue || !order.MaxPickupTime.HasValue)
@@ -443,7 +461,7 @@ public class OrderService : IOrderService
         if (order == null)
             throw new Exception("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != 1) // 1 = Confirmed/Paid Wait for pickup
+        if (order.OrderStatus != OrderStatusEnum.Confirmed) // 1 = Confirmed/Paid Wait for pickup
             throw new Exception("Chỉ có thể hủy đơn hàng đang chờ lấy hàng.");
 
         if (order.ConfirmedById.HasValue)
@@ -495,7 +513,7 @@ public class OrderService : IOrderService
             }
         }
 
-        order.OrderStatus = 4; // Cancelled
+        order.OrderStatus = OrderStatusEnum.Cancelled; // Cancelled
         await _ctx.SaveChangesAsync(ct);
         
         var staffIds = await _ctx.StoreStaffs
@@ -505,8 +523,23 @@ public class OrderService : IOrderService
             
         foreach (var staffId in staffIds)
         {
-            await _hubContext.Clients.Group($"User_{staffId}").SendAsync("OrderStatusUpdated", order.Id, order.OrderStatus, cancellationToken: ct);
+            await _notifService.SendAsync(
+                staffId,
+                "Đơn hàng bị hủy",
+                $"Đơn #{order.OrderCode} đã bị khách hủy.",
+                "ORDER_STATUS_CHANGED",
+                order.Id
+            );
         }
+
+        // Notify customer about refund
+        await _notifService.SendAsync(
+            order.UserId,
+            "Hủy đơn thành công — Hoàn tiền",
+            $"Đơn #{order.OrderCode} đã hủy. {order.TotalAmount:N0}₫ đã được hoàn vào ví của bạn.",
+            "ORDER_STATUS_CHANGED",
+            order.Id
+        );
 
         return true;
     }

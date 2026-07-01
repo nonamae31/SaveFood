@@ -5,6 +5,7 @@ import { ROUTES } from '@/lib/constants'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLogout } from '@/hooks/useAuth'
 import { useStoreProfile } from '@/hooks/useStores'
+import { NotificationDropdown } from './NotificationDropdown'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 
@@ -49,19 +50,19 @@ export function DashboardLayout() {
 
   const staffNavItems = [
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
-    { name: 'Đơn hàng (🚧)', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
-    { name: 'Nhận hàng (🚧)', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
+    { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
   ]
 
   const ownerNavItems = [
     { name: 'Tổng quan', href: ROUTES.DASHBOARD_ANALYTICS, icon: LayoutDashboard },
     { name: 'Sản phẩm', href: '/dashboard/products', icon: Package },
     { name: 'Đợt giảm giá', href: ROUTES.DASHBOARD_LISTINGS, icon: Tag },
-    { name: 'Đơn hàng (🚧)', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
-    { name: 'Nhận hàng (🚧)', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
+    { name: 'Đơn hàng', href: ROUTES.DASHBOARD_ORDERS, icon: ShoppingCart },
+    { name: 'Nhận hàng', href: ROUTES.DASHBOARD_PICKUP, icon: ScanLine },
     { name: 'Nhân viên', href: ROUTES.DASHBOARD_STAFF, icon: Users },
-    { name: 'Ví & Doanh thu (🚧)', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
-    { name: 'Đánh giá (🚧)', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
+    { name: 'Ví & Doanh thu', href: ROUTES.DASHBOARD_WALLET, icon: Wallet },
+    { name: 'Đánh giá', href: ROUTES.DASHBOARD_REVIEWS, icon: Star },
     { name: 'Cài đặt cửa hàng', href: ROUTES.DASHBOARD_SETTINGS, icon: Settings },
   ]
 
@@ -134,6 +135,10 @@ export function DashboardLayout() {
 
         {/* User & Store Profile Area */}
         <div className="p-4 border-t border-gray-100">
+          <div className="flex justify-between items-center mb-2 px-2">
+            <span className="text-sm font-semibold text-gray-500">Thông báo</span>
+            <NotificationDropdown isDark={false} placement="top-right" />
+          </div>
           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors mb-2 group">
             <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center overflow-hidden shrink-0 border border-brand-200">
               {storeProfile?.logoUrl ? (
@@ -185,6 +190,9 @@ export function DashboardLayout() {
           <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
             <Store className="w-5 h-5 text-brand-600" />
             SaveFood Store
+          </div>
+          <div className="ml-auto">
+            <NotificationDropdown isDark={false} />
           </div>
         </header>
 

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
-
+//
 public partial class Payment
 {
     public Guid Id { get; set; }

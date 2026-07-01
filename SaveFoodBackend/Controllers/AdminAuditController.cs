@@ -44,7 +44,7 @@ public class AdminAuditController : ControllerBase
                 .ThenInclude(o => o.User)
             .Include(p => p.Order)
                 .ThenInclude(o => o.Store)
-            .Where(p => p.Status == 1 && p.PaidAt >= fromDate && p.PaidAt <= toDate && p.Order != null && p.Order.OrderStatus != 4)
+            .Where(p => p.Status == 1 && p.PaidAt >= fromDate && p.PaidAt <= toDate && p.Order != null && p.Order.OrderStatus != SaveFoodBackend.Models.Enums.OrderStatusEnum.Cancelled)
             .OrderByDescending(p => p.PaidAt)
             .ToListAsync();
 

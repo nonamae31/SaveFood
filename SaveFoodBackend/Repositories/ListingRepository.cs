@@ -21,7 +21,7 @@ public class ListingRepository : IListingRepository
         _ctx = ctx;
         _set = ctx.Set<ClearanceListing>();
     }
-
+    //
     public async Task<ClearanceListing?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _set

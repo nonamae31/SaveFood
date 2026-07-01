@@ -7,6 +7,7 @@ import { ROUTES } from '@/lib/constants';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { LocationPickerMap } from '@/components/map/LocationPickerMap';
 import { MapPin } from 'lucide-react';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 
 export function MainLayout() {
   const routerLocation = useLocation();
@@ -74,6 +75,7 @@ export function MainLayout() {
           </div>
         </div>
       )}
+      <CartDrawer />
     </>
   );
 }
