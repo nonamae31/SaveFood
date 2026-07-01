@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
+using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.DTOs.User;
+using SaveFoodBackend.Models;
 
 namespace SaveFoodBackend.Interfaces
 {

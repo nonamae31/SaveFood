@@ -133,6 +133,19 @@ public class UserRepository : IUserRepository
         }
     }
 
+    public async Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default)
+    {
+        return await _set
+            .Include(u => u.UserRoles).ThenInclude(ur => ur.Role)
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
+
+    public void Remove(User user)
+    {
+        _set.Remove(user);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

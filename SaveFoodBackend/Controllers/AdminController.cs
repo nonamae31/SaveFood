@@ -25,6 +25,7 @@ namespace SaveFoodBackend.Controllers
 
         // GET: api/admin/users
         [HttpGet("users")]
+        [Authorize(Roles = "ADMIN,Admin")]
         public async Task<ActionResult<PaginatedList<AdminUserListDTO>>> GetUsers([FromQuery] GetUsersRequestDTO request)
         {
             var users = await _adminService.GetUsersAsync(request);
