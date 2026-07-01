@@ -12,6 +12,7 @@ interface LocationContextType {
   location: LocationState | null;
   setLocation: (lat: number, lng: number, address?: string) => void;
   isLoading: boolean;
+  isLocationDenied: boolean;
   requestGeolocation: () => void;
 }
 
@@ -24,6 +25,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const updateLocationMutation = useUpdateLocation();
   const [location, setLocationState] = useState<LocationState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLocationDenied, setIsLocationDenied] = useState(false);
 
   // Khởi tạo location: Ưu tiên DB (nếu đã đăng nhập) -> LocalStorage -> Geolocation
   useEffect(() => {
@@ -58,6 +60,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
 
   const requestGeolocation = useCallback(() => {
     setIsLoading(true);
+    setIsLocationDenied(false);
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -68,10 +71,14 @@ export function LocationProvider({ children }: { children: ReactNode }) {
           };
           setLocationState(newLoc);
           localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newLoc));
+          setIsLocationDenied(false);
           setIsLoading(false);
         },
         (error) => {
           console.warn("Lấy vị trí tự động thất bại hoặc bị từ chối:", error);
+          if (error.code === 1) { // PERMISSION_DENIED
+            setIsLocationDenied(true);
+          }
           setIsLoading(false);
         },
         { timeout: 10000 }
@@ -84,6 +91,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   const setLocation = useCallback((lat: number, lng: number, address?: string) => {
     const newLoc = { lat, lng, address };
     setLocationState(newLoc);
+    setIsLocationDenied(false); // Clear denial if they manually set it
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newLoc));
 
     if (isAuthenticated) {
@@ -92,7 +100,7 @@ export function LocationProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, updateLocationMutation]);
 
   return (
-    <LocationContext.Provider value={{ location, setLocation, isLoading, requestGeolocation }}>
+    <LocationContext.Provider value={{ location, setLocation, isLoading, isLocationDenied, requestGeolocation }}>
       {children}
     </LocationContext.Provider>
   );

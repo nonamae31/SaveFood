@@ -7,6 +7,8 @@ export interface CartItem {
   originalPrice: number
   storeId: string
   storeName: string
+  storeLatitude?: number
+  storeLongitude?: number
   quantity: number
   availableQuantity: number
   expiryDate: string

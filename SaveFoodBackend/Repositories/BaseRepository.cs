@@ -20,11 +20,11 @@ public abstract class BaseRepository<T>(SaveFoodDbContext ctx) : IBaseRepository
 
     /// <inheritdoc/>
     public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default)
-        => await _set.FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted, ct);
+        => await _set.FirstOrDefaultAsync(e => e.Id == id, ct);
 
     /// <inheritdoc/>
     public async Task<IEnumerable<T>> GetAllAsync(CancellationToken ct = default)
-        => await _set.Where(e => !e.IsDeleted).AsNoTracking().ToListAsync(ct);
+        => await _set.AsNoTracking().ToListAsync(ct);
 
     /// <inheritdoc/>
     public async Task AddAsync(T entity, CancellationToken ct = default)
@@ -55,16 +55,16 @@ public abstract class BaseRepository<T>(SaveFoodDbContext ctx) : IBaseRepository
 
     /// <inheritdoc/>
     public async Task<bool> ExistsAsync(Guid id, CancellationToken ct = default)
-        => await _set.AnyAsync(e => e.Id == id && !e.IsDeleted, ct);
+        => await _set.AnyAsync(e => e.Id == id, ct);
 
     /// <summary>
     /// Truy cập DbSet để viết query nâng cao trong Repository con.
     /// Chỉ dùng trong class kế thừa. Không expose ra ngoài.
     /// </summary>
-    protected IQueryable<T> Query() => _set.Where(e => !e.IsDeleted);
+    protected IQueryable<T> Query() => _set;
 
     /// <summary>
     /// Tương tự Query() nhưng bật AsNoTracking — dùng cho GET query (không cần track để update).
     /// </summary>
-    protected IQueryable<T> QueryNoTracking() => _set.Where(e => !e.IsDeleted).AsNoTracking();
+    protected IQueryable<T> QueryNoTracking() => _set.AsNoTracking();
 }

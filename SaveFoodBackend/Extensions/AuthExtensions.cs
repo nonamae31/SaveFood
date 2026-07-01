@@ -62,23 +62,6 @@ public static class AuthExtensions
                         ctx.Token = accessToken;
                     }
                     return Task.CompletedTask;
-                },
-                OnTokenValidated = async ctx =>
-                {
-                    var sessionIdStr = ctx.Principal?.FindFirst("sessionId")?.Value;
-                    if (string.IsNullOrEmpty(sessionIdStr) || !Guid.TryParse(sessionIdStr, out Guid sessionId))
-                    {
-                        ctx.Fail("Invalid session in token");
-                        return;
-                    }
-
-                    var dbContext = ctx.HttpContext.RequestServices.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
-                    var session = await dbContext.UserSessions.FindAsync(sessionId);
-
-                    if (session == null || session.RevokedAt != null)
-                    {
-                        ctx.Fail("Token has been revoked");
-                    }
                 }
             };
         });
@@ -101,7 +84,7 @@ public static class AuthExtensions
     public static IServiceCollection AddSaveFoodCors(this IServiceCollection services, IConfiguration configuration)
     {
         var allowedOrigins = configuration.GetSection("AllowedOrigins").Get<string[]>()
-            ?? ["http://localhost:5173", "http://localhost:3000"];
+            ?? ["http://localhost:5173", "http://localhost:3000", "http://localhost:5174"];
 
         services.AddCors(options =>
         {

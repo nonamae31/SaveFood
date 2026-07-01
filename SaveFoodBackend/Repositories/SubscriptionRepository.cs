@@ -22,15 +22,13 @@ public class SubscriptionRepository : ISubscriptionRepository
 
     public async Task<IEnumerable<SubscriptionPlan>> GetAllActivePlansAsync(CancellationToken ct = default)
     {
-        return await _ctx.SubscriptionPlans
-            .Where(p => (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
-            .ToListAsync(ct);
+        return await _ctx.SubscriptionPlans.ToListAsync(ct);
     }
 
     public async Task<SubscriptionPlan?> GetPlanByIdAsync(Guid id, CancellationToken ct = default)
     {
         return await _ctx.SubscriptionPlans
-            .Where(p => p.Id == id && (p.PlanFlags & (byte)PlanFlagsEnum.IsDeleted) == 0)
+            .Where(p => p.Id == id)
             .FirstOrDefaultAsync(ct);
     }
 
@@ -52,7 +50,7 @@ public class SubscriptionRepository : ISubscriptionRepository
     public async Task<int> GetTotalActiveStoreSubscriptionsAsync(DateTime currentDate, CancellationToken ct = default)
     {
         return await _ctx.StoreSubscriptions
-            .Where(s => s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .CountAsync(ct);
     }
 
@@ -67,9 +65,49 @@ public class SubscriptionRepository : ISubscriptionRepository
     {
         return await _ctx.StoreSubscriptions
             .Include(s => s.Plan)
-            .Where(s => s.StoreId == storeId && s.Status == 1 && s.StartDate <= currentDate && s.EndDate >= currentDate)
+            .Where(s => s.StoreId == storeId && s.Status == (byte)SubscriptionStatus.Active && s.StartDate <= currentDate && s.EndDate >= currentDate)
             .OrderByDescending(s => s.EndDate)
             .FirstOrDefaultAsync(ct);
+    }
+
+    public async Task<decimal> GetTotalSubscriptionRevenueAsync(CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active || s.Status == (byte)SubscriptionStatus.Expired)
+            .SumAsync(s => s.Plan.MonthlyPrice, ct);
+    }
+
+    public async Task<List<SaveFoodBackend.DTOs.Admin.MonthlySubscriptionStats>> GetMonthlySubscriptionRevenuesAsync(CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active || s.Status == (byte)SubscriptionStatus.Expired)
+            .GroupBy(s => new { s.StartDate.Year, s.StartDate.Month })
+            .Select(g => new SaveFoodBackend.DTOs.Admin.MonthlySubscriptionStats
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                NewSubscriptionsCount = g.Count(),
+                Revenue = g.Sum(s => s.Plan.MonthlyPrice)
+            })
+            .OrderBy(m => m.Year).ThenBy(m => m.Month)
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<SaveFoodBackend.DTOs.Admin.PlanSubscriptionCount>> GetActiveSubscriptionsByPlanAsync(DateTime currentDate, CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.StartDate <= currentDate && s.EndDate >= currentDate && s.Status == (byte)SubscriptionStatus.Active)
+            .GroupBy(s => new { s.Plan.Id, s.Plan.Name })
+            .Select(g => new SaveFoodBackend.DTOs.Admin.PlanSubscriptionCount
+            {
+                PlanId = g.Key.Id,
+                PlanName = g.Key.Name,
+                ActiveCount = g.Count()
+            })
+            .ToListAsync(ct);
     }
 
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)

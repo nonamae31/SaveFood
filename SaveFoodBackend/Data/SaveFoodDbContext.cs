@@ -42,8 +42,6 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<ProductImage> ProductImages { get; set; }
 
-    public virtual DbSet<RefundRequest> RefundRequests { get; set; }
-
     public virtual DbSet<Review> Reviews { get; set; }
 
     public virtual DbSet<ReviewImage> ReviewImages { get; set; }
@@ -64,11 +62,17 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<UserRole> UserRoles { get; set; }
 
-    public virtual DbSet<UserSession> UserSessions { get; set; }
+
 
     public virtual DbSet<WalletTransaction> WalletTransactions { get; set; }
 
     public virtual DbSet<WithdrawalRequest> WithdrawalRequests { get; set; }
+
+    public virtual DbSet<CustomerWallet> CustomerWallets { get; set; }
+
+    public virtual DbSet<CustomerWalletTransaction> CustomerWalletTransactions { get; set; }
+
+    public virtual DbSet<Notification> Notifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
@@ -259,33 +263,7 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_ProductImages_Products");
         });
 
-        modelBuilder.Entity<RefundRequest>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__RefundRe__3214EC07722B756F");
 
-            entity.HasIndex(e => e.OrderId, "IX_RefundRequests_OrderId");
-
-            entity.HasIndex(e => e.RequestedBy, "IX_RefundRequests_RequestedBy");
-
-            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.AdminNote).HasMaxLength(500);
-            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
-            entity.Property(e => e.CustomerBankAccount).HasMaxLength(50);
-            entity.Property(e => e.CustomerBankAccountName).HasMaxLength(100);
-            entity.Property(e => e.CustomerBankName).HasMaxLength(100);
-            entity.Property(e => e.Reason).HasMaxLength(500);
-
-            entity.HasOne(d => d.Order).WithMany(p => p.RefundRequests)
-                .HasForeignKey(d => d.OrderId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_RefundRequests_Orders");
-
-            entity.HasOne(d => d.RequestedByNavigation).WithMany(p => p.RefundRequests)
-                .HasForeignKey(d => d.RequestedBy)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_RefundRequests_Users");
-        });
 
         modelBuilder.Entity<Review>(entity =>
         {
@@ -485,17 +463,7 @@ public partial class SaveFoodDbContext : DbContext
                 .HasConstraintName("FK_UserRoles_Users");
         });
 
-        modelBuilder.Entity<UserSession>(entity =>
-        {
-            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.RefreshTokenHash).HasMaxLength(500);
 
-            entity.HasOne(d => d.User).WithMany(p => p.UserSessions)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_UserSessions_Users");
-        });
 
         modelBuilder.Entity<WalletTransaction>(entity =>
         {
@@ -535,11 +503,85 @@ public partial class SaveFoodDbContext : DbContext
 
             entity.HasOne(d => d.Store).WithMany(p => p.WithdrawalRequests)
                 .HasForeignKey(d => d.StoreId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_WithdrawalRequests_Stores");
+
+            entity.HasOne(d => d.User).WithMany(p => p.WithdrawalRequests)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_WithdrawalRequests_Users");
+        });
+
+        modelBuilder.Entity<CustomerWallet>(entity =>
+        {
+            entity.HasIndex(e => e.UserId, "UQ_CustomerWallets_UserId").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Balance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithOne(p => p.CustomerWallet)
+                .HasForeignKey<CustomerWallet>(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerWallets_Users");
+        });
+
+        modelBuilder.Entity<CustomerWalletTransaction>(entity =>
+        {
+            entity.HasIndex(e => e.CustomerWalletId, "IX_CustomerWalletTransactions_WalletId");
+            entity.HasIndex(e => e.OrderId, "IX_CustomerWalletTransactions_OrderId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.Description).HasMaxLength(500);
+
+            entity.HasOne(d => d.CustomerWallet).WithMany(p => p.CustomerWalletTransactions)
+                .HasForeignKey(d => d.CustomerWalletId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerWalletTransactions_Wallets");
+
+            entity.HasOne(d => d.Order).WithMany(p => p.CustomerWalletTransactions)
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_CustomerWalletTransactions_Orders");
+        });
+
+        // Global Query Filters (Soft Delete)
+        modelBuilder.Entity<Category>().HasQueryFilter(e => !e.IsDeleted);
+        modelBuilder.Entity<ClearanceListing>().HasQueryFilter(e => (e.ListingFlags & (byte)SaveFoodBackend.Models.Enums.ListingFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingDiscountRule>().HasQueryFilter(e => (e.RuleFlags & (byte)SaveFoodBackend.Models.Enums.RuleFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ListingImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Product>().HasQueryFilter(e => (e.ProductFlags & (byte)SaveFoodBackend.Models.Enums.ProductFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<ProductImage>().HasQueryFilter(e => (e.ImageFlags & (byte)SaveFoodBackend.Models.Enums.ImageFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Review>().HasQueryFilter(e => (e.ReviewFlags & (byte)SaveFoodBackend.Models.Enums.ReviewFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<Store>().HasQueryFilter(e => (e.StoreFlags & (byte)SaveFoodBackend.Models.Enums.StoreFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<StoreStaff>().HasQueryFilter(e => (e.StaffFlags & (byte)SaveFoodBackend.Models.Enums.StaffFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<SubscriptionPlan>().HasQueryFilter(e => (e.PlanFlags & (byte)SaveFoodBackend.Models.Enums.PlanFlagsEnum.IsDeleted) == 0);
+        modelBuilder.Entity<User>().HasQueryFilter(e => (e.UserFlags & (byte)SaveFoodBackend.Models.Enums.UserFlagsEnum.IsDeleted) == 0);
+
+        // ─── Notification ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Body).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.Type).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
+
+            entity.HasOne(e => e.User)
+                  .WithMany()
+                  .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         OnModelCreatingPartial(modelBuilder);
+
     }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder);

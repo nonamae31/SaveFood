@@ -20,6 +20,7 @@ public class CustomerListingDTO
     public bool HasFeaturedBadge { get; set; }
     public int PriorityLevel { get; set; }
     public double? Distance { get; set; } // km
+    public byte StoreStatus { get; set; }
 }
 
 public class CustomerListingFilterDTO

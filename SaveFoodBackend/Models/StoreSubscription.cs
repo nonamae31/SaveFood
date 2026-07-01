@@ -21,6 +21,15 @@ public partial class StoreSubscription
 
     public long? OrderCode { get; set; }
 
+    // PayOS Audit Fields
+    public string? PayOsTransactionId { get; set; }
+
+    public string? PayerAccountNumber { get; set; }
+
+    public string? PayerName { get; set; }
+
+    public string? PayerBankId { get; set; }
+
     public virtual SubscriptionPlan Plan { get; set; } = null!;
 
     public virtual Store Store { get; set; } = null!;

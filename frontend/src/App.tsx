@@ -13,11 +13,14 @@ import { ResetPasswordPage } from '@/pages/auth/ResetPasswordPage'
 import { ProfilePage } from '@/pages/profile/ProfilePage'
 import { WishlistPage } from '@/pages/profile/WishlistPage'
 import AccountManagementPage from '@/pages/admin/AccountManagementPage'
-import StoreApprovalPage from '@/pages/admin/StoreApprovalPage'
+import StoreManagementPage from '@/pages/admin/StoreManagementPage'
 import SubscriptionManagementPage from '@/pages/admin/SubscriptionManagementPage'
 import AdminFinancePage from '@/pages/admin/AdminFinancePage'
+import AdminAuditPage from '@/pages/admin/AdminAuditPage'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { AdminProtectedRoute } from '@/components/layout/AdminProtectedRoute'
+import { CustomerProtectedRoute } from '@/components/layout/CustomerProtectedRoute'
+import { StoreProtectedRoute } from '@/components/layout/StoreProtectedRoute'
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage'
 import CategoryManagementPage from '@/pages/admin/CategoryManagementPage'
 import { ProductListPage } from '@/pages/products/ProductListPage'
@@ -25,6 +28,7 @@ import { ProductDetailPage } from '@/pages/products/ProductDetailPage'
 import { StoreListPage } from '@/pages/stores/StoreListPage'
 import { StoreDetailPage } from '@/pages/stores/StoreDetailPage'
 import StoreRegisterPage from '@/pages/stores/StoreRegisterPage'
+import { PolicyPage } from '@/pages/policy/PolicyPage'
 import { DashboardLayout } from '@/components/layout/DashboardLayout'
 import DashboardProductsPage from '@/pages/dashboard/DashboardProductsPage'
 import DashboardListingsPage from '@/pages/dashboard/DashboardListingsPage'
@@ -48,20 +52,22 @@ import DashboardReviewsPage from '@/pages/dashboard/DashboardReviewsPage'
 import { CartPage } from '@/pages/cart/CartPage'
 import { CheckoutPage } from '@/pages/cart/CheckoutPage'
 import { OrderDetailPage } from '@/pages/cart/OrderDetailPage'
-import { MyOrdersPage } from '@/pages/cart/MyOrdersPage'
+import { PaymentReturnPage } from '@/pages/cart/PaymentReturnPage'
+import { CustomerWalletPage } from '@/pages/profile/CustomerWalletPage'
+import { HelpCenterPage } from '@/pages/profile/HelpCenterPage'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
     <div className="max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 py-[--spacing-section-y]">
       <div className="text-center py-20">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[--color-brand-100] mb-4">
-          <span className="text-2xl" aria-hidden="true">🚧</span>
+          <span className="text-2xl" aria-hidden="true">⏳</span>
         </div>
         <h1 className="text-[--text-heading-xl] font-bold text-[--color-ink-primary] font-[--font-display] mb-2">
           {title}
         </h1>
         <p className="text-[--text-body-md] text-[--color-ink-secondary]">
-          Trang này đang được phát triển. Sprint 0 hoàn thành — sẵn sàng nhận code từ nhóm!
+          Chức năng này đang trong quá trình phát triển. Vui lòng quay lại sau!
         </p>
       </div>
     </div>
@@ -71,16 +77,24 @@ function PlaceholderPage({ title }: { title: string }) {
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
+import { NotificationProvider } from '@/contexts/NotificationContext'
 import { LocationProvider } from '@/contexts/LocationContext'
+import { CartProvider } from '@/contexts/CartContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
+import { Toaster } from 'react-hot-toast'
+import { GlobalNotificationListener } from '@/components/layout/GlobalNotificationListener'
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationProvider>
         <LocationProvider>
-          <BrowserRouter>
+          <CartProvider>
+            <BrowserRouter>
             <ScrollToTop />
+            <Toaster position="top-right" />
+            <GlobalNotificationListener />
             <Routes>
               {/* ── Public Pages ── */}
               <Route element={<MainLayout />}>
@@ -89,20 +103,26 @@ function App() {
                 <Route path="/products/:id"          element={<ProductDetailPage />} />
                 <Route path={ROUTES.STORES}          element={<StoreListPage />} />
                 <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
+                <Route path={ROUTES.POLICY}          element={<PolicyPage />} />
                 <Route path="/stores/:id"            element={<StoreDetailPage />} />
 
-                {/* ── Cart & Orders (Người 4) ── */}
-                <Route path={ROUTES.CART}            element={<CartPage />} />
-                <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
-                <Route path="/checkout/success"      element={<OrderDetailPage />} />
-                <Route path="/checkout/cancel"       element={<OrderDetailPage />} />
-                <Route path={ROUTES.MY_ORDERS}       element={<MyOrdersPage />} />
-                <Route path="/orders/:id"            element={<OrderDetailPage />} />
+                {/* ── Protected Customer Routes ── */}
+                <Route element={<CustomerProtectedRoute />}>
+                  {/* ── Cart & Orders (Người 4) ── */}
+                  <Route path={ROUTES.CART}            element={<CartPage />} />
+                  <Route path={ROUTES.CHECKOUT}        element={<CheckoutPage />} />
+                  <Route path="/checkout/success"      element={<PaymentReturnPage />} />
+                  <Route path="/checkout/cancel"       element={<PaymentReturnPage />} />
+                  <Route path="/orders/:id"            element={<OrderDetailPage />} />
 
-              {/* Profile nested in MainLayout for now */}
-              <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
-              <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
-            </Route>
+                  {/* Profile Routes */}
+                  <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
+                  <Route path={ROUTES.WISHLIST}        element={<WishlistPage />} />
+                  <Route path={ROUTES.MY_WALLET}       element={<CustomerWalletPage />} />
+                  <Route path={ROUTES.HELP_CENTER}     element={<HelpCenterPage />} />
+                  <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
+                </Route>
+              </Route>
 
             {/* ── Auth (Người 1) ── */}
             <Route path={ROUTES.LOGIN}           element={<LoginPage />} />
@@ -112,30 +132,33 @@ function App() {
             <Route path={ROUTES.RESET_PASSWORD}  element={<ResetPasswordPage />} />
 
             {/* ── Store Dashboard (Người 2 & 3) ── */}
-            <Route element={<DashboardLayout />}>
-              <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
-              <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
-              <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
-              <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
-              <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
-              <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
-              <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
-              <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
-              <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
-              <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
-              <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
+            <Route element={<StoreProtectedRoute />}>
+              <Route element={<DashboardLayout />}>
+                <Route path={ROUTES.DASHBOARD}           element={<Navigate to={ROUTES.DASHBOARD_ANALYTICS} replace />} />
+                <Route path={ROUTES.DASHBOARD_PRODUCTS}  element={<DashboardProductsPage />} />
+                <Route path={ROUTES.DASHBOARD_LISTINGS}  element={<DashboardListingsPage />} />
+                <Route path={ROUTES.DASHBOARD_ORDERS}    element={<DashboardOrdersPage />} />
+                <Route path={ROUTES.DASHBOARD_ANALYTICS} element={<DashboardAnalyticsPage />} />
+                <Route path={ROUTES.DASHBOARD_SETTINGS}  element={<DashboardSettingsPage />} />
+                <Route path={ROUTES.DASHBOARD_SUBSCRIPTION} element={<DashboardSubscriptionPage />} />
+                <Route path={ROUTES.DASHBOARD_PICKUP}    element={<DashboardPickupPage />} />
+                <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
+                <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
+                <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
+              </Route>
             </Route>
 
             {/* ── Admin (Người 5) ── */}
             <Route element={<AdminProtectedRoute />}>
               <Route element={<AdminLayout />}>
-                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_DASHBOARD} replace />} />
+                <Route path={ROUTES.ADMIN} element={<Navigate to={ROUTES.ADMIN_ACCOUNTS} replace />} />
                 <Route path={ROUTES.ADMIN_DASHBOARD} element={<AdminDashboardPage />} />
                 <Route path={ROUTES.ADMIN_ACCOUNTS} element={<AccountManagementPage />} />
-                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreApprovalPage />} />
+                <Route path={ROUTES.ADMIN_APPROVALS} element={<StoreManagementPage />} />
                 <Route path={ROUTES.ADMIN_FINANCE} element={<AdminFinancePage />} />
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
+                <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
               </Route>
             </Route>
 
@@ -146,7 +169,9 @@ function App() {
             <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
           </Routes>
           </BrowserRouter>
+          </CartProvider>
         </LocationProvider>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   )

@@ -17,6 +17,7 @@ public class CustomerStoreDTO
     public double? Distance { get; set; } // km
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
+    public byte Status { get; set; }
 }
 
 public class CustomerStoreFilterDTO

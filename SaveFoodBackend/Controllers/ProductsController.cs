@@ -17,7 +17,7 @@ public class ProductsController : ControllerBase
     {
         _productService = productService;
     }
-
+    //
     [HttpGet]
     public async Task<IActionResult> GetProducts(Guid storeId, CancellationToken ct)
     {
@@ -52,13 +52,14 @@ public class ProductsController : ControllerBase
             return BadRequest(new { Message = $"{ex.Message} {inner}" });
         }
     }
-
+    //
+    //
     [HttpPut("{productId}")]
     public async Task<IActionResult> UpdateProduct(Guid storeId, Guid productId, [FromBody] UpdateProductDTO dto, CancellationToken ct)
     {
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
-
+        //
         try
         {
             var product = await _productService.UpdateProductAsync(storeId, productId, dto, ct);
@@ -69,7 +70,7 @@ public class ProductsController : ControllerBase
             return BadRequest(new { Message = ex.Message });
         }
     }
-
+    //
     [HttpDelete("{productId}")]
     public async Task<IActionResult> DeleteProduct(Guid storeId, Guid productId, CancellationToken ct)
     {

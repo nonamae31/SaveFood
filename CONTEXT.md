@@ -29,8 +29,12 @@ A request made by a Store to transfer funds strictly from their `Available Balan
 _Avoid_: Payout Request, Payout.
 
 **Refund Request**:
-A request handled exclusively by the Admin to return money to a Customer for a failed, cancelled, or disputed order. The refund amount is deducted from the Store's `Pending Balance` (since the funds have not yet cleared). Admins must manually transfer funds to the customer's account externally before marking the request as 'Refunded' in the system.
-_Avoid_: Store Refund.
+A request handled by the platform to return money to a Customer for a failed, cancelled, or disputed order. The refund amount is deducted from the Store's `Pending Balance` (since the funds have not yet cleared) and credited instantly to the **Customer Wallet**. This ensures a smooth, fast refund experience without waiting for slow bank transfers.
+_Avoid_: Store Refund, Bank Refund.
+
+**Customer Wallet**:
+A virtual financial ledger for a Customer, holding funds that were refunded from failed or cancelled orders. Customers can use this balance to pay for future orders or request a withdrawal to their bank account.
+_Avoid_: Customer Balance.
 
 **User**:
 The core identity and login account for any individual accessing the platform. A User can have one or more system-level Roles (Admin, Store, Customer).

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
@@ -20,24 +21,16 @@ public class AdminStatsService : IAdminStatsService
 
     public async Task<AdminRevenueStatsResponse> GetRevenueStatsAsync()
     {
-        var platformFeeTransactions = await _financeRepo.GetPlatformFeeTransactionsAsync();
+        var totalRevenue = await _financeRepo.GetTotalPlatformFeeRevenueAsync();
+        var monthlyRevenues = await _financeRepo.GetMonthlyPlatformFeeRevenuesAsync();
 
-        var totalRevenue = platformFeeTransactions.Sum(t => t.Amount);
-
-        var monthlyRevenues = platformFeeTransactions
-            .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
-            .Select(g => new MonthlyRevenue
-            {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                Revenue = g.Sum(t => t.Amount)
-            })
-            .OrderBy(m => m.Year).ThenBy(m => m.Month)
-            .ToList();
+        // Cửa hàng nhận 95%, hệ thống nhận 5%. Vậy doanh thu ròng của cửa hàng = phí nền tảng * 19
+        var totalShopNetRevenue = totalRevenue * 19;
 
         return new AdminRevenueStatsResponse
         {
             TotalRevenue = totalRevenue,
+            TotalShopNetRevenue = totalShopNetRevenue,
             MonthlyRevenues = monthlyRevenues
         };
     }
@@ -47,33 +40,9 @@ public class AdminStatsService : IAdminStatsService
         var currentDate = DateTime.UtcNow;
 
         var totalActiveSubscriptions = await _subscriptionRepo.GetTotalActiveStoreSubscriptionsAsync(currentDate);
-
-        var subscriptionsWithPlans = await _subscriptionRepo.GetSubscriptionsWithPlansAsync();
-
-        var totalRevenue = subscriptionsWithPlans.Sum(s => s.Plan.MonthlyPrice);
-
-        var monthlyStats = subscriptionsWithPlans
-            .GroupBy(s => new { s.CreatedAt.Year, s.CreatedAt.Month })
-            .Select(g => new MonthlySubscriptionStats
-            {
-                Year = g.Key.Year,
-                Month = g.Key.Month,
-                NewSubscriptionsCount = g.Count(),
-                Revenue = g.Sum(s => s.Plan.MonthlyPrice)
-            })
-            .OrderBy(m => m.Year).ThenBy(m => m.Month)
-            .ToList();
-
-        var activeSubscriptionsByPlan = subscriptionsWithPlans
-            .Where(s => s.StartDate <= currentDate && s.EndDate >= currentDate)
-            .GroupBy(s => new { s.Plan.Id, s.Plan.Name })
-            .Select(g => new PlanSubscriptionCount
-            {
-                PlanId = g.Key.Id,
-                PlanName = g.Key.Name,
-                ActiveCount = g.Count()
-            })
-            .ToList();
+        var totalRevenue = await _subscriptionRepo.GetTotalSubscriptionRevenueAsync();
+        var monthlyStats = await _subscriptionRepo.GetMonthlySubscriptionRevenuesAsync();
+        var activeSubscriptionsByPlan = await _subscriptionRepo.GetActiveSubscriptionsByPlanAsync(currentDate);
 
         return new AdminSubscriptionStatsResponse
         {

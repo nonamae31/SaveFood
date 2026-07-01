@@ -10,6 +10,7 @@ import { HubConnectionBuilder } from '@microsoft/signalr'
 import { queryClient } from '@/lib/queryClient'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { apiClient } from '@/lib/apiClient'
+import toast from 'react-hot-toast'
 
 export function OrderDetailPage() {
   const { id: pathId } = useParams()
@@ -22,71 +23,56 @@ export function OrderDetailPage() {
   const { isAuthenticated } = useAuthContext()
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
-  const [cancelForm, setCancelForm] = useState({ bankName: '', bankAccount: '', bankAccountName: '', reason: '' })
+  const [cancelForm, setCancelForm] = useState({ reason: '' })
   const [reviewingItem, setReviewingItem] = useState<{ id: string; title: string } | null>(null)
 
   const handleCancelSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cancelForm.bankName || !cancelForm.bankAccount || !cancelForm.bankAccountName || !cancelForm.reason) {
-      alert("Vui lòng nhập đầy đủ thông tin.");
+    if (!cancelForm.reason.trim()) {
+      toast.error("Vui lòng nhập lý do hủy đơn.");
       return;
     }
 
-    if (window.confirm("Hành động này không thể hoàn tác. Bạn chắc chắn muốn hủy đơn hàng?")) {
-      cancelMutation.mutate(cancelForm, {
-        onSuccess: (res) => {
-          alert(res.message);
-          setIsCancelModalOpen(false);
-          queryClient.invalidateQueries({ queryKey: ['order', id] });
-          queryClient.invalidateQueries({ queryKey: ['myOrders'] });
-        },
-        onError: (err: any) => {
-          alert(err.message || 'Có lỗi xảy ra khi hủy đơn.');
-        }
-      });
-    }
+    cancelMutation.mutate(cancelForm, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Hủy đơn thành công");
+        setIsCancelModalOpen(false);
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+        queryClient.invalidateQueries({ queryKey: ['myOrders'] });
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Có lỗi xảy ra khi hủy đơn.');
+      }
+    });
   };
 
   const handleExtend = (minutes: number) => {
-    if (window.confirm(`Bạn có chắc muốn gia hạn thêm ${minutes} phút?`)) {
-      extendMutation.mutate(minutes, {
-        onSuccess: (res) => {
-          alert(res.message);
-          queryClient.invalidateQueries({ queryKey: ['order', id] });
-        },
-        onError: (err: any) => {
-          alert(err.message || 'Có lỗi xảy ra khi gia hạn.');
-        }
-      });
-    }
+    extendMutation.mutate(minutes, {
+      onSuccess: (res) => {
+        toast.success(res.message || `Đã gia hạn thêm ${minutes} phút`);
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Có lỗi xảy ra khi gia hạn.');
+      }
+    });
   };
 
-  // Setup SignalR connection
+  // Lắng nghe sự kiện cập nhật trạng thái từ GlobalNotificationListener
   useEffect(() => {
-    const token = localStorage.getItem('accessToken')
-    if (!id || !isAuthenticated || !token) return
+    if (!id) return;
 
-    const connection = new HubConnectionBuilder()
-      .withUrl(`${import.meta.env.VITE_API_URL || 'https://localhost:7251'}/hubs/notifications`, {
-        accessTokenFactory: () => token
-      })
-      .withAutomaticReconnect()
-      .build()
-
-    connection.on('OrderStatusChanged', (orderId: string, newStatus: number) => {
-      if (orderId === id) {
-        // Invalidate and refetch
-        queryClient.invalidateQueries({ queryKey: ['order', id] })
-        queryClient.invalidateQueries({ queryKey: ['myOrders'] })
+    const handleStatusUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.orderId === id) {
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+        queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       }
-    })
+    };
 
-    connection.start().catch(console.error)
-
-    return () => {
-      connection.stop()
-    }
-  }, [id, isAuthenticated])
+    window.addEventListener('order-status-updated', handleStatusUpdate);
+    return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
+  }, [id]);
 
   // Verify payment if pending
   useEffect(() => {
@@ -113,16 +99,17 @@ export function OrderDetailPage() {
 
   const getStatusDisplay = (status: number) => {
     switch (status) {
-      case 0: return { text: 'Chờ lấy hàng', color: 'text-orange-600 bg-orange-100' }
-      case 1: return { text: 'Đã thanh toán', color: 'text-blue-600 bg-blue-100' }
-      case 2: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
+      case 0: return { text: 'Chờ xác nhận', color: 'text-orange-600 bg-orange-100' }
+      case 1: return { text: 'Đã xác nhận', color: 'text-blue-600 bg-blue-100' }
+      case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-100' }
+      case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-100' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-100' }
     }
   }
 
   const status = getStatusDisplay(order.orderStatus)
-  const isCompleted = order.orderStatus === 2
+  const isCompleted = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
 
   return (
@@ -149,7 +136,7 @@ export function OrderDetailPage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
                 <div 
                   className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500" 
-                  style={{ width: isCompleted ? '100%' : (order.confirmedById || order.orderStatus >= 1) ? '50%' : '0%' }}
+                  style={{ width: order.orderStatus >= 3 ? '100%' : order.orderStatus >= 2 ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
                 ></div>
 
                 {/* Step 1: Đặt hàng */}
@@ -162,18 +149,26 @@ export function OrderDetailPage() {
 
                 {/* Step 2: Xác nhận */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${(order.confirmedById || order.orderStatus >= 1) ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 1 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     2
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${(order.confirmedById || order.orderStatus >= 1) ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 1 ? 'text-gray-800' : 'text-gray-400'}`}>Xác nhận</span>
                 </div>
 
-                {/* Step 3: Nhận hàng */}
+                {/* Step 3: Chờ lấy hàng */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${isCompleted ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 2 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     3
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${isCompleted ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 2 ? 'text-gray-800' : 'text-gray-400'}`}>Chờ lấy hàng</span>
+                </div>
+
+                {/* Step 4: Nhận hàng */}
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                    4
+                  </div>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
                 </div>
               </div>
             </div>
@@ -277,7 +272,7 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {order.orderStatus === 1 && (
+          {order.orderStatus === 1 && !order.confirmedById && (
             <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
               <button 
                 onClick={() => setIsCancelModalOpen(true)}
@@ -304,14 +299,12 @@ export function OrderDetailPage() {
             </div>
             
             <div className="p-6">
-              <div className={`p-4 rounded-xl mb-6 text-sm ${order.confirmedById ? 'bg-orange-50 text-orange-800' : 'bg-green-50 text-green-800'}`}>
+              <div className="p-4 rounded-xl mb-6 text-sm bg-green-50 text-green-800 border border-green-200">
                 <p className="font-bold mb-1">
-                  {order.confirmedById ? 'Cửa hàng ĐÃ xác nhận đơn' : 'Cửa hàng CHƯA xác nhận đơn'}
+                  Đơn hàng đang chờ cửa hàng xác nhận
                 </p>
                 <p>
-                  {order.confirmedById 
-                    ? 'Theo chính sách, bạn sẽ được hoàn lại 80% số tiền. (20% còn lại là phí hủy đơn để hỗ trợ cửa hàng và nền tảng duy trì hoạt động).'
-                    : 'Bạn sẽ được hoàn lại 100% số tiền do cửa hàng chưa xác nhận đơn.'}
+                  Tiền của bạn sẽ được hoàn <strong>100%</strong> về <strong>Ví SaveFood</strong> ngay lập tức.
                 </p>
               </div>
 
@@ -326,50 +319,13 @@ export function OrderDetailPage() {
                     placeholder="Vui lòng cho biết lý do bạn hủy..."
                   />
                 </div>
-                
-                <div className="pt-2 border-t border-gray-100">
-                  <h4 className="font-bold text-gray-900 mb-3 text-sm">Thông tin nhận tiền hoàn</h4>
-                  
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Tên ngân hàng *</label>
-                      <input 
-                        type="text" required
-                        value={cancelForm.bankName}
-                        onChange={(e) => setCancelForm(prev => ({...prev, bankName: e.target.value}))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm"
-                        placeholder="VD: Vietcombank, MB Bank..."
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Số tài khoản *</label>
-                      <input 
-                        type="text" required
-                        value={cancelForm.bankAccount}
-                        onChange={(e) => setCancelForm(prev => ({...prev, bankAccount: e.target.value}))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm"
-                        placeholder="Nhập số tài khoản"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Tên chủ tài khoản *</label>
-                      <input 
-                        type="text" required
-                        value={cancelForm.bankAccountName}
-                        onChange={(e) => setCancelForm(prev => ({...prev, bankAccountName: e.target.value}))}
-                        className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-brand-500 outline-none text-sm uppercase"
-                        placeholder="NGUYEN VAN A"
-                      />
-                    </div>
-                  </div>
-                </div>
 
                 <button 
                   type="submit" 
                   disabled={cancelMutation.isPending}
                   className="w-full mt-6 bg-red-500 text-white font-bold py-3.5 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
-                  {cancelMutation.isPending ? 'Đang xử lý...' : 'Xác nhận Hủy & Yêu cầu hoàn tiền'}
+                  {cancelMutation.isPending ? 'Đang xử lý...' : 'Xác nhận Hủy đơn'}
                 </button>
               </form>
             </div>

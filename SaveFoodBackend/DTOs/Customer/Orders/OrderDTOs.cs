@@ -9,7 +9,7 @@ public class OrderHistoryDTO
     public Guid StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
-    public byte OrderStatus { get; set; }
+    public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     
     // For the list view, we just need one thumbnail or a few items
@@ -25,7 +25,7 @@ public class OrderDetailDTO
     public string StoreAddress { get; set; } = string.Empty;
     
     public decimal TotalAmount { get; set; }
-    public byte OrderStatus { get; set; }
+    public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     
     public string? PickupCode { get; set; }
@@ -47,9 +47,6 @@ public class ExtendPickupRequestDTO
 
 public class CancelOrderRequestDTO
 {
-    public string BankName { get; set; } = string.Empty;
-    public string BankAccount { get; set; } = string.Empty;
-    public string BankAccountName { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
 }
 

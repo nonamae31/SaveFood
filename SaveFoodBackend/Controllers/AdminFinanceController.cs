@@ -14,10 +14,12 @@ namespace SaveFoodBackend.Controllers;
 public class AdminFinanceController : ControllerBase
 {
     private readonly IAdminFinanceService _adminFinanceService;
+    private readonly MediatR.IMediator _mediator;
 
-    public AdminFinanceController(IAdminFinanceService adminFinanceService)
+    public AdminFinanceController(IAdminFinanceService adminFinanceService, MediatR.IMediator mediator)
     {
         _adminFinanceService = adminFinanceService;
+        _mediator = mediator;
     }
 
     [HttpGet("transactions")]
@@ -37,9 +39,23 @@ public class AdminFinanceController : ControllerBase
     [HttpPut("withdrawals/{id}/process")]
     public async Task<ActionResult> ProcessWithdrawal(Guid id, [FromBody] ProcessFinanceRequestDTO request)
     {
+        var adminIdClaim = User.FindFirst("UserId")?.Value;
+        if (string.IsNullOrEmpty(adminIdClaim) || !Guid.TryParse(adminIdClaim, out Guid adminId))
+        {
+            adminId = Guid.Empty; // fallback
+        }
+
+        var command = new SaveFoodBackend.Application.Features.Finance.Commands.ProcessWithdrawalCommand
+        {
+            RequestId = id,
+            AdminId = adminId,
+            IsApproved = request.IsApproved,
+            AdminNote = request.AdminNote
+        };
+            
         try
         {
-            var message = await _adminFinanceService.ProcessWithdrawalAsync(id, request);
+            var message = await _mediator.Send(command);
             return Ok(new { message });
         }
         catch (InvalidOperationException ex)
@@ -49,25 +65,4 @@ public class AdminFinanceController : ControllerBase
         }
     }
 
-    [HttpGet("refunds")]
-    public async Task<ActionResult<PaginatedList<RefundRequestDTO>>> GetRefunds([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] byte? status = null)
-    {
-        var result = await _adminFinanceService.GetRefundsAsync(pageNumber, pageSize, status);
-        return Ok(result);
-    }
-
-    [HttpPut("refunds/{id}/process")]
-    public async Task<ActionResult> ProcessRefund(Guid id, [FromBody] ProcessFinanceRequestDTO request)
-    {
-        try
-        {
-            var message = await _adminFinanceService.ProcessRefundAsync(id, request);
-            return Ok(new { message });
-        }
-        catch (InvalidOperationException ex)
-        {
-            if (ex.Message.Contains("not found")) return NotFound(ex.Message);
-            return BadRequest(ex.Message);
-        }
-    }
 }

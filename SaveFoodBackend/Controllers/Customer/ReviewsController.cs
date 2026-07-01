@@ -11,7 +11,7 @@ namespace SaveFoodBackend.Controllers.Customer
 {
     [ApiController]
     [Route("api/customer/reviews")]
-    [Authorize(Roles = "Customer")]
+    [Authorize]
     public class ReviewsController : ApiControllerBase
     {
         private readonly IReviewService _reviewService;
@@ -67,6 +67,14 @@ namespace SaveFoodBackend.Controllers.Customer
         {
             var reviews = await _reviewService.GetReviewsByStoreIdAsync(storeId, ct);
             return OkResponse(reviews);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("store/{storeId}/stats")]
+        public async Task<IActionResult> GetStoreReviewStats(Guid storeId, CancellationToken ct)
+        {
+            var stats = await _reviewService.GetStoreReviewStatsAsync(storeId, ct);
+            return OkResponse(stats);
         }
     }
 }

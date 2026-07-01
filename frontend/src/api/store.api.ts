@@ -13,6 +13,8 @@ export interface StoreProfileDTO {
   hasCustomBanner: boolean;
   latitude?: number;
   longitude?: number;
+  status: number;
+  isDeleted: boolean;
 }
 
 export interface UpdateStoreProfileRequest {
@@ -35,6 +37,32 @@ export interface StoreAnalyticsDTO {
   analyticsLevel: number;
   weeklyRevenue: number[];
   topSellingProducts: { name: string; sales: number }[];
+  returnCustomerRate: number;
+  
+  cancelledOrders: number;
+  expiredOrders: number;
+  weeklyCompletedOrders: number[];
+  weeklyCancelledOrders: number[];
+  weeklyAverageRating: number[];
+  
+  previousMonthRevenue: number;
+  currentMonthRevenue: number;
+  
+  totalCustomers: number;
+  returningCustomers: number;
+
+  positiveReviews: number;
+  neutralReviews: number;
+  negativeReviews: number;
+}
+
+export interface MyStoreRegistrationDTO {
+  id: string;
+  name: string;
+  detailedAddress: string;
+  status: number;
+  rejectReason: string | null;
+  createdAt: string;
 }
 
 export const storeApi = {
@@ -63,11 +91,23 @@ export const storeApi = {
       body: JSON.stringify(data),
     })
   },
-  
-  createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string): Promise<{ checkoutUrl: string }> => {
+  createSubscriptionCheckout: async (storeId: string, planId: string, billingCycle: string, returnUrl?: string, cancelUrl?: string): Promise<{ checkoutUrl: string }> => {
     return await apiClient(`/stores/${storeId}/subscriptions/checkout`, {
       method: 'POST',
-      body: JSON.stringify({ planId, billingCycle })
+      body: JSON.stringify({ planId, billingCycle, returnUrl, cancelUrl })
+    });
+  },
+
+  getMyRegistrations: async (): Promise<MyStoreRegistrationDTO[]> => {
+    return await apiClient(`/stores/my-registrations`, {
+      method: 'GET'
+    })
+  },
+
+  updateStoreStatus: async (storeId: string, action: 'pause' | 'resume' | 'delete'): Promise<void> => {
+    return await apiClient(`/stores/${storeId}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ action })
     })
   },
 }

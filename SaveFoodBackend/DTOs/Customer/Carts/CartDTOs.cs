@@ -18,6 +18,8 @@ public class CartItemDTO
     // Store Info for Grouping
     public Guid StoreId { get; set; }
     public string StoreName { get; set; } = null!;
+    public decimal? StoreLatitude { get; set; }
+    public decimal? StoreLongitude { get; set; }
     
     // Quantity logic
     public int Quantity { get; set; }
