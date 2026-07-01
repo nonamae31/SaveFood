@@ -2,10 +2,12 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { BottomNav } from '@/components/layout/BottomNav';
 import { ROUTES } from '@/lib/constants';
 import { useLocationContext } from '@/contexts/LocationContext';
 import { LocationPickerMap } from '@/components/map/LocationPickerMap';
 import { MapPin } from 'lucide-react';
+import { CartDrawer } from '@/components/cart/CartDrawer';
 
 export function MainLayout() {
   const routerLocation = useLocation();
@@ -24,14 +26,16 @@ export function MainLayout() {
   const showForcedLocationModal = isLocationDenied && !location;
 
   return (
-    <div className="flex flex-col min-h-screen bg-[--color-surface-subtle]">
-      <Navbar />
-      <main key={routerLocation.pathname} className={`flex-grow animate-[--animate-fade-in] duration-300 ${hasHeroBanner ? '' : 'pt-24'}`}>
-        <Outlet />
-      </main>
-      <Footer />
-
-      {/* Forced Location Modal */}
+    <>
+      <div className="flex flex-col min-h-screen bg-[--color-surface-subtle]">
+        <Navbar />
+        {/* Thêm pb-16 trên mobile (md:pb-0) để tránh nội dung bị che bởi BottomNav */}
+        <main key={routerLocation.pathname} className={`flex-grow animate-[--animate-fade-in] duration-300 pb-16 md:pb-0 ${hasHeroBanner ? '' : 'pt-24'}`}>
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
+      <BottomNav />
       {showForcedLocationModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-[--animate-fade-in]">
@@ -60,7 +64,7 @@ export function MainLayout() {
                 disabled={tempLat === null || tempLng === null}
                 onClick={() => {
                   if (tempLat !== null && tempLng !== null) {
-                    setLocation(tempLat, tempLng, 'Vị trí đã chọn');
+                    setLocation(tempLat, tempLng, 'Vị trí');
                   }
                 }}
                 className="w-full py-3 bg-brand-500 text-white rounded-xl font-bold hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
@@ -71,6 +75,7 @@ export function MainLayout() {
           </div>
         </div>
       )}
-    </div>
+      <CartDrawer />
+    </>
   );
 }

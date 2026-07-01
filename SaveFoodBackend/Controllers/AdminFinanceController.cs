@@ -14,10 +14,12 @@ namespace SaveFoodBackend.Controllers;
 public class AdminFinanceController : ControllerBase
 {
     private readonly IAdminFinanceService _adminFinanceService;
+    private readonly MediatR.IMediator _mediator;
 
-    public AdminFinanceController(IAdminFinanceService adminFinanceService)
+    public AdminFinanceController(IAdminFinanceService adminFinanceService, MediatR.IMediator mediator)
     {
         _adminFinanceService = adminFinanceService;
+        _mediator = mediator;
     }
 
     [HttpGet("transactions")]
@@ -37,9 +39,23 @@ public class AdminFinanceController : ControllerBase
     [HttpPut("withdrawals/{id}/process")]
     public async Task<ActionResult> ProcessWithdrawal(Guid id, [FromBody] ProcessFinanceRequestDTO request)
     {
+        var adminIdClaim = User.FindFirst("UserId")?.Value;
+        if (string.IsNullOrEmpty(adminIdClaim) || !Guid.TryParse(adminIdClaim, out Guid adminId))
+        {
+            adminId = Guid.Empty; // fallback
+        }
+
+        var command = new SaveFoodBackend.Application.Features.Finance.Commands.ProcessWithdrawalCommand
+        {
+            RequestId = id,
+            AdminId = adminId,
+            IsApproved = request.IsApproved,
+            AdminNote = request.AdminNote
+        };
+            
         try
         {
-            var message = await _adminFinanceService.ProcessWithdrawalAsync(id, request);
+            var message = await _mediator.Send(command);
             return Ok(new { message });
         }
         catch (InvalidOperationException ex)

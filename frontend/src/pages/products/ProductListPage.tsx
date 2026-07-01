@@ -60,10 +60,9 @@ export function ProductListPage() {
   } = useRecommendations()
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
-
   // -- Pagination Logic --
   const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 9
+  const ITEMS_PER_PAGE = 20
 
   useEffect(() => {
     setCurrentPage(1)
@@ -87,9 +86,9 @@ export function ProductListPage() {
 
           <h1 className="text-4xl sm:text-5xl font-bold font-[--font-display] leading-tight mb-3">
             {filter.searchQuery ? (
-              <>Kết quả tìm kiếm cho: <span className="text-[#8ced7f] font-serif italic font-normal">"{filter.searchQuery}"</span></>
+              <>Kết quả tìm kiếm cho: <span className="text-[#8ced7f]">"{filter.searchQuery}"</span></>
             ) : (
-              <>Đồ ăn <span className="text-[#8ced7f] font-serif italic font-normal">cận date</span></>
+              <>Đồ ăn <span className="text-[#8ced7f]">cận date</span></>
             )}
           </h1>
           <p className="text-white/70 max-w-xl text-base sm:text-lg leading-relaxed">
@@ -116,7 +115,7 @@ export function ProductListPage() {
                 Gợi ý cho bạn
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {recommendations.slice(0, 4).map(listing => (
                 <ListingCard key={listing.id} listing={listing} />
               ))}
@@ -155,8 +154,8 @@ export function ProductListPage() {
 
           {/* Loading */}
           {isLoading && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              <SkeletonCard count={9} />
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
+              <SkeletonCard count={10} />
             </div>
           )}
 
@@ -189,7 +188,7 @@ export function ProductListPage() {
           {/* Data */}
           {!isLoading && !isError && listings && listings.length > 0 && (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
                 {paginatedListings.map(listing => (
                   <ListingCard key={listing.id} listing={listing} />
                 ))}

@@ -70,6 +70,46 @@ public class SubscriptionRepository : ISubscriptionRepository
             .FirstOrDefaultAsync(ct);
     }
 
+    public async Task<decimal> GetTotalSubscriptionRevenueAsync(CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active || s.Status == (byte)SubscriptionStatus.Expired)
+            .SumAsync(s => s.Plan.MonthlyPrice, ct);
+    }
+
+    public async Task<List<SaveFoodBackend.DTOs.Admin.MonthlySubscriptionStats>> GetMonthlySubscriptionRevenuesAsync(CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.Status == (byte)SubscriptionStatus.Active || s.Status == (byte)SubscriptionStatus.Expired)
+            .GroupBy(s => new { s.StartDate.Year, s.StartDate.Month })
+            .Select(g => new SaveFoodBackend.DTOs.Admin.MonthlySubscriptionStats
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                NewSubscriptionsCount = g.Count(),
+                Revenue = g.Sum(s => s.Plan.MonthlyPrice)
+            })
+            .OrderBy(m => m.Year).ThenBy(m => m.Month)
+            .ToListAsync(ct);
+    }
+
+    public async Task<List<SaveFoodBackend.DTOs.Admin.PlanSubscriptionCount>> GetActiveSubscriptionsByPlanAsync(DateTime currentDate, CancellationToken ct = default)
+    {
+        return await _ctx.StoreSubscriptions
+            .Include(s => s.Plan)
+            .Where(s => s.StartDate <= currentDate && s.EndDate >= currentDate && s.Status == (byte)SubscriptionStatus.Active)
+            .GroupBy(s => new { s.Plan.Id, s.Plan.Name })
+            .Select(g => new SaveFoodBackend.DTOs.Admin.PlanSubscriptionCount
+            {
+                PlanId = g.Key.Id,
+                PlanName = g.Key.Name,
+                ActiveCount = g.Count()
+            })
+            .ToListAsync(ct);
+    }
+
     public async Task<int> SaveChangesAsync(CancellationToken ct = default)
     {
         return await _ctx.SaveChangesAsync(ct);

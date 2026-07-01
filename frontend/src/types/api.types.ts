@@ -67,3 +67,4 @@ export interface StoreFilters {
   pageNumber?: number
   pageSize?:   number
 }
+

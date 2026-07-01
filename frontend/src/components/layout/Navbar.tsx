@@ -1,4 +1,4 @@
-import { Leaf, ShoppingCart, Menu, X, Search, ClipboardList } from 'lucide-react'
+import { Leaf, ShoppingCart, Menu, X, Search, ClipboardList, Store } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { ROUTES } from '@/lib/constants'
@@ -9,14 +9,75 @@ import { useCart } from '@/hooks/useCart'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { LocationPickerMap } from '@/components/map/LocationPickerMap'
+import { NotificationDropdown } from '@/components/layout/NotificationDropdown'
+
 function CartBadge() {
   const { data: cartItems } = useCart()
   if (!cartItems || cartItems.length === 0) return null
 
+  const count = cartItems.length
   return (
-    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center pointer-events-none">
-      {cartItems.length > 9 ? '9+' : cartItems.length}
+    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full pointer-events-none">
+      {count > 9 ? '9+' : count}
     </span>
+  )
+}
+
+function MiniCartPopover() {
+  const { data: cartItems } = useCart()
+  
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <div className="absolute top-full right-0 pt-2 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+        <div className="bg-white rounded-xl shadow-xl border border-gray-100 p-6 flex flex-col items-center justify-center text-center">
+          <ShoppingCart className="text-gray-300 mb-3" size={40} />
+          <p className="text-gray-500 font-medium">Chưa có sản phẩm</p>
+        </div>
+      </div>
+    )
+  }
+
+  const recentItems = [...cartItems].reverse().slice(0, 5)
+
+  return (
+    <div className="absolute top-full right-0 pt-2 w-80 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+      <div className="bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden flex flex-col">
+        <div className="p-3 bg-gray-50 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-500">Sản phẩm mới thêm</h3>
+        </div>
+      <div className="max-h-80 overflow-y-auto">
+        {recentItems.map(item => (
+          <div key={item.id} className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0">
+            <div className="w-12 h-12 rounded bg-gray-100 shrink-0 overflow-hidden border border-gray-200">
+              {item.imageUrl ? (
+                <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-[8px] text-gray-400">No Img</div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-medium text-gray-900 truncate">{item.title}</h4>
+              <div className="flex items-center justify-between mt-1">
+                <span className="text-brand-600 text-sm font-bold">{item.salePrice.toLocaleString()}đ</span>
+                <span className="text-xs text-gray-500">x{item.quantity}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="p-3 border-t border-gray-100 bg-white">
+        <div className="flex items-center justify-between mb-3 text-xs text-gray-500">
+          <span>{cartItems.length > 5 ? `${cartItems.length - 5} sản phẩm khác` : ''}</span>
+        </div>
+        <Link 
+          to={ROUTES.CART}
+          className="block w-full py-2 bg-brand-500 text-white text-center rounded-lg font-bold hover:bg-brand-600 transition-colors"
+        >
+          Xem giỏ hàng
+        </Link>
+      </div>
+      </div>
+    </div>
   )
 }
 
@@ -94,7 +155,7 @@ export function Navbar() {
           {/* ── Logo ── */}
           <Link
             to={ROUTES.HOME}
-            className={`flex items-center gap-2 group transition-all duration-500 rounded-full px-4 py-2 ${pillStyle}`}
+            className={`flex items-center gap-2 group transition-all duration-500 rounded-full px-4 py-2 ${pillStyle} ${isSearchOpen ? 'hidden md:flex' : ''}`}
             aria-label="SaveFood — Trang chủ"
           >
             {/* Logo LUÔN giữ màu xanh trong suốt để đồng bộ như user yêu cầu */}
@@ -128,32 +189,32 @@ export function Navbar() {
             })}
           </div>
 
-          {/* ── Desktop Actions ── */}
-          <div className={`hidden md:flex items-center transition-all duration-500 rounded-full pl-5 pr-1.5 py-1.5 gap-4 ${pillStyle}`}>
+          {/* ── Actions (Location, Search, & Desktop only: Orders, Cart, Auth) ── */}
+          <div className={`flex items-center transition-all duration-500 rounded-full pl-3 md:pl-5 pr-1.5 py-1.5 gap-2 md:gap-4 ${pillStyle} ${isSearchOpen ? 'w-full md:w-auto' : ''}`}>
             
             {/* Location Button */}
             <button
               onClick={() => setIsLocationModalOpen(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} ${isSearchOpen ? 'hidden md:flex' : ''}`}
               title="Thay đổi vị trí giao hàng"
             >
               <MapPin width={16} height={16} className={isDark ? 'text-green-300' : 'text-green-600'} />
               <span className="max-w-[120px] truncate">
-                {isLocLoading ? 'Đang lấy vị trí...' : (userLocation?.address || 'Chọn vị trí')}
+                {isLocLoading ? 'Đang lấy vị trí...' : (userLocation?.address === 'Vị trí đã chọn' ? 'Vị trí' : userLocation?.address || 'Chọn vị trí')}
               </span>
             </button>
 
             {/* Search */}
-            <div className="relative flex items-center">
+            <div className={`relative flex items-center ${isSearchOpen ? 'flex-1 md:flex-none' : ''}`}>
               {isSearchOpen ? (
-                <form onSubmit={handleSearch} className="flex items-center">
+                <form onSubmit={handleSearch} className="flex items-center w-full">
                   <input
                     type="text"
                     autoFocus
                     placeholder="Tìm món ăn..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className={`w-40 sm:w-48 bg-transparent border-none outline-none text-sm px-2 ${isDark ? 'text-white placeholder:text-white/50' : 'text-gray-800 placeholder:text-gray-400'}`}
+                    className={`w-full sm:w-48 bg-transparent border-none outline-none text-sm px-2 ${isDark ? 'text-white placeholder:text-white/50' : 'text-gray-800 placeholder:text-gray-400'}`}
                   />
                   <button type="submit" className={`p-1.5 rounded-full ${isDark ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}>
                     <Search width={16} height={16} />
@@ -173,33 +234,49 @@ export function Navbar() {
               )}
             </div>
 
-            {/* Orders */}
+            {/* Orders (Desktop Only) */}
             {!isSearchOpen && isAuthenticated && (
               <Link
                 to={ROUTES.MY_ORDERS}
-                className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                className={`hidden md:flex relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
                 title="Đơn hàng của tôi"
               >
                 <ClipboardList width={18} height={18} />
               </Link>
             )}
 
-            {/* Cart */}
+            {/* Cart (Desktop Only) */}
             {!isSearchOpen && (
-              <Link
-                to={ROUTES.CART}
-                className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
-                title="Giỏ hàng"
-              >
-                <ShoppingCart width={18} height={18} />
-                {isAuthenticated && <CartBadge />}
-              </Link>
+              <div className="hidden md:flex relative group">
+                <Link
+                  to={ROUTES.CART}
+                  className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                  title="Giỏ hàng"
+                >
+                  <ShoppingCart width={18} height={18} />
+                  {isAuthenticated && <CartBadge />}
+                </Link>
+                {/* Popover Hover */}
+                {isAuthenticated && <MiniCartPopover />}
+              </div>
             )}
 
-            {/* ── Auth buttons ── */}
+            {/* ── Auth buttons (Desktop Only) ── */}
             {!isSearchOpen && (
               isAuthenticated && user ? (
-                <div className="flex items-center gap-3 ml-2">
+                <div className="hidden md:flex items-center gap-3 ml-2">
+                  {user.roles?.some(r => r.toUpperCase() === 'STORE') && (
+                    <Link 
+                      to={ROUTES.DASHBOARD} 
+                      className={`relative p-1.5 rounded-full transition-all duration-300 mr-1 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                      title="Quản lý cửa hàng"
+                    >
+                      <Store width={18} height={18} />
+                    </Link>
+                  )}
+                  <div className="mr-1 flex items-center">
+                    <NotificationDropdown isDark={isDark} />
+                  </div>
                   <Link to={ROUTES.PROFILE} className={`flex items-center gap-2 border-l pl-3 transition-colors group ${isDark ? 'border-white/20' : 'border-gray-200'}`} title={user.fullName}>
                     {user.avatarUrl ? (
                       <img src={user.avatarUrl} alt={user.fullName} className="w-7 h-7 rounded-full object-cover" />
@@ -209,10 +286,17 @@ export function Navbar() {
                       </div>
                     )}
                   </Link>
-                  <button onClick={() => logoutMutation.mutate()} className={`text-sm font-medium mr-2 ${isDark ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}>Thoát</button>
+                  <button onClick={async () => {
+                    try {
+                      await logoutMutation.mutateAsync();
+                      navigate(ROUTES.LOGIN);
+                    } catch (e) {
+                      navigate(ROUTES.LOGIN);
+                    }
+                  }} className={`text-sm font-medium mr-2 ${isDark ? 'text-white/80 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}>Thoát</button>
                 </div>
               ) : (
-                <div className="flex items-center gap-3 ml-1">
+                <div className="hidden md:flex items-center gap-3 ml-1">
                   <Link to={ROUTES.LOGIN} className={`text-sm font-medium transition-colors ${isDark ? 'text-white/90 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}>
                     Đăng nhập
                   </Link>
@@ -226,46 +310,7 @@ export function Navbar() {
             )}
           </div>
 
-          {/* ── Mobile Hamburger ── */}
-          <button
-            className={`md:hidden p-2 rounded-full transition-all duration-300 ${pillStyle}`}
-            onClick={() => setIsMobileMenuOpen(prev => !prev)}
-            aria-expanded={isMobileMenuOpen}
-            aria-label={isMobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
-          >
-            {isMobileMenuOpen ? <X width={22} height={22} /> : <Menu width={22} height={22} />}
-          </button>
         </div>
-
-        {/* ── Mobile Menu ── */}
-        {isMobileMenuOpen && (
-          <div className={`md:hidden mt-4 rounded-2xl p-4 space-y-2 animate-[--animate-slide-up] ${pillStyle}`}>
-            {NAV_LINKS.map(link => (
-              <Link
-                key={link.href}
-                to={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={[
-                  'block px-4 py-3 rounded-[1rem] font-medium transition-colors',
-                  isActive(link.href)
-                    ? (isDark ? 'bg-white/20 text-white font-bold' : 'bg-brand-50 text-brand-700 font-bold')
-                    : (isDark ? 'text-white/80 hover:bg-white/10' : 'text-ink-secondary hover:bg-surface-muted'),
-                ].join(' ')}
-              >
-                {link.label}
-              </Link>
-            ))}
-
-            <div className="flex gap-2 pt-2 mt-2 border-t border-gray-200/20">
-              <Link to={ROUTES.LOGIN} className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
-                <button className={`w-full py-2.5 rounded-full font-bold border ${isDark ? 'border-white/30 text-white hover:bg-white/10' : 'border-gray-200 text-gray-800 hover:bg-gray-50'}`}>Đăng nhập</button>
-              </Link>
-              <Link to={ROUTES.REGISTER} className="flex-1" onClick={() => setIsMobileMenuOpen(false)}>
-                <button className="w-full py-2.5 rounded-full font-bold bg-[#8ced7f] text-[#0f2913] hover:bg-[#7bde6c]">Đăng ký</button>
-              </Link>
-            </div>
-          </div>
-        )}
       </nav>
 
       {/* ── Location Picker Modal ── */}
@@ -284,7 +329,7 @@ export function Navbar() {
             <div className="p-4 bg-gray-50/50">
               <LocationPickerMap
                 onLocationChange={(lat, lng) => {
-                  setLocation(lat, lng, 'Vị trí đã chọn');
+                  setLocation(lat, lng, 'Vị trí');
                 }}
                 defaultPosition={userLocation ? { lat: userLocation.lat, lng: userLocation.lng } : undefined}
                 searchTriggerAddress={userLocation?.address}

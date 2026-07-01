@@ -448,7 +448,7 @@ export default function AccountManagementPage() {
   const sortBy = searchParams.get('sortBy') || '';
   const sortDirection = searchParams.get('sortDirection') || 'desc';
   const currentPage = parseInt(searchParams.get('pageNumber') || '1', 10);
-  const ITEMS_PER_PAGE = 5; // Bạn có thể thay đổi số lượng item trên mỗi trang ở đây
+  const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -469,7 +469,7 @@ export default function AccountManagementPage() {
           sortBy: sortBy || undefined,
           sortDirection: sortBy ? sortDirection : undefined,
           pageNumber: currentPage,
-          pageSize: ITEMS_PER_PAGE
+          pageSize: pageSize
         };
 
         const result = await adminApi.getUsers(request);
@@ -489,7 +489,7 @@ export default function AccountManagementPage() {
     return () => {
       ignore = true;
     };
-  }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage]);
+  }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage, pageSize]);
 
   const updateFilter = (key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
@@ -679,11 +679,31 @@ export default function AccountManagementPage() {
         </div>
         
         {/* Pagination Controls */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50">
-            <span className="text-[13px] text-mint-stone">
-              Hiển thị {(data.pageNumber - 1) * data.pageSize + 1} đến {Math.min(data.pageNumber * data.pageSize, data.totalCount)} trên tổng số {data.totalCount} người dùng
-            </span>
+        {data && data.totalCount > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline-soft bg-mint-surface/50 flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-[13px] text-mint-stone">
+                Hiển thị {(data.pageNumber - 1) * data.pageSize + 1} đến {Math.min(data.pageNumber * data.pageSize, data.totalCount)} trên tổng số {data.totalCount} người dùng
+              </span>
+              <div className="flex items-center gap-2 text-[13px] text-mint-stone">
+                Hiển thị:
+                <select
+                  className="bg-mint-canvas border border-mint-hairline text-mint-ink rounded pl-2 pr-8 py-1 text-[13px] cursor-pointer focus:outline-none focus:border-mint-brand-green"
+                  value={pageSize}
+                  onChange={(e) => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('pageSize', e.target.value);
+                    newParams.set('pageNumber', '1');
+                    setSearchParams(newParams);
+                  }}
+                >
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                  <option value="20">20</option>
+                  <option value="50">50</option>
+                </select>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
               <button 
                 onClick={() => handlePageChange(data.pageNumber - 1)}

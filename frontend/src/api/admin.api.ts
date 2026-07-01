@@ -125,6 +125,7 @@ export interface MonthlyRevenue {
 
 export interface AdminRevenueStatsResponse {
   totalRevenue: number;
+  totalShopNetRevenue: number;
   monthlyRevenues: MonthlyRevenue[];
 }
 

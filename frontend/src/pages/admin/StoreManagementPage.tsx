@@ -4,6 +4,7 @@ import type { AdminStoreListDTO, AdminStoreDetailsDTO } from '../../api/admin.ap
 import { Building, MapPin, Phone, User, Check, X, Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, Store, CreditCard, Calendar } from 'lucide-react';
 import { formatVND } from '../../lib/formatters';
 import { cn } from '@/lib/utils';
+import { toast } from 'react-hot-toast';
 
 function CustomSelect({ value, onChange, options, icon }: { value: string, onChange: (val: string) => void, options: {label: string, value: string}[], icon?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -84,6 +85,14 @@ export default function StoreManagementPage() {
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [reviewNotes, setReviewNotes] = useState('');
+  
+  // Confirm Modal State
+  const [confirmAction, setConfirmAction] = useState<{
+    id: string;
+    newStatus?: number;
+    actionType: 'updateStatus' | 'approve';
+    message: string;
+  } | null>(null);
 
   const fetchStores = () => {
     setLoading(true);
@@ -116,27 +125,67 @@ export default function StoreManagementPage() {
     }
   };
 
-  const handleUpdateStatus = async (id: string, newStatus: number) => {
-    if (!confirm('Bạn có chắc chắn muốn cập nhật trạng thái cửa hàng này?')) return;
+  const handleUpdateStatus = async (id: string, newStatus: number, oldStatus: number) => {
     try {
       await adminApi.updateStoreStatus(id, newStatus);
       fetchStores();
       if (selectedStore?.id === id) {
         viewDetails(id);
       }
+      
+      const actionText = newStatus === 1 ? 'tạm ngưng' : newStatus === 2 ? 'đóng cửa' : 'mở khóa';
+      
+      toast((t) => (
+        <div className="flex items-center gap-4">
+          <span>Đã {actionText} cửa hàng.</span>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id);
+              try {
+                await adminApi.updateStoreStatus(id, oldStatus);
+                fetchStores();
+                if (selectedStore?.id === id) viewDetails(id);
+                toast.success('Đã hoàn tác thao tác!');
+              } catch (e) {
+                toast.error('Lỗi khi hoàn tác');
+              }
+            }}
+            className="px-3 py-1.5 text-xs font-bold text-white bg-mint-brand-green rounded-md hover:bg-mint-brand-green/90 transition-colors"
+          >
+            Hoàn tác
+          </button>
+        </div>
+      ), { duration: 5000, position: 'bottom-center' });
+
     } catch (e) {
-      alert('Không thể cập nhật trạng thái');
+      toast.error('Không thể thực hiện hành động này');
     }
   };
 
   const handleApprove = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn duyệt cửa hàng này?')) return;
+    setConfirmAction({
+      id,
+      actionType: 'approve',
+      message: 'Bạn có chắc chắn muốn duyệt cửa hàng này?'
+    });
+  };
+
+  const executeConfirmAction = async () => {
+    if (!confirmAction) return;
     try {
-      await adminApi.approveStore(id);
+      if (confirmAction.actionType === 'updateStatus') {
+        await adminApi.updateStoreStatus(confirmAction.id, confirmAction.newStatus!);
+      } else if (confirmAction.actionType === 'approve') {
+        await adminApi.approveStore(confirmAction.id);
+      }
       fetchStores();
-      if (selectedStore?.id === id) viewDetails(id);
+      if (selectedStore?.id === confirmAction.id) {
+        viewDetails(confirmAction.id);
+      }
     } catch (e) {
-      alert('Không thể duyệt cửa hàng');
+      alert('Không thể thực hiện hành động này');
+    } finally {
+      setConfirmAction(null);
     }
   };
 
@@ -346,12 +395,12 @@ export default function StoreManagementPage() {
                     )
                   ) : selectedStore.status === 0 ? (
                     // Active
-                    <button onClick={() => handleUpdateStatus(selectedStore.id, 1)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-red-200">
+                    <button onClick={() => handleUpdateStatus(selectedStore.id, 1, selectedStore.status)} className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-red-200">
                       <XCircle className="w-4 h-4" /> Khóa cửa hàng
                     </button>
                   ) : selectedStore.status === 1 || selectedStore.status === 2 ? (
                     // Suspended / Closed
-                    <button onClick={() => handleUpdateStatus(selectedStore.id, 0)} className="w-full bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-green-200">
+                    <button onClick={() => handleUpdateStatus(selectedStore.id, 0, selectedStore.status)} className="w-full bg-green-50 hover:bg-green-100 text-green-600 py-2 rounded-[8px] font-medium text-[14px] flex justify-center items-center gap-2 transition-colors border border-green-200">
                       <Check className="w-4 h-4" /> Mở khóa
                     </button>
                   ) : (
@@ -429,6 +478,30 @@ export default function StoreManagementPage() {
             )}
           </div>
         </div>
+        </div>
+      )}
+
+      {/* Confirm Action Modal */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 font-inter">
+          <div className="bg-mint-canvas rounded-[12px] border border-mint-hairline p-6 max-w-sm w-full shadow-lg">
+            <h3 className="text-lg font-bold text-mint-ink mb-4">Xác nhận</h3>
+            <p className="text-mint-stone text-sm mb-6">{confirmAction.message}</p>
+            <div className="flex justify-end gap-3">
+              <button 
+                onClick={() => setConfirmAction(null)}
+                className="px-4 py-2 bg-mint-surface hover:bg-mint-surface-soft text-mint-stone hover:text-mint-ink font-medium text-sm rounded-[8px] transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={executeConfirmAction}
+                className="px-4 py-2 bg-mint-brand-green hover:bg-mint-brand-green/90 text-white font-medium text-sm rounded-[8px] transition-colors shadow-sm"
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

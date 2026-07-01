@@ -46,6 +46,12 @@ export default function DashboardSettingsPage() {
   const [isFetchingProfile, setIsFetchingProfile] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
 
+  // ── Store Status State ───────────────────────────────────────────────────────
+  const [storeStatus, setStoreStatus] = useState<number>(0);
+  const [isDeleted, setIsDeleted] = useState<boolean>(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, action: 'pause' | 'resume' | 'delete' | null, message: string }>({ isOpen: false, action: null, message: '' });
+
   // ── Locations State ─────────────────────────────────────────────────────────  // API Locations State (v2 - No Districts)
   const [provinces, setProvinces] = useState<EsgooLocation[]>([]);
   const [wards, setWards] = useState<EsgooLocation[]>([]);
@@ -53,6 +59,58 @@ export default function DashboardSettingsPage() {
   const [selectedProvinceId, setSelectedProvinceId] = useState<string>('');
   const [selectedWardId, setSelectedWardId] = useState<string>('');
   const [searchTriggerAddress, setSearchTriggerAddress] = useState('');
+
+  const [mapLink, setMapLink] = useState('');
+  const [extracting, setExtracting] = useState(false);
+
+  const handleExtractMapLink = async () => {
+    if (!mapLink) return;
+    setExtracting(true);
+    try {
+      const { apiClient } = await import('@/api/client');
+      // apiClient already returns the parsed JSON
+      const data = await apiClient<any>('/stores/extract-map-link', {
+        method: 'POST',
+        body: JSON.stringify({ url: mapLink }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      let newDetailedAddress = profile.detailedAddress;
+      
+      if (data.latitude && data.longitude) {
+        try {
+          const geocodeRes = await fetch(`https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/reverseGeocode?f=json&location=${data.longitude},${data.latitude}`);
+          const geocodeData = await geocodeRes.json();
+          if (geocodeData && geocodeData.address) {
+            const addr = geocodeData.address;
+            if (addr.Address) {
+              newDetailedAddress = addr.Address;
+            } else if (addr.Addr_type !== 'POI' && addr.Match_addr) {
+              newDetailedAddress = addr.Match_addr;
+            } else if (addr.LongLabel) {
+              newDetailedAddress = addr.LongLabel.split(',')[0];
+            }
+          }
+        } catch (geoErr) {
+          console.error("Reverse geocode error:", geoErr);
+        }
+      }
+
+      setProfile(prev => ({
+        ...prev,
+        name: data.name || prev.name,
+        latitude: data.latitude || prev.latitude,
+        longitude: data.longitude || prev.longitude,
+        detailedAddress: newDetailedAddress
+      }));
+
+      toast.success('Đã lấy thông tin từ link thành công!');
+    } catch (err: any) {
+      toast.error('Link không hợp lệ, vui lòng kiểm tra lại');
+    } finally {
+      setExtracting(false);
+    }
+  };
 
   // ── Fetch profile on mount ───────────────────────────────────────────────────
   useEffect(() => {
@@ -74,6 +132,8 @@ export default function DashboardSettingsPage() {
           });
           setPlanName(data.planName);
           setHasCustomBanner(data.hasCustomBanner);
+          setStoreStatus(data.status);
+          setIsDeleted(data.isDeleted);
           if (data.logoUrl) setLogoPreview(data.logoUrl);
           if (data.coverUrl) setBannerPreview(data.coverUrl);
           setIsFetchingProfile(false);
@@ -91,9 +151,11 @@ export default function DashboardSettingsPage() {
 
   // Fetch Provinces on Mount
   useEffect(() => {
-    fetch('https://esgoo.net/api-tinhthanh/1/0.htm')
+    fetch('https://provinces.open-api.vn/api/v2/p/')
       .then(res => res.json())
-      .then(data => { if (data.error === 0) setProvinces(data.data); })
+      .then((data: any[]) => {
+        setProvinces(data.map(p => ({ id: String(p.code), name: p.name, full_name: p.name })));
+      })
       .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
@@ -105,13 +167,13 @@ export default function DashboardSettingsPage() {
     }
   }, [provinces, profile.city]);
 
-  // Fetch Wards (Districts in Esgoo API) when Province changes
+  // Fetch Wards when Province changes
   useEffect(() => {
     if (selectedProvinceId) {
-      fetch(`https://esgoo.net/api-tinhthanh/2/${selectedProvinceId}.htm`)
+      fetch(`https://provinces.open-api.vn/api/v2/w/?province_code=${selectedProvinceId}`)
         .then(res => res.json())
-        .then(data => {
-          if (data.error === 0) setWards(data.data || []);
+        .then((data: any[]) => {
+          setWards(data.map(w => ({ id: String(w.code), name: w.name, full_name: w.name })));
         })
         .catch(err => console.error('Error fetching wards:', err));
     } else {
@@ -187,6 +249,42 @@ export default function DashboardSettingsPage() {
     }
   };
 
+  const requestUpdateStatus = (action: 'pause' | 'resume' | 'delete') => {
+    let message = '';
+    if (action === 'pause') message = 'Bạn có chắc chắn muốn Tạm đóng cửa? Khách hàng sẽ không thể đặt hàng mới.';
+    if (action === 'resume') message = 'Bạn có chắc chắn muốn Mở cửa lại? Khách hàng sẽ có thể đặt hàng bình thường.';
+    if (action === 'delete') message = 'CẢNH BÁO NGUY HIỂM: Bạn có chắc chắn muốn Ngừng kinh doanh? Cửa hàng sẽ bị xóa khỏi hệ thống. Thao tác này không thể hoàn tác!';
+
+    setConfirmModal({ isOpen: true, action, message });
+  };
+
+  const handleUpdateStatus = async () => {
+    if (!storeId || !confirmModal.action) return;
+    const action = confirmModal.action;
+    setConfirmModal({ isOpen: false, action: null, message: '' });
+
+    setIsUpdatingStatus(true);
+    try {
+      await storeApi.updateStoreStatus(storeId, action);
+      toast.success('Cập nhật trạng thái thành công!');
+      
+      // Update local state
+      if (action === 'pause') setStoreStatus(2); // Closed
+      if (action === 'resume') setStoreStatus(0); // Active
+      if (action === 'delete') {
+        setStoreStatus(2);
+        setIsDeleted(true);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['store-profile', storeId] });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+      toast.error(msg);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
   const setField = (key: keyof UpdateStoreProfileRequest, value: string | number | undefined) => {
     setProfile(prev => ({ ...prev, [key]: value || (typeof value === 'number' ? value : null) }));
   };
@@ -222,6 +320,37 @@ export default function DashboardSettingsPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            
+            {/* Google Maps Quick Fill */}
+            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5 relative overflow-hidden mb-2">
+              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                <MapPin className="w-24 h-24 text-blue-500" />
+              </div>
+              <h3 className="text-sm font-bold text-blue-900 mb-2 flex items-center gap-2 relative z-10">
+                <MapPin className="w-4 h-4 text-blue-600" /> Điền nhanh bằng link Google Maps
+              </h3>
+              <div className="flex gap-2 relative z-10">
+                <input
+                  type="text"
+                  value={mapLink}
+                  onChange={(e) => setMapLink(e.target.value)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-blue-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-sm"
+                  placeholder="Dán link Google Maps vào đây (VD: https://maps.app.goo.gl/...)"
+                />
+                <button
+                  type="button"
+                  onClick={handleExtractMapLink}
+                  disabled={!mapLink || extracting}
+                  className="px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all disabled:opacity-50 whitespace-nowrap"
+                >
+                  {extracting ? 'Đang phân tích...' : 'Tự động điền'}
+                </button>
+              </div>
+              <p className="text-xs text-blue-700 mt-2 relative z-10">
+                Hệ thống sẽ tự động cập nhật tên quán, địa chỉ và tọa độ trên bản đồ.
+              </p>
+            </div>
+
             {/* Tên cửa hàng */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -486,6 +615,87 @@ export default function DashboardSettingsPage() {
           </button>
         </div>
       </div>
+
+      {/* ── SECTION 3: STORE STATUS ────────────────────────────────────────── */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-red-100">
+        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2 mb-4">
+          Trạng thái cửa hàng
+        </h2>
+        
+        {isDeleted ? (
+          <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200">
+            Cửa hàng của bạn đã ngừng kinh doanh và bị xóa khỏi hệ thống. Bạn không thể thay đổi thông tin hay trạng thái nữa.
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div>
+                <h3 className="font-semibold text-gray-900">
+                  {storeStatus === 0 ? 'Tạm đóng cửa' : 'Mở cửa lại'}
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  {storeStatus === 0 
+                    ? 'Tạm thời ẩn nút đặt hàng với khách hàng. Thích hợp khi nghỉ lễ, hết nguyên liệu.' 
+                    : 'Mở lại cửa hàng để tiếp tục nhận đơn hàng từ khách hàng.'}
+                </p>
+              </div>
+              <button
+                onClick={() => requestUpdateStatus(storeStatus === 0 ? 'pause' : 'resume')}
+                disabled={isUpdatingStatus}
+                className={`px-4 py-2 font-medium rounded-xl transition-colors whitespace-nowrap flex items-center gap-2
+                  ${storeStatus === 0 
+                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' 
+                    : 'bg-green-100 text-green-700 hover:bg-green-200'}`}
+              >
+                {isUpdatingStatus && <Loader2 className="w-4 h-4 animate-spin" />}
+                {storeStatus === 0 ? 'Tạm đóng cửa' : 'Mở cửa lại'}
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+              <div>
+                <h3 className="font-semibold text-red-700">Ngừng kinh doanh</h3>
+                <p className="text-sm text-red-600/80 mt-1">
+                  Hành động này sẽ xóa cửa hàng của bạn khỏi hệ thống. Không thể hoàn tác!
+                </p>
+              </div>
+              <button
+                onClick={() => requestUpdateStatus('delete')}
+                disabled={isUpdatingStatus}
+                className="px-4 py-2 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors whitespace-nowrap flex items-center gap-2"
+              >
+                {isUpdatingStatus && <Loader2 className="w-4 h-4 animate-spin" />}
+                Ngừng kinh doanh
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      {/* ── CUSTOM CONFIRM MODAL ────────────────────────────────────────────── */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm transform transition-all">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Xác nhận</h3>
+            <p className="text-sm text-gray-600 mb-6">{confirmModal.message}</p>
+            
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, action: null, message: '' })}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleUpdateStatus}
+                className={`flex-1 px-4 py-2 font-medium rounded-xl text-white transition-colors
+                  ${confirmModal.action === 'delete' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                Đồng ý
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

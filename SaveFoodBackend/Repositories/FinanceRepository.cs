@@ -100,9 +100,43 @@ public class FinanceRepository : IFinanceRepository
             .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed);
     }
 
+    public async Task<IEnumerable<WalletTransaction>> GetPlatformFeeTransactionsAsync(CancellationToken ct = default)
+    {
+        return await _ctx.WalletTransactions
+            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed)
+            .ToListAsync(ct);
+    }
+
+    public async Task<decimal> GetTotalPlatformFeeRevenueAsync(CancellationToken ct = default)
+    {
+        return await _ctx.WalletTransactions
+            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed)
+            .SumAsync(t => t.Amount, ct);
+    }
+
+    public async Task<List<MonthlyRevenue>> GetMonthlyPlatformFeeRevenuesAsync(CancellationToken ct = default)
+    {
+        return await _ctx.WalletTransactions
+            .Where(t => t.Type == (byte)TransactionTypeEnum.PlatformFee && t.Status == (byte)TransactionStatusEnum.Completed)
+            .GroupBy(t => new { t.CreatedAt.Year, t.CreatedAt.Month })
+            .Select(g => new MonthlyRevenue
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                Revenue = g.Sum(t => t.Amount)
+            })
+            .OrderBy(m => m.Year).ThenBy(m => m.Month)
+            .ToListAsync(ct);
+    }
+
     public void AddWalletTransaction(WalletTransaction transaction)
     {
         _ctx.WalletTransactions.Add(transaction);
+    }
+
+    public void AddCustomerWalletTransaction(CustomerWalletTransaction transaction)
+    {
+        _ctx.CustomerWalletTransactions.Add(transaction);
     }
 
     public async Task<StoreWallet?> GetStoreWalletByStoreIdAsync(Guid storeId, CancellationToken ct = default)

@@ -9,7 +9,9 @@ export class ApiError extends Error {
     this.details = details;
   }
 }
-
+//
+//
+//
 export async function apiClient<T>(
   path: string,
   options?: RequestInit
@@ -30,7 +32,7 @@ export async function apiClient<T>(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     const message = err.message || err.title || 'Request failed';
-    throw new ApiError(res.status, err.code ?? 'UNKNOWN', message, err);
+    throw new ApiError(res.status, err.code ?? err.errorCode ?? 'UNKNOWN', message, err);
   }
 
   // Handle empty responses (like 204 No Content or empty 200 OK)

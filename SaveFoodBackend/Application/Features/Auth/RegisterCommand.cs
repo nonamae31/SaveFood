@@ -7,6 +7,8 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Utils;
+using SaveFoodBackend.Models;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -20,11 +22,13 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
 {
     private readonly SaveFoodDbContext _context;
     private readonly IEmailService _emailService;
+    private readonly IRedisService _redisService;
 
-    public RegisterCommandHandler(SaveFoodDbContext context, IEmailService emailService)
+    public RegisterCommandHandler(SaveFoodDbContext context, IEmailService emailService, IRedisService redisService)
     {
         _context = context;
         _emailService = emailService;
+        _redisService = redisService;
     }
 
     public async Task<Guid> Handle(RegisterCommand command, CancellationToken ct)
@@ -32,7 +36,7 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
         var request = command.Request;
         var normalizedEmail = AuthUtils.NormalizeEmail(request.Email);
         var existingUser = await _context.Users.FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail || u.Email == request.Email, ct);
-        SaveFoodBackend.Models.User targetUser;
+        User targetUser;
 
         if (existingUser != null)
         {
@@ -44,11 +48,12 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
             targetUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             targetUser.FullName = request.FullName;
             targetUser.PhoneNumber = request.PhoneNumber;
+            if (request.Gender.HasValue) targetUser.IsMale = (request.Gender.Value == 1);
             targetUser.CreatedAt = DateTime.UtcNow;
         }
         else
         {
-            targetUser = new SaveFoodBackend.Models.User
+            targetUser = new User
             {
                 Id = Guid.NewGuid(),
                 Email = request.Email,
@@ -57,13 +62,14 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 FullName = request.FullName,
                 PhoneNumber = request.PhoneNumber,
-                UserStatusEnum = SaveFoodBackend.Models.Enums.UserStatus.Active,
+                UserStatusEnum = UserStatus.Active,
                 EmailVerified = false,
                 CreatedAt = DateTime.UtcNow
             };
+            if (request.Gender.HasValue) targetUser.IsMale = (request.Gender.Value == 1);
 
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
-            if (role != null) targetUser.UserRoles.Add(new SaveFoodBackend.Models.UserRole { RoleId = role.Id, UserId = targetUser.Id });
+            if (role != null) targetUser.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = targetUser.Id });
             _context.Users.Add(targetUser);
         }
 
@@ -77,10 +83,8 @@ public class RegisterCommandHandler : ICommandHandler<RegisterCommand, Guid>
         }
 
         var otpCode = new Random().Next(100000, 999999).ToString();
-        _context.EmailVerifications.Add(new SaveFoodBackend.Models.EmailVerification
-        {
-            Id = Guid.NewGuid(), UserId = targetUser.Id, VerificationCode = otpCode, CreatedAt = DateTime.UtcNow, ExpiresAt = DateTime.UtcNow.AddMinutes(15)
-        });
+        await _redisService.SetAsync($"otp:{normalizedEmail}", otpCode, TimeSpan.FromMinutes(15));
+        await _redisService.SetAsync($"otp_cooldown:{normalizedEmail}", "true", TimeSpan.FromSeconds(60));
 
         await _context.SaveChangesAsync(ct);
         await _emailService.SendEmailAsync(targetUser.Email, "Mã xác nhận OTP của bạn", $@"<h2>Xác thực tài khoản SaveFood</h2><p>Chào {targetUser.FullName},</p><p>Mã xác nhận OTP của bạn là:</p><h1 style='color: #10b981; font-size: 32px;'>{otpCode}</h1><p>Mã này hết hạn sau 15 phút.</p>");

@@ -17,34 +17,42 @@ export default function DashboardAnalyticsPage() {
   const analyticsLevel = analytics?.analyticsLevel ?? 0;
   const planName = analytics?.planName ?? 'Free';
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!analytics) return;
 
-    const bom = '\uFEFF';
-    let csvContent = bom + "Ngay,Doanh Thu\n";
+    try {
+      const token = localStorage.getItem('sf_access_token');
+      const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5101/api';
+      
+      const toDate = new Date();
+      const fromDate = new Date();
+      fromDate.setDate(toDate.getDate() - days);
 
-    analytics.weeklyRevenue.forEach((rev, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - ((days - 1) - i));
-      const dateStr = d.toLocaleDateString('vi-VN');
-      csvContent += `${dateStr},${rev}\n`;
-    });
-
-    csvContent += `\nSan pham ban chay,So luong\n`;
-    if (analytics.topSellingProducts) {
-      analytics.topSellingProducts.forEach(product => {
-        csvContent += `"${product.name}",${product.sales}\n`;
+      const url = `${baseUrl}/stores/${storeId}/orders/export-csv?from=${fromDate.toISOString()}&to=${toDate.toISOString()}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
-    }
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `BaoCao_DoanhThu_${days}ngay.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+
+      const blob = await response.blob();
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.setAttribute('download', `BaoCao_DonHang_${days}ngay.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error("Lỗi xuất báo cáo:", error);
+      alert("Đã xảy ra lỗi khi xuất báo cáo.");
+    }
   };
 
   if (isLoading) {
@@ -258,22 +266,116 @@ export default function DashboardAnalyticsPage() {
                 </div>
               ) : (
                 <div className="text-sm text-gray-400 text-center py-4">Chưa có dữ liệu sản phẩm.</div>
-              )
+              )}
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
+              <Lock className="w-6 h-6 text-gray-400 mb-2" />
+              <p className="text-sm font-medium text-gray-600 mb-3">Tính năng Plus/Premium</p>
+              <button
+                onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
+                className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
+              >
+                Nâng cấp
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ADDITIONAL PLUS & PREMIUM FEATURES */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+        {/* Sentiment Analysis (PREMIUM) */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[250px]">
+          <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
+             Đánh giá của khách hàng (Sentiment)
+          </h3>
+          
+          {subscription.analyticsLevel >= 2 ? (
+            <div className="space-y-4">
+              {analytics ? (
+                <>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Tích cực (Positive)</span>
+                    <span className="font-medium text-green-600">{analytics.positiveReviews}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.max(1, (analytics.positiveReviews / Math.max(1, analytics.positiveReviews + analytics.neutralReviews + analytics.negativeReviews)) * 100)}%` }}></div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm mt-4">
+                    <span className="text-gray-600">Trung tính (Neutral)</span>
+                    <span className="font-medium text-gray-600">{analytics.neutralReviews}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-gray-400 h-2 rounded-full" style={{ width: `${Math.max(1, (analytics.neutralReviews / Math.max(1, analytics.positiveReviews + analytics.neutralReviews + analytics.negativeReviews)) * 100)}%` }}></div>
+                  </div>
+
+                  <div className="flex justify-between items-center text-sm mt-4">
+                    <span className="text-gray-600">Tiêu cực (Negative)</span>
+                    <span className="font-medium text-red-600">{analytics.negativeReviews}</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2">
+                    <div className="bg-red-500 h-2 rounded-full" style={{ width: `${Math.max(1, (analytics.negativeReviews / Math.max(1, analytics.positiveReviews + analytics.neutralReviews + analytics.negativeReviews)) * 100)}%` }}></div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
+              <Lock className="w-6 h-6 text-gray-400 mb-2" />
+              <p className="text-sm font-medium text-gray-600 mb-3">Tính năng Premium (AI Sentiment)</p>
+              <button
+                onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
+                className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
+              >
+                Nâng cấp Premium
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Khách hàng quay lại (PREMIUM) & Huỷ đơn (PLUS) */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[250px] flex flex-col justify-between">
+          <div>
+            <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+               Phân tích khách hàng
+            </h3>
+            {subscription.analyticsLevel >= 2 ? (
+              <div className="flex justify-between items-center p-4 bg-orange-50 rounded-xl border border-orange-100 mb-4">
+                <div>
+                  <p className="text-xs text-orange-800 font-medium mb-1">Khách quay lại</p>
+                  <p className="text-2xl font-bold text-orange-600">{analytics?.returningCustomers ?? 0} / {analytics?.totalCustomers ?? 0}</p>
+                </div>
+                <Users className="w-8 h-8 text-orange-300" />
+              </div>
             ) : (
-              <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
-                <Lock className="w-6 h-6 text-gray-400 mb-2" />
-                <p className="text-sm font-medium text-gray-600 mb-3">Tính năng Plus/Premium</p>
-                <button
-                  onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
-                  className="px-4 py-1.5 bg-gray-900 text-white rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors"
-                >
-                  Nâng cấp
-                </button>
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 mb-4 opacity-60">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Khách quay lại <Lock className="inline w-3 h-3 ml-1" /></p>
+                  <p className="text-xl font-bold text-gray-400">---</p>
+                </div>
+              </div>
+            )}
+            
+            {subscription.analyticsLevel >= 1 ? (
+              <div className="flex justify-between items-center p-4 bg-red-50 rounded-xl border border-red-100">
+                <div>
+                  <p className="text-xs text-red-800 font-medium mb-1">Đơn bị huỷ</p>
+                  <p className="text-2xl font-bold text-red-600">{analytics?.cancelledOrders ?? 0}</p>
+                </div>
+                <span className="text-red-300 font-bold text-2xl">✕</span>
+              </div>
+            ) : (
+              <div className="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100 opacity-60">
+                <div>
+                  <p className="text-xs text-gray-500 font-medium mb-1">Đơn bị huỷ <Lock className="inline w-3 h-3 ml-1" /></p>
+                  <p className="text-xl font-bold text-gray-400">---</p>
+                </div>
               </div>
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

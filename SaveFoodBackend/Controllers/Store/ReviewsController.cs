@@ -29,6 +29,14 @@ namespace SaveFoodBackend.Controllers.Store
             return OkResponse(reviews);
         }
 
+        [HttpGet("stats")]
+        public async Task<IActionResult> GetStoreReviewStats(CancellationToken ct)
+        {
+            var storeId = GetRequiredStoreId();
+            var stats = await _reviewService.GetStoreReviewStatsAsync(storeId, ct);
+            return OkResponse(stats);
+        }
+
         [HttpPost("{reviewId}/reply")]
         public async Task<IActionResult> ReplyToReview(Guid reviewId, [FromBody] StoreReplyRequest request, CancellationToken ct)
         {

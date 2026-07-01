@@ -36,7 +36,7 @@ export function WishlistPage() {
           <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
           <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Yêu thích</span>
         </div>
-        <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Danh sách <span className="font-serif italic font-normal text-[--color-brand-600]">yêu thích</span></h1>
+        <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Danh sách <span className="text-[--color-brand-600]">yêu thích</span></h1>
         <p className="text-[--color-ink-secondary] mt-2">
           Các món ăn và thực phẩm bạn đã lưu để xem lại sau.
         </p>

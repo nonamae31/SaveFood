@@ -4,6 +4,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App.tsx'
 import './index.css'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/vi'
+
+dayjs.extend(relativeTime)
+dayjs.locale('vi')
 
 const queryClient = new QueryClient({
   defaultOptions: {

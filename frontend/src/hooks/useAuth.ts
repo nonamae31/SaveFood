@@ -71,7 +71,8 @@ export function useLogout() {
     onSuccess: () => {
       // Clear user cache after logout
       queryClient.setQueryData(AUTH_QUERY_KEYS.profile, null);
-      queryClient.removeQueries(); // Optionally remove all queries
+      queryClient.removeQueries();
+      window.location.href = '/login';
     },
   });
 }

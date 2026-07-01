@@ -107,12 +107,12 @@ public class CustomerListingService : ICustomerListingService
         var recommendedListings = await _ctx.ClearanceListings
             .Include(l => l.Product)
                 .ThenInclude(p => p.Store)
-                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
                         .ThenInclude(sub => sub.Plan)
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow) // Status 1 = Published
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active) // Status 1 = Published
             .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
             .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
             .ThenBy(l => l.ExpiryDate)
@@ -145,7 +145,8 @@ public class CustomerListingService : ICustomerListingService
                      ? l.ListingImages.Select(i => i.ImageUrl).ToList()
                      : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
             HasFeaturedBadge = activeSub?.Plan?.HasFeaturedBadge ?? false,
-            PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0
+            PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0,
+            StoreStatus = l.Product.Store.Status
         };
     }
 }

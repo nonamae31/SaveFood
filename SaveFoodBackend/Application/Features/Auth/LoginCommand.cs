@@ -1,13 +1,4 @@
-using System;
-using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Security.Claims;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using SaveFood.Application.CQRS;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
@@ -15,6 +6,7 @@ using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Utils;
 using SaveFoodBackend.Common.Constants;
 using SaveFoodBackend.Common.Exceptions;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -51,10 +43,10 @@ public class LoginCommandHandler : ICommandHandler<LoginCommand, LoginResponse>
         try { isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash); } catch { }
 
         if (!isPasswordValid) throw new BusinessException("Invalid email or password.", "INVALID_CREDENTIALS", 401);
-        if (user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new BusinessException("Account is locked or inactive.", "ACCOUNT_LOCKED_OR_INACTIVE", 403);
+        if (user.UserStatusEnum != UserStatus.Active) throw new BusinessException("Account is locked or inactive.", "ACCOUNT_LOCKED_OR_INACTIVE", 403);
         if (user.EmailVerified == false)
         {
-            throw new SaveFoodBackend.Common.Exceptions.BusinessException(
+            throw new BusinessException(
                 "Tài khoản chưa được xác thực. Vui lòng kiểm tra email để lấy mã OTP.",
                 "UNVERIFIED_ACCOUNT",
                 403);

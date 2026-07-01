@@ -8,6 +8,7 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Common.Constants;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -45,7 +46,7 @@ public class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCommand, L
             .Include(u => u.UserRoles)
             .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Id == userId, ct);
-        if (user == null || user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new UnauthorizedAccessException("User not found or inactive.");
+        if (user == null || user.UserStatusEnum != UserStatus.Active) throw new UnauthorizedAccessException("User not found or inactive.");
 
         await _redisService.DeleteAsync(redisKey);
 

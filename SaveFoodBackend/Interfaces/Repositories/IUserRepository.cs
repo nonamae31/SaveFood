@@ -20,5 +20,7 @@ public interface IUserRepository
     void Update(User user);
     void AddUserRole(UserRole userRole);
     Task RemoveUserRoleAsync(Guid userId, Guid roleId, CancellationToken ct = default);
+    Task<IEnumerable<User>> GetAllAsync(CancellationToken ct = default);
+    void Remove(User user);
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }

@@ -68,5 +68,13 @@ namespace SaveFoodBackend.Controllers.Customer
             var reviews = await _reviewService.GetReviewsByStoreIdAsync(storeId, ct);
             return OkResponse(reviews);
         }
+
+        [AllowAnonymous]
+        [HttpGet("store/{storeId}/stats")]
+        public async Task<IActionResult> GetStoreReviewStats(Guid storeId, CancellationToken ct)
+        {
+            var stats = await _reviewService.GetStoreReviewStatsAsync(storeId, ct);
+            return OkResponse(stats);
+        }
     }
 }

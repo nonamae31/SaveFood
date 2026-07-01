@@ -1,24 +1,23 @@
-import { Leaf, Mail, Phone, Share2, ExternalLink } from "lucide-react";
+import { Leaf, Mail, Phone, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "@/lib/constants";
+import toast from 'react-hot-toast';
 
 // ─── Footer Component ─────────────────────────────────────────────────────────
 // Chân trang dùng chung cho toàn bộ ứng dụng.
 
 const FOOTER_LINKS = {
     product: [
-        { label: "Đồ ăn cận date", href: ROUTES.PRODUCTS },
-        { label: "Danh sách cửa hàng", href: ROUTES.STORES },
-        { label: "Đặt hàng", href: ROUTES.CART },
+        { label: "Khám phá món ăn", href: ROUTES.PRODUCTS },
+        { label: "Cửa hàng đối tác", href: ROUTES.STORES },
+        { label: "Giỏ hàng của bạn", href: ROUTES.CART },
     ],
     partner: [
-        { label: "Đăng ký cửa hàng", href: ROUTES.REGISTER },
-        { label: "Bảng giá", href: "#pricing" },
-        { label: "Dashboard", href: ROUTES.DASHBOARD },
+        { label: "Mở cửa hàng trực tuyến", href: ROUTES.STORE_REGISTER },
     ],
     support: [
-        { label: "Câu hỏi thường gặp", href: "#faq" },
-        { label: "Liên hệ hỗ trợ", href: "#contact" },
+        { label: "Trung tâm hỗ trợ", href: ROUTES.HELP_CENTER, isRouter: true },
+        { label: "Câu hỏi thường gặp (FAQ)", href: "#faq" },
         { label: "Điều khoản dịch vụ", href: ROUTES.POLICY, isRouter: true },
         { label: "Chính sách bảo mật", href: ROUTES.POLICY, isRouter: true },
     ],
@@ -135,19 +134,17 @@ export function Footer() {
 
                     {/* Social Links */}
                     <div className="flex items-center gap-3">
-                        {[
-                            { Icon: Share2, href: "#", label: "Mạng xã hội" },
-                            { Icon: ExternalLink, href: "#", label: "Website" },
-                        ].map(({ Icon, href, label }) => (
-                            <a
-                                key={label}
-                                href={href}
-                                aria-label={label}
-                                className="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center text-gray-400 hover:bg-[#8ced7f] hover:text-[#0f2913] transition-all duration-300"
-                            >
-                                <Icon width={16} height={16} aria-hidden="true" />
-                            </a>
-                        ))}
+                        <a
+                            href="https://www.facebook.com/profile.php?id=61590551916006"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Facebook Fanpage"
+                            className="w-8 h-8 rounded-full bg-gray-700/50 flex items-center justify-center text-white hover:bg-[#8ced7f] hover:text-[#0f2913] transition-all duration-300"
+                        >
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path fillRule="evenodd" d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" clipRule="evenodd" />
+                            </svg>
+                        </a>
                     </div>
                 </div>
             </div>
