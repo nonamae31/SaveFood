@@ -72,7 +72,7 @@ export function useLogout() {
       // Clear user cache after logout
       queryClient.setQueryData(AUTH_QUERY_KEYS.profile, null);
       queryClient.removeQueries();
-      window.location.href = '/';
+      window.location.href = '/login';
     },
   });
 }

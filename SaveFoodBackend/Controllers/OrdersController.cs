@@ -32,7 +32,22 @@ public class OrdersController : ApiControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { Message = ex.Message });
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    [HttpPost("pay-batch")]
+    public async Task<IActionResult> BatchPay([FromBody] BatchPayRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+            var result = await _orderService.BatchPayAsync(userId, req.OrderIds, req.PaymentMethod, req.ReturnUrl, req.CancelUrl, ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
         }
     }
 

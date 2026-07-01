@@ -27,7 +27,7 @@ public class OrderRepository : IOrderRepository
             .Include(o => o.User)
             .Include(o => o.OrderItems)
             .Include(o => o.Payment)
-            .Where(o => o.StoreId == storeId)
+            .Where(o => o.StoreId == storeId && (o.Payment == null || o.Payment.Status != 0))
             .OrderByDescending(o => o.CreatedAt)
             .AsNoTracking()
             .ToListAsync(ct);

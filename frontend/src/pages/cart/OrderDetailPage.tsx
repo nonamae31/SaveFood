@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder, useExtendPickup, useCancelOrder } from '@/hooks/useOrders'
+import { useOrder, useExtendPickup, useCancelOrder, useBatchPay } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -12,6 +12,31 @@ import { useAuthContext } from '@/contexts/AuthContext'
 import { apiClient } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
+const PaymentCountdown = ({ expiresAt }: { expiresAt: string }) => {
+  const [timeLeft, setTimeLeft] = useState(0)
+
+  useEffect(() => {
+    const target = new Date(expiresAt).getTime()
+    const update = () => {
+      const now = new Date().getTime()
+      setTimeLeft(Math.max(0, Math.floor((target - now) / 1000)))
+    }
+    update()
+    const timer = setInterval(update, 1000)
+    return () => clearInterval(timer)
+  }, [expiresAt])
+
+  if (timeLeft === 0) return <span className="text-red-500 font-bold">(Đã hết hạn)</span>
+
+  const m = Math.floor(timeLeft / 60)
+  const s = timeLeft % 60
+  return (
+    <span className="text-orange-600 font-bold flex items-center gap-1 ml-2">
+      <Clock size={16} /> {m}:{s.toString().padStart(2, '0')}
+    </span>
+  )
+}
+
 export function OrderDetailPage() {
   const { id: pathId } = useParams()
   const [searchParams] = useSearchParams()
@@ -21,6 +46,22 @@ export function OrderDetailPage() {
   const cancelMutation = useCancelOrder(id)
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
+  const batchPayMutation = useBatchPay()
+
+  const handleRetryPayment = () => {
+    batchPayMutation.mutate(
+      { 
+        orderIds: [id],
+        returnUrl: window.location.origin + '/payment/success',
+        cancelUrl: window.location.origin + '/payment/cancel'
+      },
+      {
+        onSuccess: (res) => {
+          if (res.checkoutUrl) window.location.href = res.checkoutUrl
+        }
+      }
+    )
+  }
 
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false)
   const [cancelForm, setCancelForm] = useState({ reason: '' })
@@ -97,9 +138,9 @@ export function OrderDetailPage() {
     )
   }
 
-  const getStatusDisplay = (status: number) => {
+  const getStatusDisplay = (status: number, paymentMethod?: number, paymentStatus?: number) => {
     switch (status) {
-      case 0: return { text: 'Chờ xác nhận', color: 'text-orange-600 bg-orange-100' }
+      case 0: return { text: paymentMethod === 1 && (paymentStatus === 0 || paymentStatus === 2) ? 'Chờ thanh toán' : 'Chờ xác nhận', color: 'text-orange-600 bg-orange-100' }
       case 1: return { text: 'Đã xác nhận', color: 'text-blue-600 bg-blue-100' }
       case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-100' }
       case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
@@ -108,7 +149,7 @@ export function OrderDetailPage() {
     }
   }
 
-  const status = getStatusDisplay(order.orderStatus)
+  const status = getStatusDisplay(order.orderStatus, order.payment?.paymentMethod, order.payment?.status)
   const isCompleted = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
 
@@ -127,6 +168,9 @@ export function OrderDetailPage() {
           <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-bold mb-8 ${status.color}`}>
             {isCompleted && <CheckCircle className="w-4 h-4" />}
             {status.text}
+            {order.orderStatus === 0 && order.reservationExpiresAt && (
+              <PaymentCountdown expiresAt={order.reservationExpiresAt} />
+            )}
           </div>
 
           {/* Stepper */}
@@ -279,6 +323,18 @@ export function OrderDetailPage() {
                 className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-1 transition-colors"
               >
                 <AlertCircle className="w-4 h-4" /> Hủy đơn hàng
+              </button>
+            </div>
+          )}
+
+          {order.orderStatus === 0 && order.payment?.paymentMethod === 1 && (order.payment?.status === 0 || order.payment?.status === 2) && (
+            <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
+              <button 
+                onClick={handleRetryPayment}
+                disabled={batchPayMutation.isPending}
+                className="bg-brand-500 text-white px-6 py-2 rounded-full font-bold hover:bg-brand-600 transition-colors disabled:opacity-50"
+              >
+                {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Thanh toán lại'}
               </button>
             </div>
           )}

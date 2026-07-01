@@ -15,6 +15,8 @@ public class OrderHistoryDTO
     // For the list view, we just need one thumbnail or a few items
     public string? FirstItemImageUrl { get; set; }
     public int TotalItems { get; set; }
+    public byte PaymentMethod { get; set; }
+    public byte? PaymentStatus { get; set; }
 }
 
 public class OrderDetailDTO
