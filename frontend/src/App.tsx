@@ -77,8 +77,9 @@ function PlaceholderPage({ title }: { title: string }) {
 // ─── App Component ────────────────────────────────────────────────────────────
 
 import { AuthProvider } from '@/contexts/AuthContext'
-import { LocationProvider } from '@/contexts/LocationContext'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+import { LocationProvider } from '@/contexts/LocationContext'
+import { CartProvider } from '@/contexts/CartContext'
 import { ScrollToTop } from '@/components/layout/ScrollToTop'
 import { Toaster } from 'react-hot-toast'
 import { GlobalNotificationListener } from '@/components/layout/GlobalNotificationListener'
@@ -88,7 +89,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NotificationProvider>
-          <LocationProvider>
+        <LocationProvider>
+          <CartProvider>
             <BrowserRouter>
             <ScrollToTop />
             <Toaster position="top-right" />
@@ -167,6 +169,7 @@ function App() {
             <Route path="*" element={<Navigate to={ROUTES.HOME} replace />} />
           </Routes>
           </BrowserRouter>
+          </CartProvider>
         </LocationProvider>
         </NotificationProvider>
       </AuthProvider>

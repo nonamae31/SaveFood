@@ -65,8 +65,8 @@ namespace SaveFoodBackend.Services
                 throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n Ä‘Ã¡nh giÃ¡ Ä‘Æ¡n hÃ ng nÃ y.");
 
             // Check if order is completed
-            if (orderItem.Order.OrderStatus != (byte)OrderStatusEnum.Completed)
-                throw new InvalidOperationException("Chá»‰ cÃ³ thá»ƒ Ä‘Ã¡nh giÃ¡ cÃ¡c Ä‘Æ¡n hÃ ng Ä‘Ã£ hoÃ n thÃ nh.");
+            if (orderItem.Order.OrderStatus != OrderStatusEnum.Completed)
+                throw new InvalidOperationException("Chỉ có thể đánh giá các đơn hàng đã hoàn thành.");
 
             // Check 7 day window
             var orderCompletedAt = orderItem.Order.CreatedAt; // or Payment.CreatedAt if available

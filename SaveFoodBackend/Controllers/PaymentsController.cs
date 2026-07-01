@@ -8,6 +8,7 @@ using PayOS.Models.Webhooks;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
+using IUnitOfWork = SaveFoodBackend.Interfaces.Repositories.IUnitOfWork;
 using SaveFoodBackend.Models.Config;
 using SaveFoodBackend.Services;
 
@@ -21,20 +22,17 @@ public class PaymentsController : ControllerBase
     private readonly IPayOSService _payOSService;
     private readonly IUnitOfWork _uow;
     private readonly PlatformConfig _platformConfig;
-    private readonly IOrderService _orderService;
 
     public PaymentsController(
         SaveFoodDbContext ctx, 
         IPayOSService payOSService, 
         IUnitOfWork uow, 
-        IOptions<PlatformConfig> platformConfig,
-        IOrderService orderService)
+        IOptions<PlatformConfig> platformConfig)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _uow = uow;
         _platformConfig = platformConfig.Value;
-        _orderService = orderService;
     }
 
     [HttpPost("payos-webhook")]
@@ -47,7 +45,84 @@ public class PaymentsController : ControllerBase
             
             if (data.Code == "00")
             {
-                await _orderService.HandleSuccessfulPayment(data.OrderCode, data);
+                var orderCode = data.OrderCode;
+                
+                await _uow.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+                try
+                {
+                    var orders = await _ctx.Orders.Include(o => o.Payment)
+                                                 .Where(o => o.OrderCode == orderCode)
+                                                 .ToListAsync();
+                    
+                    if (orders.Any())
+                    {
+                        foreach (var order in orders)
+                        {
+                            // Idempotency Check (Race condition safe due to Serializable IsolationLevel)
+                            if (order.Payment != null && order.Payment.Status == 0) // Pending
+                            {
+                                order.Payment.Status = 1; // Paid
+                                order.Payment.PaidAt = DateTime.UtcNow;
+                                order.ReservationExpiresAt = null; // Clear payment timer
+
+                                // --- AUDIT TRAIL: Save PayOS evidence ---
+                                order.Payment.PayOsReference = data.Reference;
+                                order.Payment.PayerAccountNumber = data.CounterAccountNumber;
+                                order.Payment.PayerName = data.CounterAccountName;
+                                order.Payment.PayerBankId = data.CounterAccountBankId;
+
+                                var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId);
+                                if (storeWallet == null)
+                                {
+                                    storeWallet = new SaveFoodBackend.Models.StoreWallet
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        StoreId = order.StoreId,
+                                        AvailableBalance = 0,
+                                        PendingBalance = 0,
+                                        UpdatedAt = DateTime.UtcNow
+                                    };
+                                    _ctx.StoreWallets.Add(storeWallet);
+                                }
+                                decimal platformFee = order.TotalAmount * _platformConfig.AdminFeePercentage;
+                                storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+                            }
+                        }
+                        await _uow.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
+                        if (subscription != null && subscription.Status == 0)
+                        {
+                            subscription.Status = 1; // Active
+
+                            // --- AUDIT TRAIL: Save PayOS evidence ---
+                            subscription.PayOsTransactionId = data.Reference;
+                            subscription.PayerAccountNumber = data.CounterAccountNumber;
+                            subscription.PayerName = data.CounterAccountName;
+                            subscription.PayerBankId = data.CounterAccountBankId;
+                            
+                            // We must cancel any other active subscriptions for this store to prevent overlap
+                            var activeSubs = await _ctx.StoreSubscriptions
+                                                       .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                       .ToListAsync();
+                            foreach(var sub in activeSubs)
+                            {
+                                sub.Status = 2; // Cancelled/Expired
+                            }
+
+                            await _uow.SaveChangesAsync();
+                        }
+                    }
+
+                    await _uow.CommitTransactionAsync();
+                }
+                catch
+                {
+                    await _uow.RollbackTransactionAsync();
+                    throw;
+                }
             }
 
             return Ok(new { success = true });
@@ -94,14 +169,46 @@ public class PaymentsController : ControllerBase
 
                     if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                     {
-                        var tx = payOSInfo.Transactions?.FirstOrDefault();
-                        await _orderService.ProcessPaymentSuccessAsync(
-                            (long)order.OrderCode,
-                            tx?.Reference ?? "",
-                            tx?.CounterAccountNumber ?? "",
-                            tx?.CounterAccountName ?? "",
-                            tx?.CounterAccountBankId ?? ""
-                        );
+                        var allOrders = await _ctx.Orders.Include(o => o.Payment)
+                                             .Where(o => o.OrderCode == order.OrderCode)
+                                             .ToListAsync();
+                        
+                        foreach (var o in allOrders)
+                        {
+                            if (o.Payment != null && o.Payment.Status == 0)
+                            {
+                                o.Payment.Status = 1;
+                                o.Payment.PaidAt = DateTime.UtcNow;
+                                o.ReservationExpiresAt = null; // Clear payment timer
+                                
+                                // --- AUDIT TRAIL: Save PayOS evidence ---
+                                var tx = payOSInfo.Transactions?.FirstOrDefault();
+                                if (tx != null)
+                                {
+                                    o.Payment.PayOsReference = tx.Reference;
+                                    o.Payment.PayerAccountNumber = tx.CounterAccountNumber;
+                                    o.Payment.PayerName = tx.CounterAccountName;
+                                    o.Payment.PayerBankId = tx.CounterAccountBankId;
+                                }
+                                
+                                var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == o.StoreId);
+                                if (storeWallet == null)
+                                {
+                                    storeWallet = new SaveFoodBackend.Models.StoreWallet
+                                    {
+                                        Id = Guid.NewGuid(),
+                                        StoreId = o.StoreId,
+                                        AvailableBalance = 0,
+                                        PendingBalance = 0,
+                                        UpdatedAt = DateTime.UtcNow
+                                    };
+                                    _ctx.StoreWallets.Add(storeWallet);
+                                }
+                                decimal platformFee = o.TotalAmount * _platformConfig.AdminFeePercentage;
+                                storeWallet.PendingBalance += (o.TotalAmount - platformFee);
+                            }
+                        }
+                        await _ctx.SaveChangesAsync();
                         return Ok(new { success = true });
                     }
                 }
