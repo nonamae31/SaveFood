@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.DTOs.Admin;
 using SaveFoodBackend.Interfaces;
@@ -17,11 +18,13 @@ namespace SaveFoodBackend.Services
     {
         private readonly IUserRepository _userRepo;
         private readonly IStoreRepository _storeRepo;
+        private readonly IRedisService _redisService;
 
-        public AdminService(IUserRepository userRepo, IStoreRepository storeRepo)
+        public AdminService(IUserRepository userRepo, IStoreRepository storeRepo, IRedisService redisService)
         {
             _userRepo = userRepo;
             _storeRepo = storeRepo;
+            _redisService = redisService;
         }
 
         public async Task<PaginatedList<AdminUserListDTO>> GetUsersAsync(GetUsersRequestDTO request)
@@ -43,6 +46,13 @@ namespace SaveFoodBackend.Services
 
         public async Task<AdminUserDetailsDTO> GetUserDetailsAsync(Guid userId)
         {
+            var cacheKey = $"admin:user:{userId}";
+            var cachedUser = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cachedUser))
+            {
+                return JsonSerializer.Deserialize<AdminUserDetailsDTO>(cachedUser);
+            }
+
             var user = await _userRepo.GetAdminUserDetailsAsync(userId);
 
             if (user == null)
@@ -50,7 +60,7 @@ namespace SaveFoodBackend.Services
                 throw new InvalidOperationException("User not found.");
             }
 
-            return new AdminUserDetailsDTO
+            var dto = new AdminUserDetailsDTO
             {
                 Id = user.Id,
                 Email = user.Email,
@@ -71,6 +81,9 @@ namespace SaveFoodBackend.Services
                     StaffRole = ss.StaffRole
                 }).ToList()
             };
+
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(dto), TimeSpan.FromMinutes(10));
+            return dto;
         }
 
         public async Task UpdateUserStatusAsync(Guid userId, byte newStatus)
@@ -80,6 +93,8 @@ namespace SaveFoodBackend.Services
 
             user.Status = newStatus;
             await _userRepo.SaveChangesAsync();
+            await _redisService.DeleteAsync($"admin:user:{userId}");
+            await _redisService.DeleteAsync($"profile_v2:{userId}"); // Invalidate profile cache too
         }
 
         public async Task<IEnumerable<AdminStoreApprovalDTO>> GetPendingStoresAsync()

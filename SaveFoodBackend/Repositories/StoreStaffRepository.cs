@@ -57,4 +57,9 @@ public class StoreStaffRepository : IStoreStaffRepository
     {
         return await _ctx.SaveChangesAsync(ct);
     }
+
+    public async Task<StoreStaff?> GetFirstStoreStaffByUserIdAsync(Guid userId, CancellationToken ct = default)
+    {
+        return await _set.AsNoTracking().FirstOrDefaultAsync(ss => ss.UserId == userId, ct);
+    }
 }

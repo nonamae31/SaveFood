@@ -30,6 +30,21 @@ public class OrdersController : ApiControllerBase
         return Ok(result);
     }
 
+    [HttpPost("pay-batch")]
+    public async Task<IActionResult> BatchPay([FromBody] BatchPayRequestDTO req, CancellationToken ct)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value!);
+            var result = await _mediator.Send(new Application.Orders.Commands.BatchPayCommand(userId, req.OrderIds, req.PaymentMethod, req.ReturnUrl, req.CancelUrl), ct);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+    }
+
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> GetMyOrders([FromQuery] int? status, [FromQuery] int page = 1, [FromQuery] int pageSize = 5, CancellationToken ct = default)

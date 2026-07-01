@@ -11,6 +11,8 @@ using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Utils;
 using SaveFoodBackend.Common.Constants;
+using SaveFoodBackend.Models;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -48,7 +50,7 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
         }
         catch (InvalidJwtException ex)
         {
-            using var httpClient = new System.Net.Http.HttpClient();
+            using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", request.Token);
             var response = await httpClient.GetAsync("https://www.googleapis.com/oauth2/v3/userinfo", ct);
             if (!response.IsSuccessStatusCode) throw new UnauthorizedAccessException($"Invalid Google Token. JWT Error: {ex.Message}");
@@ -72,17 +74,30 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
             if (username.Length > 20) username = username.Substring(0, 20);
             if (await _context.Users.AnyAsync(u => u.Username == username, ct)) username = username.Substring(0, Math.Min(15, username.Length)) + new Random().Next(1000, 9999);
 
-            user = new SaveFoodBackend.Models.User { Id = Guid.NewGuid(), Email = payloadEmail, NormalizedEmail = normalizedEmail, Username = username, FullName = payloadName ?? payloadEmail, PasswordHash = Guid.NewGuid().ToString(), AvatarUrl = payloadPicture, UserStatusEnum = SaveFoodBackend.Models.Enums.UserStatus.Active, EmailVerified = true, CreatedAt = DateTime.UtcNow };
+            user = new User { Id = Guid.NewGuid(), Email = payloadEmail, NormalizedEmail = normalizedEmail, Username = username, FullName = payloadName ?? payloadEmail, PasswordHash = Guid.NewGuid().ToString(), AvatarUrl = payloadPicture, UserStatusEnum = UserStatus.Active, EmailVerified = true, CreatedAt = DateTime.UtcNow };
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
-            if (role != null) user.UserRoles.Add(new SaveFoodBackend.Models.UserRole { RoleId = role.Id, UserId = user.Id });
+            if (role != null) user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
             _context.Users.Add(user);
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                _context.Entry(user).State = EntityState.Detached;
+                user = await _context.Users.Include(u => u.UserRoles).ThenInclude(ur => ur.Role).FirstOrDefaultAsync(u => u.NormalizedEmail == normalizedEmail, ct);
+                if (user == null) throw new UnauthorizedAccessException("Could not create or fetch user account.");
+            }
         }
         else
         {
-            if (user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new UnauthorizedAccessException("Account is locked or inactive.");
+            if (user.UserStatusEnum != UserStatus.Active) throw new UnauthorizedAccessException("Account is locked or inactive.");
             if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(payloadPicture)) user.AvatarUrl = payloadPicture;
             if (!user.EmailVerified) user.EmailVerified = true;
+            await _context.SaveChangesAsync(ct);
         }
+
+        await _context.SaveChangesAsync(ct);
 
         var sessionId = Guid.NewGuid().ToString(); var refreshToken = Guid.NewGuid().ToString();
         await _redisService.SetAsync($"session:{refreshToken}", $"{user.Id}:{sessionId}", TimeSpan.FromDays(30));

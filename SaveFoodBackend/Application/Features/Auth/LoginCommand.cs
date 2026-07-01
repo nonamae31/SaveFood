@@ -6,6 +6,7 @@ using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Utils;
 using SaveFoodBackend.Common.Constants;
 using SaveFoodBackend.Common.Exceptions;
+using SaveFoodBackend.Models.Enums;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -42,7 +43,7 @@ public class LoginCommandHandler : ICommandHandler<LoginCommand, LoginResponse>
         try { isPasswordValid = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash); } catch { }
 
         if (!isPasswordValid) throw new BusinessException("Invalid email or password.", "INVALID_CREDENTIALS", 401);
-        if (user.UserStatusEnum != SaveFoodBackend.Models.Enums.UserStatus.Active) throw new BusinessException("Account is locked or inactive.", "ACCOUNT_LOCKED_OR_INACTIVE", 403);
+        if (user.UserStatusEnum != UserStatus.Active) throw new BusinessException("Account is locked or inactive.", "ACCOUNT_LOCKED_OR_INACTIVE", 403);
         if (user.EmailVerified == false)
         {
             throw new BusinessException(

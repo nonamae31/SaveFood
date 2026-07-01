@@ -10,6 +10,8 @@ export interface OrderHistoryDTO {
   createdAt: string
   firstItemImageUrl?: string
   totalItems: number
+  paymentMethod: number
+  paymentStatus?: number
 }
 
 export interface OrderDetailDTO {
@@ -93,6 +95,17 @@ export function useCancelOrder(orderId: string) {
       return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/cancel`, {
         method: 'POST',
         body: JSON.stringify(req)
+      })
+    }
+  })
+}
+
+export function useBatchPay() {
+  return useMutation({
+    mutationFn: async (data: { orderIds: string[], returnUrl?: string, cancelUrl?: string }) => {
+      return apiClient<{ orderId: string, checkoutUrl?: string, reservationExpiresAt?: string }>('/orders/pay-batch', {
+        method: 'POST',
+        body: JSON.stringify(data)
       })
     }
   })
