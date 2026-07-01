@@ -67,6 +67,12 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "SaveFood_";
 });
+// IConnectionMultiplexer dùng cho DeleteByPatternAsync (SCAN+UNLINK)
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+    StackExchange.Redis.ConnectionMultiplexer.Connect(
+        builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"
+    )
+);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.
@@ -96,9 +102,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminStatsService, SaveFo
 
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICloudinaryService, SaveFoodBackend.Services.CloudinaryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IProductRepository, SaveFoodBackend.Repositories.ProductRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IProductService, SaveFoodBackend.Services.ProductService>();
+// IProductService đã được thay thế bằng CQRS Handlers (ProductCommands + GetProductQueries)
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IListingRepository, SaveFoodBackend.Repositories.ListingRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IListingService, SaveFoodBackend.Services.ListingService>();
+// IListingService đã được thay thế bằng CQRS Handlers (ListingCommands + GetListingQueries)
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, SaveFoodBackend.Services.CustomerListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();

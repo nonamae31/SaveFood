@@ -25,6 +25,9 @@ public class ProductRepository : IProductRepository
     {
         return await _set
             .Include(p => p.ProductImages)
+            .Include(p => p.Category)
+            .AsSplitQuery()
+            .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id, ct);
     }
 
@@ -32,7 +35,9 @@ public class ProductRepository : IProductRepository
     {
         return await _set
             .Include(p => p.ProductImages)
-            .Where(p => p.StoreId == storeId)
+            .Include(p => p.Category)
+            .Where(p => p.StoreId == storeId && !p.IsDeleted)
+            .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);
     }

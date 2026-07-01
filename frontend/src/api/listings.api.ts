@@ -1,10 +1,10 @@
 // ─── API: Customer-facing Clearance Listings ────────────────────────────────
 // Gọi các endpoint từ CustomerListingsController:
-//   GET /api/listings              — danh sách có filter
-//   GET /api/listings/recommendations — gợi ý cá nhân hóa (cần auth)
+//   GET /api/customerlistings              — danh sách có filter + phân trang
+//   GET /api/customerlistings/recommendations — gợi ý cá nhân hóa (cần auth)
 
 import { apiClient } from './client'
-import type { CustomerListingDTO, ListingFilter } from '@/types/listing.types'
+import type { CustomerListingDTO, ListingFilter, PaginatedResult } from '@/types/listing.types'
 
 /** Chuyển object filter thành URLSearchParams (bỏ qua các giá trị undefined) */
 function toQueryString(filter: ListingFilter): string {
@@ -21,16 +21,18 @@ function toQueryString(filter: ListingFilter): string {
   if (filter.userLat    !== undefined)  params.set('userLat',      String(filter.userLat))
   if (filter.userLng    !== undefined)  params.set('userLng',      String(filter.userLng))
   if (filter.radiusKm   !== undefined)  params.set('radiusKm',     String(filter.radiusKm))
+  if (filter.page       !== undefined)  params.set('page',         String(filter.page))
+  if (filter.pageSize   !== undefined)  params.set('pageSize',     String(filter.pageSize))
   const qs = params.toString()
   return qs ? `?${qs}` : ''
 }
 
-/** GET /api/listings — danh sách Clearance Listings (có filter) */
-export function getListings(filter: ListingFilter = {}): Promise<CustomerListingDTO[]> {
-  return apiClient<CustomerListingDTO[]>(`/listings${toQueryString(filter)}`)
+/** GET /api/customerlistings — danh sách Clearance Listings có phân trang */
+export function getListings(filter: ListingFilter = {}): Promise<PaginatedResult<CustomerListingDTO>> {
+  return apiClient<PaginatedResult<CustomerListingDTO>>(`/customerlistings${toQueryString(filter)}`)
 }
 
-/** GET /api/listings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
+/** GET /api/customerlistings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
 export function getRecommendations(): Promise<CustomerListingDTO[]> {
-  return apiClient<CustomerListingDTO[]>('/listings/recommendations')
+  return apiClient<CustomerListingDTO[]>('/customerlistings/recommendations')
 }

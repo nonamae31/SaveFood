@@ -2,7 +2,18 @@
 // Khớp chính xác với CustomerListingDTO và CustomerListingFilterDTO từ Backend.
 // KHÔNG dùng product.types.ts cũ vì cấu trúc khác.
 
-/** Một tin đăng Clearance Listing trả về từ GET /api/listings */
+/** Wrapper phân trang — khớp với PaginatedList<T> từ Backend */
+export interface PaginatedResult<T> {
+  items: T[]
+  totalCount: number
+  pageNumber: number
+  pageSize: number
+  totalPages: number
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}
+
+/** Một tin đăng Clearance Listing trả về từ GET /api/customerlistings */
 export interface CustomerListingDTO {
   id: string
   productId: string
@@ -19,11 +30,13 @@ export interface CustomerListingDTO {
   images?: string[]
   hasFeaturedBadge?: boolean
   priorityLevel?: number
-  distance?: number
+  distance?: number        // km (tính in-memory, không cache)
   storeStatus: number
+  storeLatitude?: number   // Tọa độ Store — dùng để đặt Marker trên Map
+  storeLongitude?: number  // Tọa độ Store — dùng để đặt Marker trên Map
 }
 
-/** Query params cho GET /api/listings — khớp với CustomerListingFilterDTO Backend */
+/** Query params cho GET /api/customerlistings — khớp với CustomerListingFilterDTO Backend */
 export interface ListingFilter {
   storeId?: string
   categoryIds?: string[]
@@ -35,4 +48,6 @@ export interface ListingFilter {
   userLat?: number
   userLng?: number
   radiusKm?: number
+  page?: number
+  pageSize?: number
 }

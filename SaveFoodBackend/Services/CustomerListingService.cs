@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using SaveFoodBackend.Common;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Customer.Listings;
 using SaveFoodBackend.Interfaces;
@@ -15,16 +17,42 @@ public class CustomerListingService : ICustomerListingService
 {
     private readonly IListingRepository _listingRepo;
     private readonly SaveFoodDbContext _ctx;
+    private readonly IRedisService _redis;
 
-    public CustomerListingService(IListingRepository listingRepo, SaveFoodDbContext ctx)
+    private static readonly TimeSpan ListingsCacheTtl = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan RecommendationsCacheTtl = TimeSpan.FromMinutes(10);
+
+    public CustomerListingService(IListingRepository listingRepo, SaveFoodDbContext ctx, IRedisService redis)
     {
         _listingRepo = listingRepo;
         _ctx = ctx;
+        _redis = redis;
     }
 
-    private double CalculateHaversine(double lat1, double lon1, double lat2, double lon2)
+    // ─── Cache key helpers ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Tạo cache key từ các tham số tĩnh (bỏ qua lat/lng/page/pageSize vì chúng per-user).
+    /// Distance sort và phân trang được áp dụng in-memory sau khi lấy từ cache.
+    /// </summary>
+    private static string BuildListingsCacheKey(CustomerListingFilterDTO filter)
     {
-        var R = 6371; // Radius of the earth in km
+        var categoryPart = filter.CategoryIds is { Count: > 0 }
+            ? string.Join(",", filter.CategoryIds.OrderBy(x => x))
+            : "all";
+        var minPrice = filter.MinPrice?.ToString() ?? "any";
+        var maxPrice = filter.MaxPrice?.ToString() ?? "any";
+        var surpriseBag = filter.IsSurpriseBag?.ToString() ?? "any";
+        var sortBy = filter.SortBy ?? "default";
+        var search = string.IsNullOrWhiteSpace(filter.SearchQuery) ? "none" : filter.SearchQuery.Trim().ToLower();
+        return $"listings:{categoryPart}:{minPrice}:{maxPrice}:{surpriseBag}:{sortBy}:{search}";
+    }
+
+    // ─── Distance helpers ─────────────────────────────────────────────────────
+
+    private static double CalculateHaversine(double lat1, double lon1, double lat2, double lon2)
+    {
+        const double R = 6371;
         var dLat = ToRadians(lat2 - lat1);
         var dLon = ToRadians(lon2 - lon1);
         var a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) +
@@ -34,61 +62,89 @@ public class CustomerListingService : ICustomerListingService
         return R * c;
     }
 
-    private double ToRadians(double angle)
+    private static double ToRadians(double angle) => Math.PI * angle / 180.0;
+
+    // ─── Public methods ───────────────────────────────────────────────────────
+
+    public async Task<PaginatedList<CustomerListingDTO>> GetListingsAsync(CustomerListingFilterDTO filter, CancellationToken ct = default)
     {
-        return Math.PI * angle / 180.0;
-    }
+        var cacheKey = BuildListingsCacheKey(filter);
+        List<CustomerListingDTO> allDtos;
 
-    public async Task<IEnumerable<CustomerListingDTO>> GetListingsAsync(CustomerListingFilterDTO filter, CancellationToken ct = default)
-    {
-        var listings = await _listingRepo.GetCustomerListingsAsync(
-            filter.StoreId,
-            filter.CategoryIds, 
-            filter.MinPrice, 
-            filter.MaxPrice, 
-            filter.IsSurpriseBag, 
-            filter.SortBy, 
-            filter.SearchQuery,
-            ct);
-
-        var dtos = listings.Select(l => 
+        // 1. Try get full list from cache
+        var cached = await _redis.GetAsync(cacheKey);
+        if (!string.IsNullOrEmpty(cached))
         {
-            var dto = MapToDTO(l);
-            if (filter.UserLat.HasValue && filter.UserLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
-            {
-                dto.Distance = Math.Round(CalculateHaversine(filter.UserLat.Value, filter.UserLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
-            }
-            return dto;
-        }).ToList();
-
-        // User requirement: Do not hard filter by Radius, just prioritize items <= 5km.
-        // If there's an explicit RadiusKm (e.g. from UI slider), we could filter, but user requested:
-        // "Nếu có kết quả phù hợp nhất nhưng quá 5km thì vẫn phải xếp sau đơn hàng gần hơn"
-        // So we will apply a multi-level sort to ALWAYS put <= 5km items first.
-
-        if (filter.SortBy == "distance" && filter.UserLat.HasValue && filter.UserLng.HasValue)
-        {
-            dtos = dtos.OrderBy(d => d.Distance.HasValue && d.Distance <= 5 ? 0 : 1)
-                       .ThenBy(d => d.Distance.HasValue ? 0 : 1)
-                       .ThenBy(d => d.Distance)
-                       .ThenByDescending(d => d.PriorityLevel).ToList();
+            allDtos = JsonSerializer.Deserialize<List<CustomerListingDTO>>(cached) ?? new();
         }
         else
         {
-            // For any other sort (like price, priority, expiry), we STILL push > 5km to the bottom
-            // Since we already got the data from DB (sorted by DB), we use OrderBy to stably sort the <=5km group vs >5km group
-            // We must preserve the original order within the groups.
-            var within5km = dtos.Where(d => !d.Distance.HasValue || d.Distance <= 5).ToList();
-            var outside5km = dtos.Where(d => d.Distance.HasValue && d.Distance > 5).ToList();
-            
-            dtos = within5km.Concat(outside5km).ToList();
+            // 2. Cache miss → query DB
+            var listings = await _listingRepo.GetCustomerListingsAsync(
+                filter.StoreId,
+                filter.CategoryIds,
+                filter.MinPrice,
+                filter.MaxPrice,
+                filter.IsSurpriseBag,
+                filter.SortBy,
+                filter.SearchQuery,
+                ct);
+
+            allDtos = listings.Select(MapToDTO).ToList();
+
+            // 3. Persist to cache (full list, no distance/pagination)
+            var serialized = JsonSerializer.Serialize(allDtos);
+            await _redis.SetAsync(cacheKey, serialized, ListingsCacheTtl);
         }
 
-        return dtos;
+        // 4. Apply distance in-memory (per-user, not cached)
+        if (filter.UserLat.HasValue && filter.UserLng.HasValue)
+        {
+            foreach (var dto in allDtos)
+            {
+                if (dto.StoreLatitude.HasValue && dto.StoreLongitude.HasValue)
+                {
+                    dto.Distance = Math.Round(
+                        CalculateHaversine(filter.UserLat.Value, filter.UserLng.Value,
+                            (double)dto.StoreLatitude.Value, (double)dto.StoreLongitude.Value), 1);
+                }
+            }
+        }
+
+        // 5. Apply sort in-memory
+        if (filter.SortBy == "distance" && filter.UserLat.HasValue && filter.UserLng.HasValue)
+        {
+            allDtos = allDtos
+                .OrderBy(d => d.Distance.HasValue && d.Distance <= 5 ? 0 : 1)
+                .ThenBy(d => d.Distance.HasValue ? 0 : 1)
+                .ThenBy(d => d.Distance)
+                .ThenByDescending(d => d.PriorityLevel)
+                .ToList();
+        }
+        else
+        {
+            // Luôn đẩy > 5km xuống cuối (giữ nguyên thứ tự DB trong từng nhóm)
+            var within5km = allDtos.Where(d => !d.Distance.HasValue || d.Distance <= 5).ToList();
+            var outside5km = allDtos.Where(d => d.Distance.HasValue && d.Distance > 5).ToList();
+            allDtos = within5km.Concat(outside5km).ToList();
+        }
+
+        // 6. Paginate in-memory
+        var totalCount = allDtos.Count;
+        var page = Math.Max(1, filter.Page);
+        var pageSize = Math.Clamp(filter.PageSize, 1, 50);
+        var items = allDtos.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+        return new PaginatedList<CustomerListingDTO>(items, totalCount, page, pageSize);
     }
 
     public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, CancellationToken ct = default)
     {
+        var cacheKey = $"listings:recs:{userId}";
+        var cached = await _redis.GetAsync(cacheKey);
+        if (!string.IsNullOrEmpty(cached))
+            return JsonSerializer.Deserialize<List<CustomerListingDTO>>(cached) ?? new();
+
         // Lấy danh sách CategoryId từ lịch sử đơn hàng của User
         var favoriteCategoryIds = await _ctx.Orders
             .Where(o => o.UserId == userId)
@@ -97,30 +153,44 @@ public class CustomerListingService : ICustomerListingService
             .Distinct()
             .ToListAsync(ct);
 
+        IEnumerable<CustomerListingDTO> result;
+
         if (!favoriteCategoryIds.Any())
         {
             var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", null, ct);
-            return recentListings.Take(10).Select(MapToDTO);
+            result = recentListings.Take(10).Select(MapToDTO);
+        }
+        else
+        {
+            var recommendedListings = await _ctx.ClearanceListings
+                .Include(l => l.Product)
+                    .ThenInclude(p => p.Store)
+                        .ThenInclude(s => s.StoreSubscriptions.Where(sub =>
+                            sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active &&
+                            sub.StartDate <= DateTime.UtcNow &&
+                            sub.EndDate >= DateTime.UtcNow))
+                            .ThenInclude(sub => sub.Plan)
+                .Include(l => l.Product)
+                    .ThenInclude(p => p.ProductImages)
+                .Include(l => l.ListingImages)
+                .Where(l =>
+                    (l.ListingFlags & 1) == 0 &&
+                    l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published &&
+                    l.ExpiryDate > DateTime.UtcNow &&
+                    l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active &&
+                    favoriteCategoryIds.Contains(l.Product.CategoryId))
+                .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
+                .ThenBy(l => l.ExpiryDate)
+                .Take(10)
+                .AsNoTracking()
+                .ToListAsync(ct);
+
+            result = recommendedListings.Select(MapToDTO);
         }
 
-        // Lấy các tin đăng thuộc danh mục yêu thích
-        var recommendedListings = await _ctx.ClearanceListings
-            .Include(l => l.Product)
-                .ThenInclude(p => p.Store)
-                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
-                        .ThenInclude(sub => sub.Plan)
-            .Include(l => l.Product)
-                .ThenInclude(p => p.ProductImages)
-            .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active) // Status 1 = Published
-            .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
-            .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
-            .ThenBy(l => l.ExpiryDate)
-            .Take(10)
-            .AsNoTracking()
-            .ToListAsync(ct);
-
-        return recommendedListings.Select(MapToDTO);
+        var resultList = result.ToList();
+        await _redis.SetAsync(cacheKey, JsonSerializer.Serialize(resultList), RecommendationsCacheTtl);
+        return resultList;
     }
 
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)
@@ -146,7 +216,9 @@ public class CustomerListingService : ICustomerListingService
                      : l.Product.ProductImages?.Select(i => i.ImageUrl).ToList() ?? new List<string>(),
             HasFeaturedBadge = activeSub?.Plan?.HasFeaturedBadge ?? false,
             PriorityLevel = activeSub?.Plan?.PriorityLevel ?? 0,
-            StoreStatus = l.Product.Store.Status
+            StoreStatus = l.Product.Store.Status,
+            StoreLatitude = l.Product.Store.Latitude,
+            StoreLongitude = l.Product.Store.Longitude,
         };
     }
 }

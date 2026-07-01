@@ -66,12 +66,10 @@ const getWithdrawalStatusLabel = (status: number) => {
 
 const renderPagination = (currentPage: number, totalPages: number, setPage: (p: number) => void, totalCount: number = 0, pageSize: number = 10, label: string = 'mục') => {
   if (totalPages <= 1) return null;
-  
   const pages = [];
   const maxPagesToShow = 5;
   let startPage = Math.max(1, currentPage - Math.floor(maxPagesToShow / 2));
   let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
-  
   if (endPage - startPage + 1 < maxPagesToShow) {
     startPage = Math.max(1, endPage - maxPagesToShow + 1);
   }
@@ -169,8 +167,8 @@ export default function DashboardWalletPage() {
       <div className="flex space-x-4 border-b border-gray-200">
         <button
           className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'overview'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            ? 'border-brand-600 text-brand-700'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           onClick={() => setActiveTab('overview')}
         >
@@ -178,8 +176,8 @@ export default function DashboardWalletPage() {
         </button>
         <button
           className={`pb-4 px-2 text-sm font-medium transition-colors border-b-2 ${activeTab === 'withdrawals'
-              ? 'border-brand-600 text-brand-700'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+            ? 'border-brand-600 text-brand-700'
+            : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
           onClick={() => setActiveTab('withdrawals')}
         >
@@ -219,7 +217,6 @@ export default function DashboardWalletPage() {
             <div className="px-6 py-5 border-b border-gray-100 bg-gray-50/50">
               <h3 className="text-lg font-bold text-gray-900 font-display">Lịch sử giao dịch</h3>
             </div>
-            
             <div className="divide-y divide-gray-100">
               {txLoading ? (
                 <div className="p-8 text-center text-gray-500">Đang tải...</div>
@@ -236,7 +233,6 @@ export default function DashboardWalletPage() {
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 ${getTxIconBg(tx.type)}`}>
                       {getTxIcon(tx.type)}
                     </div>
-                    
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h4 className="font-bold text-gray-900 truncate">{getTxTypeLabel(tx.type)}</h4>
@@ -251,7 +247,6 @@ export default function DashboardWalletPage() {
                         <p className="text-sm text-gray-500 mt-1.5 truncate">{tx.description}</p>
                       )}
                     </div>
-                    
                     <div className="text-right shrink-0">
                       <div className={`text-xl font-bold tracking-tight ${tx.amount > 0 ? 'text-green-600' : 'text-gray-900'}`}>
                         {tx.amount > 0 ? '+' : ''}{formatVND(tx.amount)}
@@ -261,7 +256,6 @@ export default function DashboardWalletPage() {
                 ))
               )}
             </div>
-            
             {/* Transactions Pagination */}
             {txData && txData.totalPages >= 1 && (
               <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
@@ -411,7 +405,6 @@ export default function DashboardWalletPage() {
                 </tbody>
               </table>
             </div>
-            
             {/* Withdrawals Pagination */}
             {wdData && wdData.totalPages >= 1 && (
               <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
