@@ -37,5 +37,5 @@ Invalid column name 'PayerName'.
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in D:\blackmyth\folder3\session8\prn232\project\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:2353a00c-88e3-47ea-beeb-2f9385f89733
+ClientConnectionId:8c7a97c9-9b94-4168-bfca-df2dfca183ad
 Error Number:207,State:1,Class:16

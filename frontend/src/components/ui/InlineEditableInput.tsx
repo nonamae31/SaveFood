@@ -9,6 +9,7 @@ export function InlineEditableInput({
 }) {
   const [localValue, setLocalValue] = useState(value);
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => { setLocalValue(value); }, [value]);
 
@@ -20,9 +21,17 @@ export function InlineEditableInput({
       await onSave(localValue);
       setStatus('success');
       setTimeout(() => setStatus('idle'), 2000);
-    } catch (_error) {
+    } catch (_error: any) {
       setStatus('error');
-      setTimeout(() => setStatus('idle'), 3000);
+      let msg = _error?.message || 'Lưu thất bại';
+      if (msg.startsWith('Dữ liệu không hợp lệ: ')) {
+        msg = msg.replace('Dữ liệu không hợp lệ: ', '').trim();
+      }
+      setErrorMessage(msg);
+      setTimeout(() => {
+        setStatus('idle');
+        setErrorMessage('');
+      }, 4000);
       setLocalValue(value); // revert on error
     }
   };
@@ -33,6 +42,7 @@ export function InlineEditableInput({
         id={id} label={label} type={type} value={localValue}
         onChange={(e) => setLocalValue(e.target.value)} onBlur={handleBlur}
         disabled={disabled || status === 'saving'} className={className}
+        error={status === 'error' ? errorMessage : undefined}
       />
       <div className="absolute right-3 top-9 flex items-center justify-center pointer-events-none">
         {status === 'saving' && <Loader2 className="animate-spin text-[--color-brand-600]" size={18} />}
