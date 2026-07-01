@@ -50,7 +50,7 @@ export function ProfileOrdersTab() {
   const { data: pageResult, isLoading, error } = useMyOrders(activeStatus === -1 ? undefined : activeStatus, currentPage, pageSize)
   const batchPayMutation = useBatchPay()
   
-  const dataArray = Array.isArray(pageResult) ? pageResult : (pageResult as any)?.data || (pageResult as any)?.Data;
+  const dataArray = Array.isArray(pageResult) ? pageResult : (pageResult as any)?.items || (pageResult as any)?.Items || (pageResult as any)?.data || (pageResult as any)?.Data;
   const totalPages = (pageResult as any)?.totalPages || (pageResult as any)?.TotalPages || (Array.isArray(pageResult) ? 1 : 0);
 
   const navigate = useNavigate()
