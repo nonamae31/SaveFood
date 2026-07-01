@@ -140,7 +140,7 @@ app.UseRouting();
 app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
-app.UseMiddleware<SaveFoodBackend.Middleware.JwtBlacklistMiddleware>();
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

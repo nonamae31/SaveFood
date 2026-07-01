@@ -177,7 +177,7 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
                     toast.error('Không thể lấy vị trí. Kiểm tra cài đặt Vị trí trên thiết bị!');
                   }
                 },
-                { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+                { enableHighAccuracy: false, timeout: 15000, maximumAge: 0 }
               );
             }
           }}

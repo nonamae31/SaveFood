@@ -57,7 +57,7 @@ export function ProductListPage() {
   const {
     data: recommendations,
     isLoading: isRecsLoading,
-  } = useRecommendations()
+  } = useRecommendations(userLocation?.lat, userLocation?.lng)
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
   // -- Pagination Logic --
