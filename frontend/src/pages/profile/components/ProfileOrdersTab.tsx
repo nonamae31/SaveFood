@@ -63,7 +63,7 @@ export function ProfileOrdersTab() {
     return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
   }, []);
 
-  const handleTabChange = (status: number | null) => {
+  const handleTabChange = (status: number) => {
     setActiveStatus(status);
     setCurrentPage(1); 
     setSelectedOrders([]);
