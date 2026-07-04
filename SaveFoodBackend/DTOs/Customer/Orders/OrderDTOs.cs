@@ -17,6 +17,7 @@ public class OrderHistoryDTO
     public int TotalItems { get; set; }
     public byte PaymentMethod { get; set; }
     public byte? PaymentStatus { get; set; }
+    public DateTime? ReservationExpiresAt { get; set; }
 }
 
 public class OrderDetailDTO

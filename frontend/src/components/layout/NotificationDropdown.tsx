@@ -44,8 +44,8 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
     : 'relative p-1.5 text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-all duration-300 focus:outline-none';
 
   const menuClass = placement === 'top-right'
-    ? 'absolute bottom-full right-0 mb-2 w-64 sm:w-64 bg-white rounded-xl shadow-2xl border border-[--color-border] overflow-hidden z-[100] flex flex-col max-h-[60vh]'
-    : 'absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-[--color-border] overflow-hidden z-[100] flex flex-col max-h-[80vh]';
+    ? 'absolute bottom-full right-0 mb-2 w-64 sm:w-64 bg-white text-gray-900 rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-[100] flex flex-col max-h-[60vh]'
+    : 'absolute right-0 mt-2 w-80 sm:w-96 bg-white text-gray-900 rounded-xl shadow-xl border border-gray-200 overflow-hidden z-[100] flex flex-col max-h-[80vh]';
 
   return (
     <div className="relative" ref={dropdownRef}>
@@ -63,12 +63,12 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
 
       {isOpen && (
         <div className={menuClass}>
-          <div className="p-4 border-b border-[--color-border] flex items-center justify-between bg-[--color-surface-hover]">
-            <h3 className="font-semibold text-[--color-ink-primary]">Thông báo</h3>
+          <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <h3 className="font-semibold text-gray-900">Thông báo</h3>
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="text-sm text-[--color-brand-primary] hover:text-[--color-brand-secondary] flex items-center gap-1 font-medium"
+                className="text-sm text-green-600 hover:text-green-700 flex items-center gap-1 font-medium transition-colors"
               >
                 <Check className="w-4 h-4" /> Đánh dấu đã đọc
               </button>
@@ -77,7 +77,7 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
 
           <div className="overflow-y-auto flex-1 p-2 space-y-1">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-[--color-ink-tertiary]">
+              <div className="p-8 text-center text-gray-400">
                 <Bell className="w-12 h-12 mx-auto mb-3 opacity-20" />
                 <p>Bạn chưa có thông báo nào</p>
               </div>
@@ -87,7 +87,7 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif.id, notif.isRead)}
                   className={`p-3 rounded-lg flex gap-3 cursor-pointer transition-colors ${
-                    !notif.isRead ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-[--color-surface-hover]'
+                    !notif.isRead ? 'bg-blue-50/50 hover:bg-blue-50' : 'hover:bg-gray-50'
                   }`}
                 >
                   <div className="flex-shrink-0 mt-1">
@@ -115,7 +115,7 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
               <button
                 onClick={loadMore}
                 disabled={loading}
-                className="w-full py-2 text-sm font-medium text-[--color-brand-primary] hover:bg-[--color-brand-50] rounded-lg transition-colors"
+                className="w-full py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
               >
                 {loading ? 'Đang tải...' : 'Xem thêm'}
               </button>

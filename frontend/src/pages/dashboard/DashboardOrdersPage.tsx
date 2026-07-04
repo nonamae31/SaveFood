@@ -4,7 +4,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import {
   ClipboardList, CheckCircle, PackageCheck, Truck,
   XCircle, ChevronRight, Loader2, RefreshCw, X, User,
-  Banknote, CreditCard, Hash, Package
+  Banknote, CreditCard, Hash, Package, Wallet
 } from 'lucide-react';
 import { storeOrdersApi } from '@/api/store.orders.api';
 import type { StoreOrderDTO } from '@/api/store.orders.api';
@@ -21,7 +21,7 @@ const STATUS_CONFIG: Record<number, { label: string; color: string; bg: string; 
 };
 
 const PAYMENT_METHOD: Record<number, { label: string; icon: any; color: string }> = {
-  0: { label: 'Tiền mặt', icon: Banknote, color: 'text-emerald-700 bg-emerald-50' },
+  0: { label: 'Ví SaveFood', icon: Wallet, color: 'text-brand-700 bg-brand-50' },
   1: { label: 'PayOS', icon: CreditCard, color: 'text-indigo-700 bg-indigo-50' },
 };
 

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Html5Qrcode } from 'html5-qrcode'
 import {
   ScanLine, Search, Camera, CameraOff, CheckCircle2, Clock,
-  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2
+  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2, Wallet
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { storeOrdersApi, type StoreOrderDTO } from '@/api/store.orders.api'
@@ -24,7 +24,7 @@ const ORDER_STATUS = {
 } as const
 
 const PAYMENT_METHOD = {
-  0: { label: 'Tiền mặt', icon: Banknote, color: 'text-emerald-700 bg-emerald-50' },
+  0: { label: 'Ví SaveFood', icon: Wallet, color: 'text-brand-700 bg-brand-50' },
   1: { label: 'PayOS', icon: CreditCard, color: 'text-indigo-700 bg-indigo-50' },
 } as const
 

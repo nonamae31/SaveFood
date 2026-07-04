@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useOrder, useExtendPickup, useCancelOrder, useBatchPay } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
-import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star } from 'lucide-react'
+import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
@@ -52,8 +52,8 @@ export function OrderDetailPage() {
     batchPayMutation.mutate(
       { 
         orderIds: [id],
-        returnUrl: window.location.origin + '/payment/success',
-        cancelUrl: window.location.origin + '/payment/cancel'
+        returnUrl: window.location.origin + '/checkout/success',
+        cancelUrl: window.location.origin + '/checkout/cancel'
       },
       {
         onSuccess: (res) => {
@@ -238,11 +238,18 @@ export function OrderDetailPage() {
             <Store className="w-5 h-5 text-gray-400" /> Cửa hàng
           </h3>
           <div className="bg-gray-50 rounded-xl p-4">
-            <p className="font-bold text-gray-900 mb-1">{order.storeName}</p>
-            <p className="text-sm text-gray-600 flex items-start gap-1">
-              <MapPin className="w-4 h-4 mt-0.5 shrink-0" />
-              {order.storeAddress}
-            </p>
+            <p className="font-bold text-gray-900 mb-2">{order.storeName}</p>
+            <a 
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.storeAddress)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-start sm:items-center gap-1.5 px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-lg text-sm font-medium transition-colors border border-blue-100 shadow-sm"
+              title="Xem bản đồ trên Google Maps"
+            >
+              <MapPin className="w-4 h-4 shrink-0 mt-0.5 sm:mt-0" />
+              <span className="flex-1 text-left line-clamp-2">{order.storeAddress}</span>
+              <ExternalLink className="w-4 h-4 shrink-0 opacity-70 ml-1" />
+            </a>
           </div>
         </div>
 
@@ -312,32 +319,32 @@ export function OrderDetailPage() {
           {order.payment && (
             <div className="flex justify-between">
               <span>Phương thức:</span>
-              <span>{order.payment.paymentMethod === 1 ? 'Thanh toán Online' : 'Thanh toán tại quầy'}</span>
+              <span>{order.payment.paymentMethod === 1 ? 'Thanh toán trực tuyến (PayOS)' : 'Ví SaveFood'}</span>
             </div>
           )}
 
-          {order.orderStatus === 1 && !order.confirmedById && (
-            <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
-              <button 
-                onClick={() => setIsCancelModalOpen(true)}
-                className="text-red-500 hover:text-red-700 font-medium text-sm flex items-center gap-1 transition-colors"
-              >
-                <AlertCircle className="w-4 h-4" /> Hủy đơn hàng
-              </button>
+          {order.orderStatus === 0 ? (
+            <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
+              {order.orderStatus === 0 && (
+                <button 
+                  onClick={() => setIsCancelModalOpen(true)}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl border-2 border-red-500 text-red-600 hover:bg-red-50 hover:border-red-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+                >
+                  <AlertCircle className="w-5 h-5" /> Hủy đơn hàng
+                </button>
+              )}
+              
+              {order.orderStatus === 0 && order.payment?.paymentMethod === 1 && (order.payment?.status === 0 || order.payment?.status === 2) && (
+                <button 
+                  onClick={handleRetryPayment}
+                  disabled={batchPayMutation.isPending}
+                  className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
+                </button>
+              )}
             </div>
-          )}
-
-          {order.orderStatus === 0 && order.payment?.paymentMethod === 1 && (order.payment?.status === 0 || order.payment?.status === 2) && (
-            <div className="pt-4 mt-2 border-t border-gray-100 flex justify-end">
-              <button 
-                onClick={handleRetryPayment}
-                disabled={batchPayMutation.isPending}
-                className="bg-brand-500 text-white px-6 py-2 rounded-full font-bold hover:bg-brand-600 transition-colors disabled:opacity-50"
-              >
-                {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Thanh toán lại'}
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -381,7 +388,7 @@ export function OrderDetailPage() {
                   disabled={cancelMutation.isPending}
                   className="w-full mt-6 bg-red-500 text-white font-bold py-3.5 rounded-xl hover:bg-red-600 transition-colors disabled:opacity-50"
                 >
-                  {cancelMutation.isPending ? 'Đang xử lý...' : 'Xác nhận Hủy đơn'}
+                  {cancelMutation.isPending ? 'Đang xử lý...' : 'Xác nhận hủy đơn hàng'}
                 </button>
               </form>
             </div>

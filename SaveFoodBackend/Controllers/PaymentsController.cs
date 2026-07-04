@@ -61,6 +61,7 @@ public class PaymentsController : ControllerBase
                             // Idempotency Check (Race condition safe due to Serializable IsolationLevel)
                             if (order.Payment != null && order.Payment.Status == 0) // Pending
                             {
+                                order.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending; // Wait for store confirmation
                                 order.Payment.Status = 1; // Paid
                                 order.Payment.PaidAt = DateTime.UtcNow;
                                 order.ReservationExpiresAt = null; // Clear payment timer
@@ -154,8 +155,15 @@ public class PaymentsController : ControllerBase
             var order = await _ctx.Orders.Include(o => o.Payment)
                                          .FirstOrDefaultAsync(o => (isGuid && o.Id == parsedGuid) || (isLong && o.OrderCode == parsedLong));
             
-            if (order != null && order.Payment != null && order.Payment.Status == 0 && order.OrderCode.HasValue)
+            if (order != null && order.Payment != null)
             {
+                if (order.Payment.Status == 1)
+                {
+                    return Ok(new { success = true, message = "Giao dịch đã hoàn tất thành công." });
+                }
+
+                if (order.Payment.Status == 0 && order.OrderCode.HasValue)
+                {
                 try
                 {
                     var payOSInfo = await payOSClient.PaymentRequests.GetAsync(order.OrderCode.Value);
@@ -177,6 +185,7 @@ public class PaymentsController : ControllerBase
                         {
                             if (o.Payment != null && o.Payment.Status == 0)
                             {
+                                o.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending; // Wait for store confirmation
                                 o.Payment.Status = 1;
                                 o.Payment.PaidAt = DateTime.UtcNow;
                                 o.ReservationExpiresAt = null; // Clear payment timer
@@ -217,6 +226,7 @@ public class PaymentsController : ControllerBase
                     return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
                 }
                 return Ok(new { success = false, status = "UNKNOWN" });
+                }
             }
             else if (order == null)
             {
@@ -268,7 +278,7 @@ public class PaymentsController : ControllerBase
                 }
             }
 
-            return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch đã hoàn tất." });
+            return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch không ở trạng thái chờ thanh toán qua PayOS." });
         }
         catch (Exception ex)
         {

@@ -57,11 +57,22 @@ builder.Services.AddSaveFoodCors(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 
 // ─── 7. Redis Cache ───────────────────────────────────────────────────────────
-builder.Services.AddStackExchangeRedisCache(options =>
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+// Tạm thời vô hiệu hóa Redis trên Production (SmarterASP) do bị chặn port,
+// chỉ dùng Redis trên môi trường Development.
+if (!string.IsNullOrEmpty(redisConnectionString) && builder.Environment.IsDevelopment())
 {
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "SaveFood_";
-});
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "SaveFood_";
+    });
+}
+else
+{
+    // Fallback to in-memory cache if Redis is not configured (e.g., on SmarterASP)
+    builder.Services.AddDistributedMemoryCache();
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.
