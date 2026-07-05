@@ -446,32 +446,39 @@ export default function DashboardOrdersPage() {
       ) : (
         <div className="space-y-4">
           {/* Bulk action header */}
-          <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={isAllSelected}
-                onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-              />
-              <span className="text-sm font-semibold text-gray-700">Chọn tất cả</span>
-            </label>
-            {hasSelected && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-500 mr-2">Đã chọn {selectedOrderIds.length}</span>
-                {activeFilter === '0' && (
-                  <button onClick={() => handleBulkAction(storeOrdersApi.confirm, 'Xác nhận')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
-                    Xác nhận
-                  </button>
-                )}
-                {activeFilter === '1' && (
-                  <button onClick={() => handleBulkAction(storeOrdersApi.markReady, 'Chuẩn bị xong')} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
-                    Chuẩn bị xong
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {['0', '1', '2'].includes(activeFilter) && (
+            <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={isAllSelected}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">Chọn tất cả</span>
+              </label>
+              {hasSelected && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-500 mr-2">Đã chọn {selectedOrderIds.length}</span>
+                  {activeFilter === '0' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.confirm, 'Xác nhận')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
+                      Xác nhận
+                    </button>
+                  )}
+                  {activeFilter === '1' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.markReady, 'Chuẩn bị xong')} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
+                      Chuẩn bị xong
+                    </button>
+                  )}
+                  {activeFilter === '2' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.complete, 'Khách đã nhận hàng')} className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 cursor-pointer">
+                      Khách đã nhận hàng
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div ref={parentRef} className="h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             <div
@@ -500,7 +507,7 @@ export default function DashboardOrdersPage() {
                       order={order}
                       onClick={() => setSelectedOrder(order)}
                       isSelected={selectedOrderIds.includes(order.id)}
-                      onToggleSelect={(e) => handleToggleSelect(order.id, e)}
+                      onToggleSelect={['0', '1', '2'].includes(activeFilter) ? (e) => handleToggleSelect(order.id, e) : undefined}
                     />
                   </div>
                 );

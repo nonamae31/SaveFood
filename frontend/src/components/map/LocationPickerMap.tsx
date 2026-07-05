@@ -173,6 +173,8 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
                   console.error(err);
                   if (err.code === 3) { // TIMEOUT
                     toast.error('Quá thời gian lấy vị trí. Thử lại ở khu vực thoáng hơn.');
+                  } else if (err.code === 1) { // PERMISSION_DENIED
+                    toast.error('Bạn đã chặn quyền Vị trí. Vui lòng mở cài đặt trình duyệt (biểu tượng ổ khóa trên thanh địa chỉ) để cấp lại quyền!');
                   } else {
                     toast.error('Không thể lấy vị trí. Kiểm tra cài đặt Vị trí trên thiết bị!');
                   }

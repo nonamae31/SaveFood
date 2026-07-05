@@ -22,17 +22,20 @@ public class PaymentsController : ControllerBase
     private readonly IPayOSService _payOSService;
     private readonly IUnitOfWork _uow;
     private readonly PlatformConfig _platformConfig;
+    private readonly INotificationService _notificationService;
 
     public PaymentsController(
         SaveFoodDbContext ctx, 
         IPayOSService payOSService, 
         IUnitOfWork uow, 
-        IOptions<PlatformConfig> platformConfig)
+        IOptions<PlatformConfig> platformConfig,
+        INotificationService notificationService)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _uow = uow;
         _platformConfig = platformConfig.Value;
+        _notificationService = notificationService;
     }
 
     [HttpPost("payos-webhook")]
@@ -87,6 +90,21 @@ public class PaymentsController : ControllerBase
                                 }
                                 decimal platformFee = order.TotalAmount * _platformConfig.AdminFeePercentage;
                                 storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+
+                                // --- AUDIT TRAIL: Notify Store ---
+                                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == order.StoreId);
+                                var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == order.StoreId).Select(s => s.UserId).ToListAsync();
+                                if (store != null && !staffIds.Contains(store.OwnerId)) staffIds.Add(store.OwnerId);
+                                foreach (var uid in staffIds.Distinct())
+                                {
+                                    await _notificationService.SendAsync(
+                                        userId: uid,
+                                        title: "Đơn hàng mới",
+                                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán. Vui lòng kiểm tra và chuẩn bị món!",
+                                        type: "NEW_ORDER",
+                                        referenceId: order.Id
+                                    );
+                                }
                             }
                         }
                         await _uow.SaveChangesAsync();
@@ -215,6 +233,21 @@ public class PaymentsController : ControllerBase
                                 }
                                 decimal platformFee = o.TotalAmount * _platformConfig.AdminFeePercentage;
                                 storeWallet.PendingBalance += (o.TotalAmount - platformFee);
+
+                                // --- AUDIT TRAIL: Notify Store ---
+                                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == o.StoreId);
+                                var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == o.StoreId).Select(s => s.UserId).ToListAsync();
+                                if (store != null && !staffIds.Contains(store.OwnerId)) staffIds.Add(store.OwnerId);
+                                foreach (var uid in staffIds.Distinct())
+                                {
+                                    await _notificationService.SendAsync(
+                                        userId: uid,
+                                        title: "Đơn hàng mới",
+                                        body: $"Có đơn hàng mới ({o.OrderCode}) vừa được thanh toán. Vui lòng kiểm tra và chuẩn bị món!",
+                                        type: "NEW_ORDER",
+                                        referenceId: o.Id
+                                    );
+                                }
                             }
                         }
                         await _ctx.SaveChangesAsync();

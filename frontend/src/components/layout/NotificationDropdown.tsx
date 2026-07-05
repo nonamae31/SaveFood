@@ -1,11 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Bell, Check, Package, DollarSign, MessageSquare, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useNotifications } from '../../contexts/NotificationContext';
 
 export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bottom-right' | 'top-right' }> = ({ isDark, placement = 'bottom-right' }) => {
   const { notifications, unreadCount, loadMore, hasMore, loading, markAsRead, markAllAsRead } = useNotifications();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleViewAll = () => {
+    setIsOpen(false);
+    if (location.pathname.startsWith('/admin')) {
+      navigate('/admin/notifications');
+    } else if (location.pathname.startsWith('/dashboard')) {
+      navigate('/dashboard/notifications');
+    } else {
+      navigate('/notifications');
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -82,7 +96,7 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
                 <p>Bạn chưa có thông báo nào</p>
               </div>
             ) : (
-              notifications.map((notif) => (
+              notifications.slice(0, 5).map((notif) => (
                 <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif.id, notif.isRead)}
@@ -110,16 +124,14 @@ export const NotificationDropdown: React.FC<{ isDark?: boolean; placement?: 'bot
                 </div>
               ))
             )}
-            
-            {hasMore && (
+            <div className="pt-2 mt-2 border-t border-gray-100">
               <button
-                onClick={loadMore}
-                disabled={loading}
-                className="w-full py-2 text-sm font-medium text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                onClick={handleViewAll}
+                className="w-full py-2 text-sm font-medium text-center text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer block"
               >
-                {loading ? 'Đang tải...' : 'Xem thêm'}
+                Xem tất cả
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}

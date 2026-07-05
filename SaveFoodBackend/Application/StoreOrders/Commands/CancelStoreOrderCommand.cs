@@ -22,13 +22,15 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
     private readonly IStoreRepository _storeRepo;
     private readonly SaveFoodDbContext _ctx;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public CancelStoreOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext)
+    public CancelStoreOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _ctx = ctx;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(CancelStoreOrderCommand request, CancellationToken cancellationToken)
@@ -94,6 +96,14 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
         await _orderRepo.SaveChangesAsync(cancellationToken);
         
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, (int)order.OrderStatus, cancellationToken: cancellationToken);
+
+        await _notificationService.SendAsync(
+            userId: order.UserId,
+            title: "Đơn hàng bị hủy",
+            body: $"Rất tiếc, cửa hàng đã hủy đơn hàng {order.OrderCode} của bạn. Nếu bạn đã thanh toán, tiền đã được hoàn lại vào Ví SaveFood.",
+            type: "ORDER_STATUS_UPDATE",
+            referenceId: order.Id
+        );
 
         return true;
     }

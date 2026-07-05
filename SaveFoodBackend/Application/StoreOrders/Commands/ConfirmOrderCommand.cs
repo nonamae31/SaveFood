@@ -18,12 +18,14 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, b
     private readonly IOrderRepository _orderRepo;
     private readonly IStoreRepository _storeRepo;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public ConfirmOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IHubContext<NotificationHub> hubContext)
+    public ConfirmOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(ConfirmOrderCommand request, CancellationToken cancellationToken)
@@ -48,6 +50,14 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, b
         await _orderRepo.SaveChangesAsync(cancellationToken);
         
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, (int)order.OrderStatus, cancellationToken: cancellationToken);
+        
+        await _notificationService.SendAsync(
+            userId: order.UserId,
+            title: "Đơn hàng đã được xác nhận",
+            body: $"Cửa hàng đã xác nhận đơn hàng {order.OrderCode}. Quán đang chuẩn bị món cho bạn!",
+            type: "ORDER_STATUS_UPDATE",
+            referenceId: order.Id
+        );
 
         return true;
     }

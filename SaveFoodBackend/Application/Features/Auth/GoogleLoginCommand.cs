@@ -78,6 +78,18 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
             if (role != null) user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
             _context.Users.Add(user);
+            
+            _context.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Title = "Chào mừng bạn đến với SaveFood",
+                Body = "Chúc mừng bạn đã tạo tài khoản thành công. Hãy khám phá các món ăn ngon giá rẻ ngay hôm nay!",
+                Type = "SYSTEM",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
             try
             {
                 await _context.SaveChangesAsync(ct);

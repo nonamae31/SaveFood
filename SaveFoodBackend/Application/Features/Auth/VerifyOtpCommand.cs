@@ -8,6 +8,7 @@ using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Auth;
 using SaveFoodBackend.Utils;
 using SaveFoodBackend.Interfaces;
+using SaveFoodBackend.Models;
 
 namespace SaveFood.Application.Features.Auth;
 
@@ -43,6 +44,18 @@ public class VerifyOtpCommandHandler : ICommandHandler<VerifyOtpCommand, bool>
 
         await _redisService.DeleteAsync($"otp:{normalizedEmail}");
         user.EmailVerified = true;
+
+        _context.Notifications.Add(new Notification
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Title = "Chào mừng bạn đến với SaveFood",
+            Body = "Chúc mừng bạn đã tạo tài khoản thành công. Hãy khám phá các món ăn ngon giá rẻ ngay hôm nay!",
+            Type = "SYSTEM",
+            IsRead = false,
+            CreatedAt = DateTime.UtcNow
+        });
+
         await _context.SaveChangesAsync(ct);
         return true;
     }

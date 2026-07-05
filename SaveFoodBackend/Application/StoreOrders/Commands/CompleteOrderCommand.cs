@@ -20,13 +20,15 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
     private readonly IStoreRepository _storeRepo;
     private readonly IFinanceRepository _financeRepo;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext)
+    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _financeRepo = financeRepo;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(CompleteOrderCommand request, CancellationToken cancellationToken)
@@ -94,6 +96,14 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
         await _financeRepo.SaveChangesAsync(cancellationToken);
         
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, (int)order.OrderStatus, cancellationToken: cancellationToken);
+        
+        await _notificationService.SendAsync(
+            userId: order.UserId,
+            title: "Đơn hàng đã hoàn thành",
+            body: $"Bạn đã nhận thành công đơn hàng {order.OrderCode}. Chúc bạn ngon miệng và cảm ơn bạn đã cùng giải cứu thức ăn!",
+            type: "ORDER_STATUS_UPDATE",
+            referenceId: order.Id
+        );
 
         return true;
     }

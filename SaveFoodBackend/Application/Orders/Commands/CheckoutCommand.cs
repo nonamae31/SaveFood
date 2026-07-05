@@ -23,14 +23,14 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
 {
     private readonly SaveFoodDbContext _ctx;
     private readonly IPayOSService _payOSService;
-    private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
 
-    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, IUnitOfWork unitOfWork)
+    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork)
     {
         _ctx = ctx;
         _payOSService = payOSService;
-        _hubContext = hubContext;
+        _notificationService = notificationService;
         _unitOfWork = unitOfWork;
     }
 
@@ -251,17 +251,32 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
             }
         });
 
-        // SignalR Notification (after commit)
-        foreach (var order in createdOrders)
+        // Notifications
+        if (req.PaymentMethod == 0) // Only notify immediately if Wallet (since PayOS needs webhook)
         {
-            var staffIds = await _ctx.StoreStaffs
-                .Where(s => s.StoreId == order.StoreId)
-                .Select(s => s.UserId)
-                .ToListAsync(cancellationToken);
-
-            foreach (var uid in staffIds.Distinct())
+            foreach (var order in createdOrders)
             {
-                await _hubContext.Clients.Group($"User_{uid}").SendAsync("NewOrderReceived", order.Id, cancellationToken: cancellationToken);
+                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == order.StoreId, cancellationToken);
+                var staffIds = await _ctx.StoreStaffs
+                    .Where(s => s.StoreId == order.StoreId)
+                    .Select(s => s.UserId)
+                    .ToListAsync(cancellationToken);
+
+                if (store != null && !staffIds.Contains(store.OwnerId))
+                {
+                    staffIds.Add(store.OwnerId);
+                }
+
+                foreach (var uid in staffIds.Distinct())
+                {
+                    await _notificationService.SendAsync(
+                        userId: uid,
+                        title: "Đơn hàng mới",
+                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán qua ví. Vui lòng kiểm tra và chuẩn bị món!",
+                        type: "NEW_ORDER",
+                        referenceId: order.Id
+                    );
+                }
             }
         }
 
