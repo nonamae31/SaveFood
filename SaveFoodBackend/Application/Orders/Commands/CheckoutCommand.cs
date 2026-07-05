@@ -256,16 +256,10 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
         {
             foreach (var order in createdOrders)
             {
-                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == order.StoreId, cancellationToken);
                 var staffIds = await _ctx.StoreStaffs
                     .Where(s => s.StoreId == order.StoreId)
                     .Select(s => s.UserId)
                     .ToListAsync(cancellationToken);
-
-                if (store != null && !staffIds.Contains(store.OwnerId))
-                {
-                    staffIds.Add(store.OwnerId);
-                }
 
                 foreach (var uid in staffIds.Distinct())
                 {

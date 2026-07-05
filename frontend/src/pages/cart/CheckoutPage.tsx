@@ -163,28 +163,29 @@ export function CheckoutPage() {
         return expiry < min ? expiry : min;
     }, new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000));
 
-    // Limit max to tomorrow at 20:30
+    // Limit max to tomorrow at 21:00
     const maxDateLimit = new Date();
     maxDateLimit.setDate(maxDateLimit.getDate() + 1);
-    maxDateLimit.setHours(20, 30, 0, 0);
+    maxDateLimit.setHours(21, 0, 0, 0);
 
     const effectiveMaxPickupTime = minExpiryTime < maxDateLimit ? minExpiryTime : maxDateLimit;
     const timeOptions: Date[] = [];
 
-    let currentOption = new Date(now.getTime() + 30 * 60000); // now + 30 mins
-    currentOption.setMinutes(Math.ceil(currentOption.getMinutes() / 30) * 30, 0, 0);
+    // Bắt đầu từ mốc tròn giờ tiếp theo (ví dụ 14:15 -> 15:00)
+    let currentOption = new Date(now.getTime());
+    currentOption.setHours(currentOption.getHours() + 1, 0, 0, 0);
 
     while (currentOption <= effectiveMaxPickupTime) {
         const hours = currentOption.getHours();
         const minutes = currentOption.getMinutes();
         const timeVal = hours + minutes / 60;
         
-        // Only allow pickup between 08:00 and 20:30
-        if (timeVal >= 8 && timeVal <= 20.5) {
+        // Only allow pickup between 08:00 and 21:00
+        if (timeVal >= 8 && timeVal <= 21) {
             timeOptions.push(new Date(currentOption));
         }
         
-        currentOption.setMinutes(currentOption.getMinutes() + 30);
+        currentOption.setHours(currentOption.getHours() + 1);
     }
 
     if (timeOptions.length === 0 && minExpiryTime > now) {

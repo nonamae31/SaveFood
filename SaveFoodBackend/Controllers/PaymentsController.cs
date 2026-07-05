@@ -92,9 +92,7 @@ public class PaymentsController : ControllerBase
                                 storeWallet.PendingBalance += (order.TotalAmount - platformFee);
 
                                 // --- AUDIT TRAIL: Notify Store ---
-                                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == order.StoreId);
                                 var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == order.StoreId).Select(s => s.UserId).ToListAsync();
-                                if (store != null && !staffIds.Contains(store.OwnerId)) staffIds.Add(store.OwnerId);
                                 foreach (var uid in staffIds.Distinct())
                                 {
                                     await _notificationService.SendAsync(
@@ -235,9 +233,7 @@ public class PaymentsController : ControllerBase
                                 storeWallet.PendingBalance += (o.TotalAmount - platformFee);
 
                                 // --- AUDIT TRAIL: Notify Store ---
-                                var store = await _ctx.Stores.FirstOrDefaultAsync(s => s.Id == o.StoreId);
                                 var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == o.StoreId).Select(s => s.UserId).ToListAsync();
-                                if (store != null && !staffIds.Contains(store.OwnerId)) staffIds.Add(store.OwnerId);
                                 foreach (var uid in staffIds.Distinct())
                                 {
                                     await _notificationService.SendAsync(
