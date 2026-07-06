@@ -40,7 +40,7 @@ const formatDate = (iso: string) => {
 };
 
 const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(n));
 
 function ActionButton({
   icon, label, colorClass, loading, onClick,
@@ -330,6 +330,12 @@ export default function DashboardOrdersPage() {
 
     connection.on('NewOrderReceived', (orderId: string) => {
       setRefreshKey(k => k + 1);
+    });
+
+    connection.on('ReceiveNotification', (notif: any) => {
+      if (notif.type === 'NEW_ORDER') {
+        setRefreshKey(k => k + 1);
+      }
     });
 
     connection.on('OrderStatusUpdated', (orderId: string, status: number) => {

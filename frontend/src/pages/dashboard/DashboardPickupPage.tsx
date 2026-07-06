@@ -13,7 +13,7 @@ import { QUERY_KEYS } from '@/lib/constants'
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatVND = (amount: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount))
 
 const ORDER_STATUS = {
   0: { label: 'Chờ xác nhận', color: 'text-amber-600 bg-amber-50 border-amber-200' },

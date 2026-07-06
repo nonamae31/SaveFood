@@ -65,7 +65,7 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
             _financeRepo.AddStoreWallet(storeWallet);
         }
 
-        decimal platformFee = order.TotalAmount * 0.05m;
+        decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
         decimal storeIncome = order.TotalAmount - platformFee;
 
         storeWallet.AvailableBalance += storeIncome;

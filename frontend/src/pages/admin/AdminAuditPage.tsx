@@ -35,7 +35,7 @@ interface AuditResponse {
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api';
 
 const formatVND = (amount: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount));
 
 const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleString('vi-VN', {
@@ -47,6 +47,7 @@ const BANK_BIN_MAP: Record<string, string> = {
   '970422': 'MBBank',
   '970436': 'Vietcombank',
   '970415': 'VietinBank',
+  '01201001': 'VietinBank', // CITAD code cho VietinBank
   '970418': 'BIDV',
   '01202001': 'BIDV', // CITAD code cho BIDV
   '970405': 'Agribank',
@@ -86,17 +87,18 @@ export default function AdminAuditPage() {
   const [from, setFrom] = useState(oneMonthAgo);
   const [to, setTo] = useState(today);
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
   const [data, setData] = useState<AuditResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
 
-  const fetchReport = async (p = 1) => {
+  const fetchReport = async (p = 1, limit = pageSize) => {
     setLoading(true);
     setError('');
     try {
       const result = await apiClient<AuditResponse>(
-        `/admin/audit/report?from=${from}&to=${to}&page=${p}&pageSize=50`
+        `/admin/audit/report?from=${from}&to=${to}&page=${p}&pageSize=${limit}`
       );
       setData(result);
       setPage(p);
@@ -179,6 +181,23 @@ export default function AdminAuditPage() {
               className="px-3 py-2 text-[14px] border border-mint-hairline rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-brand-green/20 focus:border-mint-brand-green"
             />
           </div>
+          <div>
+            <label className="block text-[13px] font-medium text-mint-stone mb-1">Hiển thị</label>
+            <select
+              value={pageSize}
+              onChange={e => {
+                const newSize = Number(e.target.value);
+                setPageSize(newSize);
+                fetchReport(1, newSize);
+              }}
+              className="px-3 py-2 text-[14px] border border-mint-hairline rounded-lg focus:outline-none focus:ring-2 focus:ring-mint-brand-green/20 focus:border-mint-brand-green bg-white"
+            >
+              <option value={10}>10 dòng</option>
+              <option value={20}>20 dòng</option>
+              <option value={50}>50 dòng</option>
+              <option value={100}>100 dòng</option>
+            </select>
+          </div>
           <button
             id="btn-load-report"
             onClick={() => fetchReport(1)}
@@ -197,38 +216,7 @@ export default function AdminAuditPage() {
         </div>
       )}
 
-      {/* Summary Cards */}
-      {data && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white border border-mint-hairline rounded-[12px] p-5 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-[12px] text-mint-stone">Doanh thu nền tảng</p>
-              <p className="text-[20px] font-bold text-mint-ink">{formatVND(data.summary.totalPlatformRevenue)}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-mint-hairline rounded-[12px] p-5 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-[12px] text-mint-stone">Đơn hàng có thanh toán</p>
-              <p className="text-[20px] font-bold text-mint-ink">{data.summary.totalOrders.toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="bg-white border border-mint-hairline rounded-[12px] p-5 shadow-sm flex items-center gap-4">
-            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-[12px] text-mint-stone">Giao dịch Subscription</p>
-              <p className="text-[20px] font-bold text-mint-ink">{data.summary.totalSubscriptions.toLocaleString()}</p>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Table */}
       {data && (
@@ -304,7 +292,7 @@ export default function AdminAuditPage() {
           {data.totalPages >= 1 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-mint-hairline bg-mint-canvas/50">
               <span className="text-[13px] text-mint-stone">
-                Hiển thị {(data.currentPage - 1) * 50 + 1} đến {Math.min(data.currentPage * 50, data.totalCount)} trên tổng số {data.totalCount} giao dịch
+                Hiển thị {(data.currentPage - 1) * pageSize + 1} đến {Math.min(data.currentPage * pageSize, data.totalCount)} trên tổng số {data.totalCount} giao dịch
               </span>
               <div className="flex items-center gap-2">
                 <button
