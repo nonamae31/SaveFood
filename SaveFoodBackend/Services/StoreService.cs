@@ -422,7 +422,7 @@ namespace SaveFoodBackend.Services
                 PlanId = request.PlanId,
                 StartDate = DateTime.UtcNow,
                 EndDate = DateTime.UtcNow.AddMonths(months),
-                Status = (byte)SubscriptionStatus.Active,
+                Status = (byte)SubscriptionStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
                 OrderCode = orderCode
             };

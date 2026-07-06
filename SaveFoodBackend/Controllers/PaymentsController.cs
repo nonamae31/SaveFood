@@ -110,9 +110,9 @@ public class PaymentsController : ControllerBase
                     else
                     {
                         var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
-                        if (subscription != null && subscription.Status == 0)
+                        if (subscription != null && subscription.Status == 3)
                         {
-                            subscription.Status = 1; // Active
+                            subscription.Status = 0; // Active
 
                             // --- AUDIT TRAIL: Save PayOS evidence ---
                             subscription.PayOsTransactionId = data.Reference;
@@ -261,7 +261,7 @@ public class PaymentsController : ControllerBase
             {
                 // check if it's a subscription (orderId could be subscriptionId)
                 var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => (isGuid && s.Id == parsedGuid) || (isLong && s.OrderCode == parsedLong));
-                if (subscription != null && subscription.Status == 0 && subscription.OrderCode.HasValue)
+                if (subscription != null && subscription.Status == 3 && subscription.OrderCode.HasValue)
                 {
                     try
                     {
@@ -269,7 +269,7 @@ public class PaymentsController : ControllerBase
 
                         if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                         {
-                            subscription.Status = 1; // Active
+                            subscription.Status = 0; // Active
                             
                             // --- AUDIT TRAIL: Save PayOS evidence ---
                             var tx = payOSInfo.Transactions?.FirstOrDefault();
