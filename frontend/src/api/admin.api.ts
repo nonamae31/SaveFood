@@ -181,6 +181,20 @@ export interface ProcessFinanceRequestDTO {
   adminNote?: string;
 }
 
+export interface CustomerWalletTransactionAdminDTO {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  /** 0=Deposit, 1=Withdrawal, 2=Payment, 3=Refund */
+  type: number;
+  /** 0=Pending, 1=Completed, 2=Failed */
+  status: number;
+  orderId?: string;
+  description?: string;
+  createdAt: string;
+}
+
 // API methods
 export const adminApi = {
   getUsers: (params?: GetUsersRequest) => {
@@ -264,4 +278,7 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify(request),
     }),
+
+  getCustomerTransactions: (pageNumber: number = 1, pageSize: number = 15) =>
+    apiClient<PaginatedList<CustomerWalletTransactionAdminDTO>>(`/admin/finance/customer-transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`),
 };

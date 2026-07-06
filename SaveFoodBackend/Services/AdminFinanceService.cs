@@ -31,4 +31,10 @@ public class AdminFinanceService : IAdminFinanceService
         var (items, totalCount) = await _financeRepo.GetWithdrawalsAsync(pageNumber, pageSize, status);
         return new PaginatedList<WithdrawalRequestDTO>(items.ToList(), totalCount, pageNumber, pageSize);
     }
+
+    public async Task<PaginatedList<CustomerWalletTransactionAdminDTO>> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize)
+    {
+        var (items, totalCount) = await _financeRepo.GetCustomerWalletTransactionsAsync(pageNumber, pageSize);
+        return new PaginatedList<CustomerWalletTransactionAdminDTO>(items.ToList(), totalCount, pageNumber, pageSize);
+    }
 }

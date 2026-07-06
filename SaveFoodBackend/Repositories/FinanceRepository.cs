@@ -47,6 +47,32 @@ public class FinanceRepository : IFinanceRepository
         return (dtos, totalCount);
     }
 
+    public async Task<(IEnumerable<CustomerWalletTransactionAdminDTO> Items, int TotalCount)> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize, CancellationToken ct = default)
+    {
+        var query = _ctx.CustomerWalletTransactions
+            .Include(t => t.CustomerWallet)
+                .ThenInclude(w => w.User)
+            .OrderByDescending(t => t.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+
+        var dtos = items.Select(t => new CustomerWalletTransactionAdminDTO
+        {
+            Id = t.Id,
+            CustomerName = t.CustomerWallet.User.FullName ?? "N/A",
+            CustomerEmail = t.CustomerWallet.User.Email ?? "N/A",
+            Amount = t.Amount,
+            Type = t.Type,
+            Status = t.Status,
+            OrderId = t.OrderId,
+            Description = t.Description,
+            CreatedAt = t.CreatedAt
+        }).ToList();
+
+        return (dtos, totalCount);
+    }
+
     public async Task<(IEnumerable<WithdrawalRequestDTO> Items, int TotalCount)> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status = null, CancellationToken ct = default)
     {
         var query = _ctx.WithdrawalRequests

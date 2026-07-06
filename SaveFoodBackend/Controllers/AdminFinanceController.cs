@@ -29,6 +29,13 @@ public class AdminFinanceController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet("customer-transactions")]
+    public async Task<ActionResult<PaginatedList<CustomerWalletTransactionAdminDTO>>> GetCustomerTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 15)
+    {
+        var result = await _adminFinanceService.GetCustomerWalletTransactionsAsync(pageNumber, pageSize);
+        return Ok(result);
+    }
+
     [HttpGet("withdrawals")]
     public async Task<ActionResult<PaginatedList<WithdrawalRequestDTO>>> GetWithdrawals([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] byte? status = null)
     {

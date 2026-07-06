@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin.api';
-import type { WalletTransactionDTO, WithdrawalRequestDTO } from '../../api/admin.api';
+import type { WalletTransactionDTO, WithdrawalRequestDTO, CustomerWalletTransactionAdminDTO } from '../../api/admin.api';
 import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { clsx } from "clsx";
 
-type TabType = 'ledger' | 'withdrawals';
+type TabType = 'ledger' | 'withdrawals' | 'customer-wallets';
 
 export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState<TabType>('ledger');
@@ -13,6 +13,7 @@ export default function AdminFinancePage() {
   // Data states
   const [transactions, setTransactions] = useState<WalletTransactionDTO[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestDTO[]>([]);
+  const [customerTransactions, setCustomerTransactions] = useState<CustomerWalletTransactionAdminDTO[]>([]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +53,10 @@ export default function AdminFinancePage() {
       } else if (activeTab === 'withdrawals') {
         const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined);
         setWithdrawals(res.items);
+        setTotalPages(res.totalPages);
+      } else if (activeTab === 'customer-wallets') {
+        const res = await adminApi.getCustomerTransactions(page, 15);
+        setCustomerTransactions(res.items);
         setTotalPages(res.totalPages);
       }
     } catch (error) {
@@ -145,6 +150,16 @@ export default function AdminFinancePage() {
           Yêu cầu Rút tiền
           {activeTab === 'withdrawals' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
         </button>
+        <button
+          onClick={() => handleTabChange('customer-wallets')}
+          className={clsx(
+            "px-4 py-2 text-[14px] font-medium rounded-t-lg transition-colors relative",
+            activeTab === 'customer-wallets' ? "text-mint-brand-green bg-mint-brand-green/5" : "text-mint-stone hover:text-mint-ink hover:bg-mint-canvas"
+          )}
+        >
+          Giao dịch Khách hàng
+          {activeTab === 'customer-wallets' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
+        </button>
       </div>
 
       {/* Filters */}
@@ -215,6 +230,16 @@ export default function AdminFinancePage() {
                       <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
                       <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
                       <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Thao tác</th>
+                    </>
+                  )}
+                  {activeTab === 'customer-wallets' && (
+                    <>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Ngày</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Khách hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Loại GD</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Mô tả</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
                     </>
                   )}
                 </tr>
@@ -347,6 +372,67 @@ export default function AdminFinancePage() {
                     </td>
                   </tr>
                 ))}
+
+                {/* Customer Wallet Transactions */}
+                {activeTab === 'customer-wallets' && customerTransactions.filter(t => {
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    const matchName = t.customerName.toLowerCase().includes(q);
+                    const matchEmail = t.customerEmail.toLowerCase().includes(q);
+                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
+                    if (!matchName && !matchEmail && !matchDesc) return false;
+                  }
+                  if (dateFilter) {
+                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
+                    if (txDate !== dateFilter) return false;
+                  }
+                  return true;
+                }).length === 0 && (
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch ví khách hàng nào</td></tr>
+                )}
+                {activeTab === 'customer-wallets' && customerTransactions.filter(t => {
+                  if (searchQuery) {
+                    const q = searchQuery.toLowerCase();
+                    if (!t.customerName.toLowerCase().includes(q) && !t.customerEmail.toLowerCase().includes(q) && !t.description?.toLowerCase().includes(q)) return false;
+                  }
+                  if (dateFilter) {
+                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
+                    if (txDate !== dateFilter) return false;
+                  }
+                  return true;
+                }).map(t => {
+                  const typeMap: Record<number, { label: string; className: string }> = {
+                    0: { label: 'Nạp tiền', className: 'text-blue-600 bg-blue-50' },
+                    1: { label: 'Rút tiền', className: 'text-amber-600 bg-amber-50' },
+                    2: { label: 'Thanh toán', className: 'text-red-600 bg-red-50' },
+                    3: { label: 'Hoàn tiền', className: 'text-mint-brand-green bg-mint-brand-green/10' },
+                  };
+                  const typeInfo = typeMap[t.type] ?? { label: `Loại ${t.type}`, className: 'text-mint-stone bg-mint-canvas' };
+                  const isCredit = t.type === 0 || t.type === 3; // Deposit or Refund = money in
+                  return (
+                    <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
+                      <td className="px-6 py-4 text-[14px] text-mint-stone whitespace-nowrap">{formatDate(t.createdAt)}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-[14px] font-medium text-mint-ink">{t.customerName}</div>
+                        <div className="text-[12px] text-mint-stone">{t.customerEmail}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center text-[12px] font-medium px-2 py-1 rounded-full ${typeInfo.className}`}>
+                          {typeInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-mint-stone break-words">{t.description || '-'}</td>
+                      <td className="px-6 py-4 text-[14px] font-medium text-right">
+                        {isCredit ? (
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                        ) : (
+                          <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> -{formatCurrency(t.amount)}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{renderStatus(t.status, 'tx')}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

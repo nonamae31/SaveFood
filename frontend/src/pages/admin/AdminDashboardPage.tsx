@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
         {/* Row 1: KPI Stats */}
         <StatCard 
           title="Tổng doanh thu nền tảng" 
-          value={(revenueStats?.totalRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0)} 
+          value={(revenueStats?.totalRevenue || 0) + (revenueStats?.totalShopNetRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0)} 
           isCurrency
           icon={<DollarSign className="w-5 h-5" />} 
           trend="Toàn thời gian"

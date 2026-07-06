@@ -32,4 +32,4 @@ Operation cancelled by user.
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in D:\Ky8\PRN232\SaveFood-MyVersion\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:4918b45c-f2b3-4789-8336-8d2a2626a840
+ClientConnectionId:19fdaac2-bbce-4aac-8c10-753453801b50
