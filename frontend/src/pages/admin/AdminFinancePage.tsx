@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin.api';
 import type { WalletTransactionDTO, WithdrawalRequestDTO, CustomerWalletTransactionAdminDTO } from '../../api/admin.api';
-import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
 import { clsx } from "clsx";
 
 type TabType = 'ledger' | 'withdrawals' | 'customer-wallets';
@@ -18,7 +18,9 @@ export default function AdminFinancePage() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -47,15 +49,15 @@ export default function AdminFinancePage() {
     setLoading(true);
     try {
       if (activeTab === 'ledger') {
-        const res = await adminApi.getTransactions(page, 15);
+        const res = await adminApi.getTransactions(page, 15, searchQuery, startDate, endDate);
         setTransactions(res.items);
         setTotalPages(res.totalPages);
       } else if (activeTab === 'withdrawals') {
-        const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined);
+        const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined, searchQuery, startDate, endDate);
         setWithdrawals(res.items);
         setTotalPages(res.totalPages);
       } else if (activeTab === 'customer-wallets') {
-        const res = await adminApi.getCustomerTransactions(page, 15);
+        const res = await adminApi.getCustomerTransactions(page, 15, searchQuery, startDate, endDate);
         setCustomerTransactions(res.items);
         setTotalPages(res.totalPages);
       }
@@ -67,8 +69,11 @@ export default function AdminFinancePage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab, page, statusFilter]);
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, page, statusFilter, searchQuery, startDate, endDate]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -169,20 +174,43 @@ export default function AdminFinancePage() {
             type="text" 
             placeholder="Tìm theo tên cửa hàng, mô tả, STK..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="w-full px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
           />
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <input 
             type="date" 
-            value={dateFilter}
+            value={startDate}
             onChange={(e) => {
-              setDateFilter(e.target.value);
+              setStartDate(e.target.value);
               setPage(1);
             }}
             className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
           />
+          <span className="text-mint-stone">-</span>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
+          />
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+              setPage(1);
+            }}
+            className="px-4 py-2 bg-mint-canvas text-mint-ink font-medium text-[14px] border border-mint-hairline hover:bg-mint-surface rounded-[8px] transition-colors shadow-sm whitespace-nowrap"
+          >
+            Xem tất cả
+          </button>
         </div>
         {activeTab === 'withdrawals' && (
           <select 
@@ -245,41 +273,10 @@ export default function AdminFinancePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-mint-hairline">
-                {activeTab === 'ledger' && transactions.filter(t => {
-                  if (t.type === 2) return false;
-                  
-                  // Text search (Store Name, Description)
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchStore = t.storeName.toLowerCase().includes(q);
-                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
-                    if (!matchStore && !matchDesc) return false;
-                  }
-
-                  // Date filter
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-
-                  return true;
-                }).length === 0 && (
+                {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).length === 0 && (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
-                {activeTab === 'ledger' && transactions.filter(t => {
-                  if (t.type === 2) return false;
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchStore = t.storeName.toLowerCase().includes(q);
-                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
-                    if (!matchStore && !matchDesc) return false;
-                  }
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).map(t => (
+                {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).map(t => (
                   <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(t.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>
@@ -306,38 +303,10 @@ export default function AdminFinancePage() {
                   </tr>
                 ))}
 
-                {activeTab === 'withdrawals' && withdrawals.filter(w => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchName = w.requesterName.toLowerCase().includes(q);
-                    const matchBank = w.bankName.toLowerCase().includes(q);
-                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
-                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
-                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
-                  }
-                  if (dateFilter) {
-                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
-                    if (wDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).length === 0 && (
+                {activeTab === 'withdrawals' && withdrawals.length === 0 && (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu rút tiền nào</td></tr>
                 )}
-                {activeTab === 'withdrawals' && withdrawals.filter(w => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchName = w.requesterName.toLowerCase().includes(q);
-                    const matchBank = w.bankName.toLowerCase().includes(q);
-                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
-                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
-                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
-                  }
-                  if (dateFilter) {
-                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
-                    if (wDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).map(w => (
+                {activeTab === 'withdrawals' && withdrawals.map(w => (
                   <tr key={w.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(w.createdAt)}</td>
                     <td className="px-6 py-4">
@@ -374,33 +343,10 @@ export default function AdminFinancePage() {
                 ))}
 
                 {/* Customer Wallet Transactions */}
-                {activeTab === 'customer-wallets' && customerTransactions.filter(t => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchName = t.customerName.toLowerCase().includes(q);
-                    const matchEmail = t.customerEmail.toLowerCase().includes(q);
-                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
-                    if (!matchName && !matchEmail && !matchDesc) return false;
-                  }
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).length === 0 && (
+                {activeTab === 'customer-wallets' && customerTransactions.length === 0 && (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch ví khách hàng nào</td></tr>
                 )}
-                {activeTab === 'customer-wallets' && customerTransactions.filter(t => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    if (!t.customerName.toLowerCase().includes(q) && !t.customerEmail.toLowerCase().includes(q) && !t.description?.toLowerCase().includes(q)) return false;
-                  }
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).map(t => {
+                {activeTab === 'customer-wallets' && customerTransactions.map(t => {
                   const typeMap: Record<number, { label: string; className: string }> = {
                     0: { label: 'Nạp tiền', className: 'text-blue-600 bg-blue-50' },
                     1: { label: 'Rút tiền', className: 'text-amber-600 bg-amber-50' },

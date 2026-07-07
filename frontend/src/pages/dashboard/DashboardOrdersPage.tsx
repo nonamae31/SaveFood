@@ -106,6 +106,13 @@ function OrderDetailModal({
                 </>
               )}
             </div>
+            {order.expectedPickupTime && (
+              <div className="mt-1">
+                <span className="text-xs font-medium text-brand-600 bg-brand-50 px-2 py-1 rounded">
+                  Giờ lấy hàng: {formatDate(order.expectedPickupTime)}
+                </span>
+              </div>
+            )}
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
             <X size={20} />
@@ -254,7 +261,9 @@ function OrderRow({
         {/* Amount */}
         <div className="text-right flex-shrink-0">
           <p className="font-bold text-gray-900 text-sm">{formatCurrency(order.totalAmount)}</p>
-          <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
+          <p className="text-xs text-gray-400">
+            {order.expectedPickupTime ? `Lấy lúc: ${formatDate(order.expectedPickupTime)}` : formatDate(order.createdAt)}
+          </p>
         </div>
 
         {/* Expand icon */}

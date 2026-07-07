@@ -23,23 +23,23 @@ public class AdminFinanceController : ControllerBase
     }
 
     [HttpGet("transactions")]
-    public async Task<ActionResult<PaginatedList<WalletTransactionDTO>>> GetTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    public async Task<ActionResult<PaginatedList<WalletTransactionDTO>>> GetTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string? search = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        var result = await _adminFinanceService.GetTransactionsAsync(pageNumber, pageSize);
+        var result = await _adminFinanceService.GetTransactionsAsync(pageNumber, pageSize, search, startDate, endDate);
         return Ok(result);
     }
 
     [HttpGet("customer-transactions")]
-    public async Task<ActionResult<PaginatedList<CustomerWalletTransactionAdminDTO>>> GetCustomerTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 15)
+    public async Task<ActionResult<PaginatedList<CustomerWalletTransactionAdminDTO>>> GetCustomerTransactions([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 15, [FromQuery] string? search = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        var result = await _adminFinanceService.GetCustomerWalletTransactionsAsync(pageNumber, pageSize);
+        var result = await _adminFinanceService.GetCustomerWalletTransactionsAsync(pageNumber, pageSize, search, startDate, endDate);
         return Ok(result);
     }
 
     [HttpGet("withdrawals")]
-    public async Task<ActionResult<PaginatedList<WithdrawalRequestDTO>>> GetWithdrawals([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] byte? status = null)
+    public async Task<ActionResult<PaginatedList<WithdrawalRequestDTO>>> GetWithdrawals([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] byte? status = null, [FromQuery] string? search = null, [FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        var result = await _adminFinanceService.GetWithdrawalsAsync(pageNumber, pageSize, status);
+        var result = await _adminFinanceService.GetWithdrawalsAsync(pageNumber, pageSize, status, search, startDate, endDate);
         return Ok(result);
     }
 

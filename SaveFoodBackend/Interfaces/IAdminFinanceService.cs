@@ -7,7 +7,7 @@ namespace SaveFoodBackend.Interfaces;
 
 public interface IAdminFinanceService
 {
-    Task<PaginatedList<WalletTransactionDTO>> GetTransactionsAsync(int pageNumber, int pageSize);
-    Task<PaginatedList<WithdrawalRequestDTO>> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status);
-    Task<PaginatedList<CustomerWalletTransactionAdminDTO>> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize);
+    Task<PaginatedList<WalletTransactionDTO>> GetTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null);
+    Task<PaginatedList<WithdrawalRequestDTO>> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status, string? search = null, DateTime? startDate = null, DateTime? endDate = null);
+    Task<PaginatedList<CustomerWalletTransactionAdminDTO>> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null);
 }

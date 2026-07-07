@@ -264,12 +264,20 @@ export const adminApi = {
   getSubscriptionStats: () => apiClient<AdminSubscriptionStatsResponse>('/admin/stats/subscriptions'),
 
   // Finance
-  getTransactions: (pageNumber: number = 1, pageSize: number = 10) =>
-    apiClient<PaginatedList<WalletTransactionDTO>>(`/admin/finance/transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`),
+  getTransactions: (pageNumber: number = 1, pageSize: number = 10, search?: string, startDate?: string, endDate?: string) => {
+    let url = `/admin/finance/transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    return apiClient<PaginatedList<WalletTransactionDTO>>(url);
+  },
 
-  getWithdrawals: (pageNumber: number = 1, pageSize: number = 10, status?: number) => {
+  getWithdrawals: (pageNumber: number = 1, pageSize: number = 10, status?: number, search?: string, startDate?: string, endDate?: string) => {
     let url = `/admin/finance/withdrawals?pageNumber=${pageNumber}&pageSize=${pageSize}`;
     if (status !== undefined) url += `&status=${status}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
     return apiClient<PaginatedList<WithdrawalRequestDTO>>(url);
   },
 
@@ -279,6 +287,11 @@ export const adminApi = {
       body: JSON.stringify(request),
     }),
 
-  getCustomerTransactions: (pageNumber: number = 1, pageSize: number = 15) =>
-    apiClient<PaginatedList<CustomerWalletTransactionAdminDTO>>(`/admin/finance/customer-transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`),
+  getCustomerTransactions: (pageNumber: number = 1, pageSize: number = 15, search?: string, startDate?: string, endDate?: string) => {
+    let url = `/admin/finance/customer-transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    return apiClient<PaginatedList<CustomerWalletTransactionAdminDTO>>(url);
+  },
 };
