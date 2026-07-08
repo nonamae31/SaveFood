@@ -8,6 +8,8 @@ using SaveFoodBackend.Interfaces;
 using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace SaveFoodBackend.Services;
 
@@ -18,14 +20,18 @@ public class ListingService : IListingService
     private readonly ICloudinaryService _cloudinaryService;
     private readonly ISubscriptionRepository _subscriptionRepo;
     private readonly IStoreRepository _storeRepo;
+    private readonly SaveFoodDbContext _ctx;
+    private readonly INotificationService _notifService;
 
-    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService, ISubscriptionRepository subscriptionRepo, IStoreRepository storeRepo)
+    public ListingService(IListingRepository listingRepo, IProductRepository productRepo, ICloudinaryService cloudinaryService, ISubscriptionRepository subscriptionRepo, IStoreRepository storeRepo, SaveFoodDbContext ctx, INotificationService notifService)
     {
         _listingRepo = listingRepo;
         _productRepo = productRepo;
         _cloudinaryService = cloudinaryService;
         _subscriptionRepo = subscriptionRepo;
         _storeRepo = storeRepo;
+        _ctx = ctx;
+        _notifService = notifService;
     }
 
     public async Task<IEnumerable<ListingResponseDTO>> GetListingsByStoreAsync(Guid storeId, CancellationToken ct = default)
@@ -238,8 +244,50 @@ public class ListingService : IListingService
             throw new Exception("Listing not found or access denied");
         }
 
-        _listingRepo.Delete(listing);
-        await _listingRepo.SaveChangesAsync(ct);
+        using var transaction = await _ctx.Database.BeginTransactionAsync(System.Data.IsolationLevel.Serializable, ct);
+        try
+        {
+            // 1. Check for Active Orders
+            var activeOrderStatuses = new[] { OrderStatusEnum.Pending, OrderStatusEnum.Confirmed, OrderStatusEnum.ReadyForPickup };
+            var activeOrders = await _ctx.OrderItems
+                .Include(oi => oi.Order)
+                .Where(oi => oi.ListingId == listingId && activeOrderStatuses.Contains(oi.Order.OrderStatus))
+                .Select(oi => oi.Order.OrderCode)
+                .Distinct()
+                .ToListAsync(ct);
+
+            if (activeOrders.Any())
+            {
+                throw new InvalidOperationException($"ACTIVE_ORDERS_CONFLICT:{string.Join(",", activeOrders)}");
+            }
+
+            // 2. Remove from Carts and Notify
+            var cartItemsToRemove = await _ctx.CartItems
+                .Include(ci => ci.Cart)
+                .Where(ci => ci.ListingId == listingId)
+                .ToListAsync(ct);
+
+            if (cartItemsToRemove.Any())
+            {
+                var affectedUserIds = cartItemsToRemove.Select(ci => ci.Cart.UserId).Distinct().ToList();
+                _ctx.CartItems.RemoveRange(cartItemsToRemove);
+
+                foreach (var userId in affectedUserIds)
+                {
+                    await _notifService.SendAsync(userId, "Sản phẩm bị gỡ", $"Sản phẩm {listing.Product?.Name} đã bị cửa hàng gỡ và được xóa khỏi giỏ hàng của bạn.", "cart_update");
+                }
+            }
+
+            // 3. Soft Delete Listing
+            _listingRepo.Delete(listing);
+            await _ctx.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 
     public async Task<ListingResponseDTO> UploadListingImagesAsync(Guid storeId, Guid listingId, IEnumerable<Microsoft.AspNetCore.Http.IFormFile> files, CancellationToken ct = default)

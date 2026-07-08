@@ -36,47 +36,63 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         if (order == null)
             throw new NotFoundException("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != OrderStatusEnum.Confirmed) // 1 = Confirmed/Paid Wait for pickup
-            throw new BusinessException("Chỉ có thể hủy đơn hàng đang chờ lấy hàng.");
+        if (order.OrderStatus != OrderStatusEnum.Pending)
+            throw new BusinessException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái chờ xác nhận.");
 
         if (order.ConfirmedById.HasValue)
             throw new BusinessException("Không thể hủy đơn hàng đã được quán xác nhận hoặc đang chuẩn bị.");
 
-        // Refund 100% to Customer Wallet
-        var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == request.UserId, cancellationToken);
-        if (customerWallet == null)
+        // Check if the order was paid to process refund
+        var payment = await _ctx.Payments.FirstOrDefaultAsync(p => p.OrderId == order.Id, cancellationToken);
+        bool isPaid = false;
+        
+        if (payment != null)
         {
-            customerWallet = new CustomerWallet
-            {
-                Id = Guid.NewGuid(),
-                UserId = request.UserId,
-                Balance = 0,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.CustomerWallets.Add(customerWallet);
+            if (payment.PaymentMethod == 0 && order.OrderStatus != OrderStatusEnum.Cancelled) // Wallet
+                isPaid = true;
+            else if (payment.PaymentMethod == 1 && payment.Status == 1) // PayOS Paid
+                isPaid = true;
         }
 
-        customerWallet.Balance += order.TotalAmount;
-        
-        var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
-        if (storeWallet != null)
+        if (isPaid)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
-            decimal storeIncome = order.TotalAmount - platformFee;
-            storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+            // Refund 100% to Customer Wallet
+            var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == request.UserId, cancellationToken);
+            if (customerWallet == null)
+            {
+                customerWallet = new CustomerWallet
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = request.UserId,
+                    Balance = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _ctx.CustomerWallets.Add(customerWallet);
+            }
+
+            customerWallet.Balance += order.TotalAmount;
+            
+            var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
+            if (storeWallet != null)
+            {
+                // Refund from store pending balance since it was added when paid
+                decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
+                decimal storeIncome = order.TotalAmount - platformFee;
+                storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+            }
+            
+            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+            {
+                Id = Guid.NewGuid(),
+                CustomerWalletId = customerWallet.Id,
+                Amount = order.TotalAmount,
+                Type = 3, // Refund
+                Status = 1, // Completed
+                OrderId = order.Id,
+                Description = $"Hoàn tiền đơn hàng {order.OrderCode ?? 0}"
+            });
         }
-        
-        _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
-        {
-            Id = Guid.NewGuid(),
-            CustomerWalletId = customerWallet.Id,
-            Amount = order.TotalAmount,
-            Type = 3, // Refund
-            Status = 1, // Completed
-            OrderId = order.Id,
-            Description = $"Hoàn tiền đơn hàng {order.OrderCode ?? 0}"
-        });
 
         // Return stock
         foreach (var item in order.OrderItems)

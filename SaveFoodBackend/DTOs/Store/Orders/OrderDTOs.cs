@@ -20,6 +20,7 @@ namespace SaveFoodBackend.DTOs.Store.Orders
         public long? OrderCode { get; set; }
         public byte? PaymentMethod { get; set; }   // 0=Cash, 1=PayOS
         public byte? PaymentStatus { get; set; }   // 0=Pending, 1=Paid
+        public DateTime? ExpectedPickupTime { get; set; }
     }
 
     public class StoreOrderItemDTO

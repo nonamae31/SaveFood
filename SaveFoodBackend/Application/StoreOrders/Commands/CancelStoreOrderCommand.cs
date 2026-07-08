@@ -10,7 +10,9 @@ using SaveFoodBackend.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Models.Enums;
 using SaveFoodBackend.Common.Exceptions;
+using SaveFoodBackend.Interfaces;
 
 namespace SaveFoodBackend.Application.StoreOrders.Commands;
 
@@ -22,13 +24,15 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
     private readonly IStoreRepository _storeRepo;
     private readonly SaveFoodDbContext _ctx;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public CancelStoreOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext)
+    public CancelStoreOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _ctx = ctx;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(CancelStoreOrderCommand request, CancellationToken cancellationToken)
@@ -85,7 +89,7 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == request.StoreId, cancellationToken);
         if (storeWallet != null && order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
             decimal storeIncome = order.TotalAmount - platformFee;
             storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
         }
@@ -94,6 +98,14 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
         await _orderRepo.SaveChangesAsync(cancellationToken);
         
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, (int)order.OrderStatus, cancellationToken: cancellationToken);
+
+        await _notificationService.SendAsync(
+            userId: order.UserId,
+            title: "Đơn hàng bị hủy",
+            body: $"Rất tiếc, cửa hàng đã hủy đơn hàng {order.OrderCode} của bạn. Nếu bạn đã thanh toán, tiền đã được hoàn lại vào Ví SaveFood.",
+            type: "ORDER_STATUS_UPDATE",
+            referenceId: order.Id
+        );
 
         return true;
     }

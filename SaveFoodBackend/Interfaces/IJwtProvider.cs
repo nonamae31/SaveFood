@@ -4,5 +4,5 @@ namespace SaveFoodBackend.Interfaces;
 
 public interface IJwtProvider
 {
-    string GenerateJwtToken(User user, string sessionId);
+    string GenerateJwtToken(User user, string sessionId, Guid? storeId = null);
 }

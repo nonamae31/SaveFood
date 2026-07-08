@@ -54,12 +54,13 @@ public class RefreshTokenCommandHandler : ICommandHandler<RefreshTokenCommand, L
         var newRefreshToken = Guid.NewGuid().ToString();
         await _redisService.SetAsync($"session:{newRefreshToken}", $"{user.Id}:{newSessionId}", TimeSpan.FromDays(30));
 
-        var token = _jwtProvider.GenerateJwtToken(user, newSessionId);
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
+        var token = _jwtProvider.GenerateJwtToken(user, newSessionId, storeStaff?.StoreId);
+
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Admin) ? AppConstants.Roles.Admin :
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Store) ? AppConstants.Roles.Store :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? AppConstants.Roles.Customer;
 
-        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
         return new LoginResponse { AccessToken = token, UserId = user.Id, Email = user.Email, FullName = user.FullName, Role = roleCode, RefreshToken = newRefreshToken, StaffRole = storeStaff?.StaffRole };
     }
 }

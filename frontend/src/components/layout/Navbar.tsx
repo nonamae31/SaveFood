@@ -234,6 +234,13 @@ export function Navbar() {
               )}
             </div>
 
+            {/* Notification Bell (Mobile Only) */}
+            {!isSearchOpen && isAuthenticated && (
+              <div className="flex md:hidden relative items-center pl-1">
+                <NotificationDropdown isDark={isDark} />
+              </div>
+            )}
+
             {/* Orders (Desktop Only) */}
             {!isSearchOpen && isAuthenticated && (
               <Link

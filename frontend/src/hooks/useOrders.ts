@@ -12,6 +12,7 @@ export interface OrderHistoryDTO {
   totalItems: number
   paymentMethod: number
   paymentStatus?: number
+  reservationExpiresAt?: string
 }
 
 export interface OrderDetailDTO {

@@ -87,7 +87,7 @@ public class CustomerListingService : ICustomerListingService
         return dtos;
     }
 
-    public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, CancellationToken ct = default)
+    public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, double? userLat = null, double? userLng = null, CancellationToken ct = default)
     {
         // Lấy danh sách CategoryId từ lịch sử đơn hàng của User
         var favoriteCategoryIds = await _ctx.Orders
@@ -100,7 +100,16 @@ public class CustomerListingService : ICustomerListingService
         if (!favoriteCategoryIds.Any())
         {
             var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", null, ct);
-            return recentListings.Take(10).Select(MapToDTO);
+            var recentDtos = recentListings.Take(10).Select(l => 
+            {
+                var dto = MapToDTO(l);
+                if (userLat.HasValue && userLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
+                {
+                    dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
+                }
+                return dto;
+            });
+            return recentDtos;
         }
 
         // Lấy các tin đăng thuộc danh mục yêu thích
@@ -120,7 +129,17 @@ public class CustomerListingService : ICustomerListingService
             .AsNoTracking()
             .ToListAsync(ct);
 
-        return recommendedListings.Select(MapToDTO);
+        var dtos = recommendedListings.Select(l => 
+        {
+            var dto = MapToDTO(l);
+            if (userLat.HasValue && userLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
+            {
+                dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
+            }
+            return dto;
+        });
+
+        return dtos;
     }
 
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)

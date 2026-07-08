@@ -26,6 +26,7 @@ public class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, Paginat
     {
         var query = _ctx.Orders
             .AsNoTracking()
+            .Include(o => o.Payment)
             .Include(o => o.Store)
             .Include(o => o.OrderItems)
                 .ThenInclude(oi => oi.Listing)
@@ -66,7 +67,10 @@ public class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, Paginat
             OrderStatus = o.OrderStatus,
             CreatedAt = o.CreatedAt,
             TotalItems = o.OrderItems.Sum(oi => oi.Quantity),
-            FirstItemImageUrl = o.OrderItems.FirstOrDefault()?.Listing?.ListingImages.FirstOrDefault()?.ImageUrl
+            FirstItemImageUrl = o.OrderItems.FirstOrDefault()?.Listing?.ListingImages.FirstOrDefault()?.ImageUrl,
+            PaymentMethod = o.Payment != null ? o.Payment.PaymentMethod : (byte)0,
+            PaymentStatus = o.Payment != null ? o.Payment.Status : (byte)0,
+            ReservationExpiresAt = o.ReservationExpiresAt
         }).ToList();
 
         return new PaginatedList<OrderHistoryDTO>(data, totalRecords, request.Page, request.PageSize);

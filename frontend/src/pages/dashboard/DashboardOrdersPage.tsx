@@ -4,7 +4,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import {
   ClipboardList, CheckCircle, PackageCheck, Truck,
   XCircle, ChevronRight, Loader2, RefreshCw, X, User,
-  Banknote, CreditCard, Hash, Package
+  Banknote, CreditCard, Hash, Package, Wallet
 } from 'lucide-react';
 import { storeOrdersApi } from '@/api/store.orders.api';
 import type { StoreOrderDTO } from '@/api/store.orders.api';
@@ -21,7 +21,7 @@ const STATUS_CONFIG: Record<number, { label: string; color: string; bg: string; 
 };
 
 const PAYMENT_METHOD: Record<number, { label: string; icon: any; color: string }> = {
-  0: { label: 'Tiền mặt', icon: Banknote, color: 'text-emerald-700 bg-emerald-50' },
+  0: { label: 'Ví SaveFood', icon: Wallet, color: 'text-brand-700 bg-brand-50' },
   1: { label: 'PayOS', icon: CreditCard, color: 'text-indigo-700 bg-indigo-50' },
 };
 
@@ -40,7 +40,7 @@ const formatDate = (iso: string) => {
 };
 
 const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(n);
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(n));
 
 function ActionButton({
   icon, label, colorClass, loading, onClick,
@@ -106,6 +106,13 @@ function OrderDetailModal({
                 </>
               )}
             </div>
+            {order.expectedPickupTime && (
+              <div className="mt-1">
+                <span className="text-xs font-medium text-brand-600 bg-brand-50 px-2 py-1 rounded">
+                  Giờ lấy hàng: {formatDate(order.expectedPickupTime)}
+                </span>
+              </div>
+            )}
           </div>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors cursor-pointer">
             <X size={20} />
@@ -254,7 +261,9 @@ function OrderRow({
         {/* Amount */}
         <div className="text-right flex-shrink-0">
           <p className="font-bold text-gray-900 text-sm">{formatCurrency(order.totalAmount)}</p>
-          <p className="text-xs text-gray-400">{formatDate(order.createdAt)}</p>
+          <p className="text-xs text-gray-400">
+            {order.expectedPickupTime ? `Lấy lúc: ${formatDate(order.expectedPickupTime)}` : formatDate(order.createdAt)}
+          </p>
         </div>
 
         {/* Expand icon */}
@@ -330,6 +339,12 @@ export default function DashboardOrdersPage() {
 
     connection.on('NewOrderReceived', (orderId: string) => {
       setRefreshKey(k => k + 1);
+    });
+
+    connection.on('ReceiveNotification', (notif: any) => {
+      if (notif.type === 'NEW_ORDER') {
+        setRefreshKey(k => k + 1);
+      }
     });
 
     connection.on('OrderStatusUpdated', (orderId: string, status: number) => {
@@ -446,32 +461,39 @@ export default function DashboardOrdersPage() {
       ) : (
         <div className="space-y-4">
           {/* Bulk action header */}
-          <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={isAllSelected}
-                onChange={handleSelectAll}
-                className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
-              />
-              <span className="text-sm font-semibold text-gray-700">Chọn tất cả</span>
-            </label>
-            {hasSelected && (
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-gray-500 mr-2">Đã chọn {selectedOrderIds.length}</span>
-                {activeFilter === '0' && (
-                  <button onClick={() => handleBulkAction(storeOrdersApi.confirm, 'Xác nhận')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
-                    Xác nhận
-                  </button>
-                )}
-                {activeFilter === '1' && (
-                  <button onClick={() => handleBulkAction(storeOrdersApi.markReady, 'Chuẩn bị xong')} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
-                    Chuẩn bị xong
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {['0', '1', '2'].includes(activeFilter) && (
+            <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  checked={isAllSelected}
+                  onChange={handleSelectAll}
+                  className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                <span className="text-sm font-semibold text-gray-700">Chọn tất cả</span>
+              </label>
+              {hasSelected && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-500 mr-2">Đã chọn {selectedOrderIds.length}</span>
+                  {activeFilter === '0' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.confirm, 'Xác nhận')} className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 cursor-pointer">
+                      Xác nhận
+                    </button>
+                  )}
+                  {activeFilter === '1' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.markReady, 'Chuẩn bị xong')} className="px-3 py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 cursor-pointer">
+                      Chuẩn bị xong
+                    </button>
+                  )}
+                  {activeFilter === '2' && (
+                    <button onClick={() => handleBulkAction(storeOrdersApi.complete, 'Khách đã nhận hàng')} className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 cursor-pointer">
+                      Khách đã nhận hàng
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           <div ref={parentRef} className="h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
             <div
@@ -500,7 +522,7 @@ export default function DashboardOrdersPage() {
                       order={order}
                       onClick={() => setSelectedOrder(order)}
                       isSelected={selectedOrderIds.includes(order.id)}
-                      onToggleSelect={(e) => handleToggleSelect(order.id, e)}
+                      onToggleSelect={['0', '1', '2'].includes(activeFilter) ? (e) => handleToggleSelect(order.id, e) : undefined}
                     />
                   </div>
                 );

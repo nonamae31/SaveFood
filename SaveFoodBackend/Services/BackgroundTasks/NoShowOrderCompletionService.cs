@@ -120,7 +120,7 @@ public class NoShowOrderCompletionService : BackgroundService
                     // Process store wallet (add money to store - minus 5% platform fee)
                     if (order.Store?.StoreWallet != null)
                     {
-                        decimal platformFee = order.TotalAmount * 0.05m;
+                        decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
                         decimal storeIncome = order.TotalAmount - platformFee;
 
                         order.Store.StoreWallet.AvailableBalance += storeIncome;

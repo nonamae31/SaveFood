@@ -77,6 +77,15 @@ public class ListingsController : ControllerBase
             await _listingService.DeleteListingAsync(storeId, listingId, ct);
             return NoContent();
         }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("ACTIVE_ORDERS_CONFLICT:"))
+        {
+            var orderCodesStr = ex.Message.Substring("ACTIVE_ORDERS_CONFLICT:".Length);
+            var orderCodes = orderCodesStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            return StatusCode(409, new { 
+                Message = "Không thể xóa sản phẩm do đang có đơn hàng xử lý.", 
+                BlockingOrderCodes = orderCodes 
+            });
+        }
         catch (Exception ex)
         {
             return BadRequest(new { Message = ex.Message });

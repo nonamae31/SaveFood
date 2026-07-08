@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Html5Qrcode } from 'html5-qrcode'
 import {
   ScanLine, Search, Camera, CameraOff, CheckCircle2, Clock,
-  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2
+  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2, Wallet
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { storeOrdersApi, type StoreOrderDTO } from '@/api/store.orders.api'
@@ -13,7 +13,7 @@ import { QUERY_KEYS } from '@/lib/constants'
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatVND = (amount: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount))
 
 const ORDER_STATUS = {
   0: { label: 'Chờ xác nhận', color: 'text-amber-600 bg-amber-50 border-amber-200' },
@@ -24,7 +24,7 @@ const ORDER_STATUS = {
 } as const
 
 const PAYMENT_METHOD = {
-  0: { label: 'Tiền mặt', icon: Banknote, color: 'text-emerald-700 bg-emerald-50' },
+  0: { label: 'Ví SaveFood', icon: Wallet, color: 'text-brand-700 bg-brand-50' },
   1: { label: 'PayOS', icon: CreditCard, color: 'text-indigo-700 bg-indigo-50' },
 } as const
 

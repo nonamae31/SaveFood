@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SaveFoodBackend.Data;
 
@@ -11,9 +12,11 @@ using SaveFoodBackend.Data;
 namespace SaveFoodBackend.Migrations
 {
     [DbContext(typeof(SaveFoodDbContext))]
-    partial class SaveFoodDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260701080701_AddMissingPayOsFields")]
+    partial class AddMissingPayOsFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -310,53 +313,6 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex("ListingId");
 
                     b.ToTable("ListingImages");
-                });
-
-            modelBuilder.Entity("SaveFoodBackend.Models.Notification", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("(newid())");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("(getutcdate())");
-
-                    b.Property<bool>("IsRead")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid?>("ReferenceId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "IsRead");
-
-                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>
@@ -1308,17 +1264,6 @@ namespace SaveFoodBackend.Migrations
                         .HasConstraintName("FK_ListingImages_Listings");
 
                     b.Navigation("Listing");
-                });
-
-            modelBuilder.Entity("SaveFoodBackend.Models.Notification", b =>
-                {
-                    b.HasOne("SaveFoodBackend.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>

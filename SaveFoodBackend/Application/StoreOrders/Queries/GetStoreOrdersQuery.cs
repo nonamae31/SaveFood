@@ -56,6 +56,7 @@ public class GetStoreOrdersQueryHandler : IRequestHandler<GetStoreOrdersQuery, I
             OrderCode     = o.OrderCode,
             PaymentMethod = o.Payment?.PaymentMethod,
             PaymentStatus = o.Payment?.Status,
+            ExpectedPickupTime = o.ExpectedPickupTime,
             Items = o.OrderItems.Select(i => new StoreOrderItemDTO
             {
                 ProductName = i.ProductNameSnapshot,

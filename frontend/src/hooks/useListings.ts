@@ -9,7 +9,7 @@ import type { ListingFilter } from '@/types/listing.types'
 export const LISTING_QUERY_KEYS = {
   all:             ['listings'] as const,
   list:            (filter: ListingFilter) => ['listings', 'list', filter] as const,
-  recommendations: ['listings', 'recommendations'] as const,
+  recommendations: (userLat?: number, userLng?: number) => ['listings', 'recommendations', userLat, userLng] as const,
 }
 
 // ── useListings ───────────────────────────────────────────────────────────────
@@ -33,10 +33,10 @@ export function useListings(filter: ListingFilter = {}) {
  * Nếu chưa đăng nhập, API trả lỗi 401 → query sẽ có isError = true,
  * component sẽ ẩn section này.
  */
-export function useRecommendations() {
+export function useRecommendations(userLat?: number, userLng?: number) {
   return useQuery({
-    queryKey: LISTING_QUERY_KEYS.recommendations,
-    queryFn:  getRecommendations,
+    queryKey: LISTING_QUERY_KEYS.recommendations(userLat, userLng),
+    queryFn:  () => getRecommendations(userLat, userLng),
     retry: false, // 401 → không retry
     staleTime: 2 * 60 * 1000, // 2 phút
   })

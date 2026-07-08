@@ -41,6 +41,7 @@ import DashboardPickupPage from '@/pages/dashboard/DashboardPickupPage'
 import DashboardStaffPage from '@/pages/dashboard/DashboardStaffPage'
 import DashboardWalletPage from '@/pages/dashboard/DashboardWalletPage'
 import DashboardReviewsPage from '@/pages/dashboard/DashboardReviewsPage'
+import { NotificationsPage } from '@/pages/notifications/NotificationsPage'
 
 // ─── Placeholder pages ────────────────────────────────────────────────────────
 // TODO: Thay thế bằng các trang thật khi từng thành viên xây dựng tính năng của mình.
@@ -93,7 +94,7 @@ function App() {
           <CartProvider>
             <BrowserRouter>
             <ScrollToTop />
-            <Toaster position="top-right" />
+            <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
             <GlobalNotificationListener />
             <Routes>
               {/* ── Public Pages ── */}
@@ -121,6 +122,7 @@ function App() {
                   <Route path={ROUTES.MY_WALLET}       element={<CustomerWalletPage />} />
                   <Route path={ROUTES.HELP_CENTER}     element={<HelpCenterPage />} />
                   <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
+                  <Route path="/notifications"         element={<NotificationsPage />} />
                 </Route>
               </Route>
 
@@ -145,6 +147,7 @@ function App() {
                 <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
                 <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
                 <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
+                <Route path="/dashboard/notifications"   element={<NotificationsPage />} />
               </Route>
             </Route>
 
@@ -159,6 +162,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
                 <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
+                <Route path="/admin/notifications" element={<NotificationsPage />} />
               </Route>
             </Route>
 

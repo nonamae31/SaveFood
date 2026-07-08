@@ -20,7 +20,7 @@ public class JwtProvider : IJwtProvider
         _configuration = configuration;
     }
 
-    public string GenerateJwtToken(User user, string sessionId)
+    public string GenerateJwtToken(User user, string sessionId, Guid? storeId = null)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var keyStr = jwtSettings["Key"];
@@ -36,6 +36,11 @@ public class JwtProvider : IJwtProvider
             new Claim("fullName", user.FullName),
             new Claim("sessionId", sessionId)
         };
+
+        if (storeId.HasValue)
+        {
+            claims.Add(new Claim("storeId", storeId.Value.ToString()));
+        }
 
         foreach (var userRole in user.UserRoles)
         {
