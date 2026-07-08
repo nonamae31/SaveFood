@@ -442,6 +442,7 @@ export default function AccountManagementPage() {
   
   // Extract from URL
   const search = searchParams.get('search') || '';
+  const [localSearch, setLocalSearch] = useState(search);
   const roleFilter = searchParams.get('roleFilter') || 'All';
   const staffRoleFilter = searchParams.get('staffRoleFilter') || 'All';
   const statusFilter = searchParams.get('statusFilter') || 'All';
@@ -501,6 +502,20 @@ export default function AccountManagementPage() {
     newParams.set('pageNumber', '1');
     setSearchParams(newParams);
   };
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localSearch !== (searchParams.get('search') || '')) {
+        updateFilter('search', localSearch);
+      }
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [localSearch, searchParams]); // searchParams is needed to get the latest value, but it might cause issues? Let's just use the 'search' variable.
+
+  // Re-sync local state if the URL changes externally (e.g., back button)
+  useEffect(() => {
+    setLocalSearch(search);
+  }, [search]);
 
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams);
@@ -566,8 +581,8 @@ export default function AccountManagementPage() {
           <input 
             type="text"
             placeholder="Tìm kiếm theo tên hoặc email..."
-            value={search}
-            onChange={e => updateFilter('search', e.target.value)}
+            value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 bg-mint-canvas border border-mint-hairline text-mint-ink rounded-[8px] focus:outline-none focus:border-mint-brand-green focus:border-2 text-[14px] h-[40px] transition-all"
           />
         </div>

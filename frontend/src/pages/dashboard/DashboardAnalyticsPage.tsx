@@ -124,7 +124,7 @@ export default function DashboardAnalyticsPage() {
           </div>
           <p className="text-sm font-medium text-gray-500">Tổng doanh thu</p>
           <h3 className="text-2xl font-bold text-gray-900 mt-1">
-            {analytics ? analytics.totalRevenue.toLocaleString() : 0}đ
+            {analytics ? Math.round(analytics.totalRevenue).toLocaleString() : 0}đ
           </h3>
         </div>
 
@@ -201,7 +201,7 @@ export default function DashboardAnalyticsPage() {
                             <div key={i} className="w-full h-full bg-transparent rounded-t-md relative group flex flex-col justify-end">
                               <div className="w-full bg-green-500 rounded-t-md transition-all duration-500 hover:bg-green-400" style={{ height: `${h}%` }}></div>
                               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 pointer-events-none">
-                                {rev.toLocaleString()}đ
+                                {Math.round(rev).toLocaleString()}đ
                               </div>
                             </div>
                           );

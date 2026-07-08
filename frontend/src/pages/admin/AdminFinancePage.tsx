@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '../../api/admin.api';
-import type { WalletTransactionDTO, WithdrawalRequestDTO } from '../../api/admin.api';
-import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import type { WalletTransactionDTO, WithdrawalRequestDTO, CustomerWalletTransactionAdminDTO } from '../../api/admin.api';
+import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
 import { clsx } from "clsx";
 
-type TabType = 'ledger' | 'withdrawals';
+type TabType = 'ledger' | 'withdrawals' | 'customer-wallets';
 
 export default function AdminFinancePage() {
   const [activeTab, setActiveTab] = useState<TabType>('ledger');
@@ -13,11 +13,14 @@ export default function AdminFinancePage() {
   // Data states
   const [transactions, setTransactions] = useState<WalletTransactionDTO[]>([]);
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequestDTO[]>([]);
+  const [customerTransactions, setCustomerTransactions] = useState<CustomerWalletTransactionAdminDTO[]>([]);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('');
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -32,7 +35,7 @@ export default function AdminFinancePage() {
   const [processing, setProcessing] = useState(false);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount));
   };
 
   const formatDate = (dateString: string) => {
@@ -46,12 +49,16 @@ export default function AdminFinancePage() {
     setLoading(true);
     try {
       if (activeTab === 'ledger') {
-        const res = await adminApi.getTransactions(page, 15);
+        const res = await adminApi.getTransactions(page, 15, searchQuery, startDate, endDate);
         setTransactions(res.items);
         setTotalPages(res.totalPages);
       } else if (activeTab === 'withdrawals') {
-        const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined);
+        const res = await adminApi.getWithdrawals(page, 15, statusFilter !== 'all' ? parseInt(statusFilter) : undefined, searchQuery, startDate, endDate);
         setWithdrawals(res.items);
+        setTotalPages(res.totalPages);
+      } else if (activeTab === 'customer-wallets') {
+        const res = await adminApi.getCustomerTransactions(page, 15, searchQuery, startDate, endDate);
+        setCustomerTransactions(res.items);
         setTotalPages(res.totalPages);
       }
     } catch (error) {
@@ -62,8 +69,11 @@ export default function AdminFinancePage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [activeTab, page, statusFilter]);
+    const timeoutId = setTimeout(() => {
+      fetchData();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [activeTab, page, statusFilter, searchQuery, startDate, endDate]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -145,6 +155,16 @@ export default function AdminFinancePage() {
           Yêu cầu Rút tiền
           {activeTab === 'withdrawals' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
         </button>
+        <button
+          onClick={() => handleTabChange('customer-wallets')}
+          className={clsx(
+            "px-4 py-2 text-[14px] font-medium rounded-t-lg transition-colors relative",
+            activeTab === 'customer-wallets' ? "text-mint-brand-green bg-mint-brand-green/5" : "text-mint-stone hover:text-mint-ink hover:bg-mint-canvas"
+          )}
+        >
+          Giao dịch Khách hàng
+          {activeTab === 'customer-wallets' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-mint-brand-green" />}
+        </button>
       </div>
 
       {/* Filters */}
@@ -154,20 +174,43 @@ export default function AdminFinancePage() {
             type="text" 
             placeholder="Tìm theo tên cửa hàng, mô tả, STK..." 
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setPage(1);
+            }}
             className="w-full px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
           />
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <input 
             type="date" 
-            value={dateFilter}
+            value={startDate}
             onChange={(e) => {
-              setDateFilter(e.target.value);
+              setStartDate(e.target.value);
               setPage(1);
             }}
             className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
           />
+          <span className="text-mint-stone">-</span>
+          <input 
+            type="date" 
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value);
+              setPage(1);
+            }}
+            className="px-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:border-mint-brand-green bg-white shadow-sm"
+          />
+          <button
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+              setPage(1);
+            }}
+            className="px-4 py-2 bg-mint-canvas text-mint-ink font-medium text-[14px] border border-mint-hairline hover:bg-mint-surface rounded-[8px] transition-colors shadow-sm whitespace-nowrap"
+          >
+            Xem tất cả
+          </button>
         </div>
         {activeTab === 'withdrawals' && (
           <select 
@@ -217,44 +260,23 @@ export default function AdminFinancePage() {
                       <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Thao tác</th>
                     </>
                   )}
+                  {activeTab === 'customer-wallets' && (
+                    <>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Ngày</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Khách hàng</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Loại GD</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Mô tả</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider text-right">Số tiền</th>
+                      <th className="px-6 py-4 text-[13px] font-semibold text-mint-stone uppercase tracking-wider">Trạng thái</th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-mint-hairline">
-                {activeTab === 'ledger' && transactions.filter(t => {
-                  if (t.type === 2) return false;
-                  
-                  // Text search (Store Name, Description)
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchStore = t.storeName.toLowerCase().includes(q);
-                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
-                    if (!matchStore && !matchDesc) return false;
-                  }
-
-                  // Date filter
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-
-                  return true;
-                }).length === 0 && (
+                {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).length === 0 && (
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
-                {activeTab === 'ledger' && transactions.filter(t => {
-                  if (t.type === 2) return false;
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchStore = t.storeName.toLowerCase().includes(q);
-                    const matchDesc = t.description?.toLowerCase().includes(q) || false;
-                    if (!matchStore && !matchDesc) return false;
-                  }
-                  if (dateFilter) {
-                    const txDate = new Date(t.createdAt).toISOString().split('T')[0];
-                    if (txDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).map(t => (
+                {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).map(t => (
                   <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(t.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>
@@ -281,38 +303,10 @@ export default function AdminFinancePage() {
                   </tr>
                 ))}
 
-                {activeTab === 'withdrawals' && withdrawals.filter(w => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchName = w.requesterName.toLowerCase().includes(q);
-                    const matchBank = w.bankName.toLowerCase().includes(q);
-                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
-                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
-                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
-                  }
-                  if (dateFilter) {
-                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
-                    if (wDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).length === 0 && (
+                {activeTab === 'withdrawals' && withdrawals.length === 0 && (
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu rút tiền nào</td></tr>
                 )}
-                {activeTab === 'withdrawals' && withdrawals.filter(w => {
-                  if (searchQuery) {
-                    const q = searchQuery.toLowerCase();
-                    const matchName = w.requesterName.toLowerCase().includes(q);
-                    const matchBank = w.bankName.toLowerCase().includes(q);
-                    const matchAccName = w.bankAccountName.toLowerCase().includes(q);
-                    const matchAccNo = w.bankAccountNumber.toLowerCase().includes(q);
-                    if (!matchName && !matchBank && !matchAccName && !matchAccNo) return false;
-                  }
-                  if (dateFilter) {
-                    const wDate = new Date(w.createdAt).toISOString().split('T')[0];
-                    if (wDate !== dateFilter) return false;
-                  }
-                  return true;
-                }).map(w => (
+                {activeTab === 'withdrawals' && withdrawals.map(w => (
                   <tr key={w.id} className="hover:bg-mint-canvas/30 transition-colors">
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(w.createdAt)}</td>
                     <td className="px-6 py-4">
@@ -347,6 +341,44 @@ export default function AdminFinancePage() {
                     </td>
                   </tr>
                 ))}
+
+                {/* Customer Wallet Transactions */}
+                {activeTab === 'customer-wallets' && customerTransactions.length === 0 && (
+                  <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch ví khách hàng nào</td></tr>
+                )}
+                {activeTab === 'customer-wallets' && customerTransactions.map(t => {
+                  const typeMap: Record<number, { label: string; className: string }> = {
+                    0: { label: 'Nạp tiền', className: 'text-blue-600 bg-blue-50' },
+                    1: { label: 'Rút tiền', className: 'text-amber-600 bg-amber-50' },
+                    2: { label: 'Thanh toán', className: 'text-red-600 bg-red-50' },
+                    3: { label: 'Hoàn tiền', className: 'text-mint-brand-green bg-mint-brand-green/10' },
+                  };
+                  const typeInfo = typeMap[t.type] ?? { label: `Loại ${t.type}`, className: 'text-mint-stone bg-mint-canvas' };
+                  const isCredit = t.type === 0 || t.type === 3; // Deposit or Refund = money in
+                  return (
+                    <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
+                      <td className="px-6 py-4 text-[14px] text-mint-stone whitespace-nowrap">{formatDate(t.createdAt)}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-[14px] font-medium text-mint-ink">{t.customerName}</div>
+                        <div className="text-[12px] text-mint-stone">{t.customerEmail}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center text-[12px] font-medium px-2 py-1 rounded-full ${typeInfo.className}`}>
+                          {typeInfo.label}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-[14px] text-mint-stone break-words">{t.description || '-'}</td>
+                      <td className="px-6 py-4 text-[14px] font-medium text-right">
+                        {isCredit ? (
+                          <span className="text-mint-brand-green flex items-center justify-end gap-1"><ArrowUpCircle className="w-3 h-3" /> +{formatCurrency(t.amount)}</span>
+                        ) : (
+                          <span className="text-red-500 flex items-center justify-end gap-1"><ArrowDownCircle className="w-3 h-3" /> -{formatCurrency(t.amount)}</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{renderStatus(t.status, 'tx')}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

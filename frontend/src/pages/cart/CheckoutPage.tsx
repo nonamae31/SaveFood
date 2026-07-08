@@ -57,6 +57,13 @@ export function CheckoutPage() {
         }
     }, [wallet, isWalletLoading, cartItems, selectedItemIds, totalAmount]);
 
+    // Ensure PayOS is selected if wallet balance becomes insufficient (e.g. after quantity change)
+    useEffect(() => {
+        if (paymentMethod === 0 && wallet !== undefined && wallet.balance < totalAmount) {
+            setPaymentMethod(1);
+        }
+    }, [wallet, totalAmount, paymentMethod]);
+
     const checkoutMutation = useMutation({
         mutationFn: checkoutApi.checkout,
         onSuccess: (res) => {
@@ -150,29 +157,39 @@ export function CheckoutPage() {
 
     // Generate Time Options
     const now = new Date();
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
 
     const minExpiryTime = checkoutItems.reduce((min, item) => {
         const expiry = new Date(item.expiryDate);
         return expiry < min ? expiry : min;
-    }, endOfDay);
+    }, new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000));
 
-    const maxPickupTime = minExpiryTime < endOfDay ? minExpiryTime : endOfDay;
+    // Limit max to tomorrow at 21:00
+    const maxDateLimit = new Date();
+    maxDateLimit.setDate(maxDateLimit.getDate() + 1);
+    maxDateLimit.setHours(21, 0, 0, 0);
+
+    const effectiveMaxPickupTime = minExpiryTime < maxDateLimit ? minExpiryTime : maxDateLimit;
     const timeOptions: Date[] = [];
 
-    let currentOption = new Date(now.getTime() + 30 * 60000); // now + 30 mins
-    // Round up to nearest 30 mins
-    currentOption.setMinutes(Math.ceil(currentOption.getMinutes() / 30) * 30, 0, 0);
+    // Bắt đầu từ mốc tròn giờ tiếp theo (ví dụ 14:15 -> 15:00)
+    let currentOption = new Date(now.getTime());
+    currentOption.setHours(currentOption.getHours() + 1, 0, 0, 0);
 
-    while (currentOption <= maxPickupTime) {
-        timeOptions.push(new Date(currentOption));
-        currentOption.setMinutes(currentOption.getMinutes() + 30);
+    while (currentOption <= effectiveMaxPickupTime) {
+        const hours = currentOption.getHours();
+        const minutes = currentOption.getMinutes();
+        const timeVal = hours + minutes / 60;
+        
+        // Only allow pickup between 08:00 and 21:00
+        if (timeVal >= 8 && timeVal <= 21) {
+            timeOptions.push(new Date(currentOption));
+        }
+        
+        currentOption.setHours(currentOption.getHours() + 1);
     }
 
-    // If no options (e.g., expiring in less than 30 mins), add maxPickupTime as the only option
-    if (timeOptions.length === 0) {
-        timeOptions.push(maxPickupTime);
+    if (timeOptions.length === 0 && minExpiryTime > now) {
+        timeOptions.push(minExpiryTime);
     }
 
     // Set default selection
@@ -184,103 +201,142 @@ export function CheckoutPage() {
         <div className="max-w-screen-2xl mx-auto px-4 xl:px-8 py-8">
             <h1 className="text-2xl font-bold mb-8">Thanh toán</h1>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Cột 1: Danh sách sản phẩm */}
                 <div className="space-y-6">
-                    {Object.values(groupedItems).map((group, idx) => (
-                        <div key={idx} className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                            <h2 className="text-lg font-semibold mb-4">Sản phẩm từ: {group.storeName}</h2>
-                            <div className="space-y-4">
-                                {group.items.map((item) => (
-                                    <div key={item.id} className="flex gap-4 border-b pb-4 last:border-0 last:pb-0">
-                                        <img
-                                            src={item.imageUrl}
-                                            alt={item.title}
-                                            className="w-20 h-20 object-cover rounded-md"
-                                        />
-                                        <div className="flex-1">
-                                            <h3 className="font-medium">{item.title}</h3>
-                                            <p className="text-sm text-gray-500">Số lượng: {item.quantity}</p>
-                                            <p className="text-brand-600 font-medium">
-                                                {(item.salePrice * item.quantity).toLocaleString("vi-VN")} đ
-                                            </p>
-                                        </div>
+                    <div>
+                        <h2 className="text-xl font-semibold mb-4 text-gray-800">1. Đơn hàng của bạn</h2>
+                        <div className="space-y-4">
+                            {Object.values(groupedItems).map((group, idx) => (
+                                <div key={idx} className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+                                    <h3 className="font-semibold text-gray-700 mb-4 border-b pb-2">Từ: {group.storeName}</h3>
+                                    <div className="space-y-4">
+                                        {group.items.map((item) => (
+                                            <div key={item.id} className="flex gap-4 border-b pb-4 last:border-0 last:pb-0">
+                                                <img
+                                                    src={item.imageUrl}
+                                                    alt={item.title}
+                                                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
+                                                />
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="font-medium text-gray-900 truncate">{item.title}</h4>
+                                                    <p className="text-sm text-gray-500 mt-1">Số lượng: {item.quantity}</p>
+                                                    <p className="text-brand-600 font-semibold mt-2">
+                                                        {(item.salePrice * item.quantity).toLocaleString("vi-VN")} đ
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    </div>
                 </div>
 
-                {/* Cột 2: Thời gian & Thanh toán */}
+                {/* Cột 2: Thời gian và Thanh toán */}
                 <div className="space-y-6">
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                        <h2 className="text-lg font-semibold mb-4">Thời gian nhận hàng dự kiến</h2>
-                        <p className="text-sm text-gray-500 mb-3">
-                            Vui lòng chọn thời gian bạn sẽ đến lấy. Các món ăn sắp hết hạn cần được lấy sớm để đảm bảo
-                            chất lượng.
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                            {timeOptions.map((time, idx) => {
-                                const timeStr = time.toISOString();
-                                const isSelected = expectedPickupTime === timeStr;
-                                return (
-                                    <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => setExpectedPickupTime(timeStr)}
-                                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors border ${
-                                            isSelected 
-                                                ? 'bg-brand-500 text-white border-brand-500' 
-                                                : 'bg-white text-gray-700 border-gray-300 hover:border-brand-300 hover:bg-brand-50'
-                                        }`}
-                                    >
-                                        {time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
-                                    </button>
-                                );
-                            })}
+                    {/* Thời gian nhận hàng */}
+                    <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h2 className="text-lg font-semibold mb-3">2. Thời gian lấy hàng</h2>
+                        <div className="text-sm mb-4 space-y-1.5">
+                            <p className="text-gray-500">
+                                Vui lòng chọn thời gian bạn sẽ đến lấy. Các món ăn sắp hết hạn cần được lấy sớm để đảm bảo chất lượng.
+                            </p>
+                            <p className="text-amber-600 font-medium">
+                                * Lưu ý: Nếu đến muộn hơn thời gian đã chọn, cửa hàng có quyền hủy đơn và bạn sẽ không được hoàn tiền.
+                            </p>
+                        </div>
+                        <div className="space-y-4 mt-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            {(() => {
+                                const groups: Record<string, Date[]> = {};
+                                timeOptions.forEach(time => {
+                                    const today = new Date();
+                                    const tomorrow = new Date();
+                                    tomorrow.setDate(tomorrow.getDate() + 1);
+                                    
+                                    let groupName = "";
+                                    if (time.getDate() === today.getDate() && time.getMonth() === today.getMonth() && time.getFullYear() === today.getFullYear()) {
+                                        groupName = "Hôm nay";
+                                    } else if (time.getDate() === tomorrow.getDate() && time.getMonth() === tomorrow.getMonth() && time.getFullYear() === tomorrow.getFullYear()) {
+                                        groupName = "Ngày mai";
+                                    } else {
+                                        groupName = time.toLocaleDateString("vi-VN", { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                    }
+                                    
+                                    if (!groups[groupName]) groups[groupName] = [];
+                                    groups[groupName].push(time);
+                                });
+
+                                return Object.entries(groups).map(([groupName, groupTimes]) => (
+                                    <div key={groupName} className="space-y-2">
+                                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider sticky top-0 bg-white py-1">{groupName}</h3>
+                                        <div className="flex flex-wrap gap-2">
+                                            {groupTimes.map((time, idx) => {
+                                                const timeStr = time.toISOString();
+                                                const isSelected = expectedPickupTime === timeStr;
+                                                return (
+                                                    <button
+                                                        key={idx}
+                                                        type="button"
+                                                        onClick={() => setExpectedPickupTime(timeStr)}
+                                                        className={`px-3 py-1.5 rounded text-sm font-medium transition-colors border ${
+                                                            isSelected 
+                                                                ? 'bg-brand-500 text-white border-brand-500 shadow-sm' 
+                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-brand-400 hover:bg-brand-50 hover:text-brand-700'
+                                                        }`}
+                                                    >
+                                                        {time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
-                        <h2 className="text-lg font-semibold mb-4">Phương thức thanh toán</h2>
-                        <div className="space-y-3">
-                            <label className={`flex flex-col p-4 border rounded transition-colors ${wallet && wallet.balance < totalAmount ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed' : paymentMethod === 0 ? 'bg-brand-50 border-brand-500 cursor-pointer' : 'border-gray-200 cursor-pointer'}`}>
-                                <div className="flex items-center gap-3">
-                                    <input
-                                        type="radio"
-                                        name="paymentMethod"
-                                        value={0}
-                                        checked={paymentMethod === 0}
-                                        onChange={() => setPaymentMethod(0)}
-                                        disabled={wallet && wallet.balance < totalAmount}
-                                        className="w-4 h-4 text-brand-500 disabled:opacity-50"
-                                    />
-                                    <div className="flex-1">
-                                        <span className={`font-medium flex items-center gap-2 ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'}`}>
+                    {/* Thanh toán */}
+                    <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+                        <h2 className="text-lg font-semibold mb-3">3. Thanh toán</h2>
+                        <div className="space-y-3 flex-1">
+                            <label className={`flex flex-col p-4 border rounded-xl transition-colors ${wallet && wallet.balance < totalAmount ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed' : paymentMethod === 0 ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500 cursor-pointer' : 'border-gray-200 cursor-pointer hover:border-brand-300'}`}>
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="radio"
+                                            name="paymentMethod"
+                                            value={0}
+                                            checked={paymentMethod === 0}
+                                            onChange={() => setPaymentMethod(0)}
+                                            disabled={wallet && wallet.balance < totalAmount}
+                                            className="w-4 h-4 text-brand-500 focus:ring-brand-500 disabled:opacity-50"
+                                        />
+                                        <span className={`font-medium flex flex-wrap items-center gap-2 ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'}`}>
                                             Ví SaveFood
-                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                                <ShieldCheckIcon className="w-3 h-3" /> SaveFood Guarantee
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">
+                                                <ShieldCheckIcon className="w-3 h-3" /> Guarantee
                                             </span>
                                         </span>
                                     </div>
-                                    <div className="text-right">
-                                        <span className={`text-sm font-medium ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : ''}`}>Số dư: {wallet?.balance.toLocaleString("vi-VN")} đ</span>
-                                    </div>
+                                    <span className={`text-sm font-semibold sm:text-right ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'} ml-7 sm:ml-0`}>
+                                        Số dư: {wallet?.balance.toLocaleString("vi-VN")} đ
+                                    </span>
                                 </div>
                                 
                                 {wallet && wallet.balance < totalAmount ? (
-                                    <div className="mt-2 ml-7 text-sm text-red-500 font-medium">
-                                        Số dư ví hiện tại: {wallet?.balance.toLocaleString("vi-VN")} đ — không đủ để thanh toán đơn này
+                                    <div className="mt-2 ml-7 text-xs sm:text-sm text-red-500 font-medium">
+                                        Không đủ số dư để thanh toán đơn này.
                                     </div>
                                 ) : paymentMethod === 0 && (
-                                    <div className="mt-3 ml-7 text-sm text-gray-600">
-                                        Thanh toán an toàn, hoàn tiền 100% ngay lập tức nếu quán chưa xác nhận hoặc từ chối đơn hàng.
+                                    <div className="mt-2 ml-7 text-xs sm:text-sm text-gray-600">
+                                        Hoàn tiền 100% lập tức nếu bị từ chối đơn.
                                     </div>
                                 )}
                             </label>
 
-                            <label className={`flex flex-col p-4 border rounded cursor-pointer transition-colors ${paymentMethod === 1 ? 'bg-brand-50 border-brand-500' : 'border-gray-200'}`}>
+                            <label className={`flex flex-col p-4 border rounded-xl cursor-pointer transition-colors ${paymentMethod === 1 ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500' : 'border-gray-200 hover:border-brand-300'}`}>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="radio"
@@ -288,24 +344,25 @@ export function CheckoutPage() {
                                         value={1}
                                         checked={paymentMethod === 1}
                                         onChange={() => setPaymentMethod(1)}
-                                        className="w-4 h-4 text-brand-500"
+                                        className="w-4 h-4 text-brand-500 focus:ring-brand-500"
                                     />
-                                    <span className="font-medium text-gray-900">Thanh toán qua PayOS (Chuyển khoản / Mã QR)</span>
+                                    <span className="font-medium text-gray-900">PayOS (Chuyển khoản / QR)</span>
                                 </div>
                                 {paymentMethod === 1 && (
-                                    <div className="mt-2 ml-7 text-sm text-gray-500">
-                                        Hỗ trợ chuyển khoản nhanh 24/7 qua mã QR tới mọi ngân hàng.
+                                    <div className="mt-2 ml-7 text-xs sm:text-sm text-gray-500">
+                                        Hỗ trợ mọi ngân hàng 24/7.
                                     </div>
                                 )}
                             </label>
                         </div>
-                        <p className="mt-4 text-sm text-amber-600 bg-amber-50 p-3 rounded">
-                            * Yêu cầu thanh toán trước để giữ món. Đơn hàng sẽ tự động huỷ nếu chưa thanh toán kịp hoặc nếu bạn không đến lấy hàng sau thời gian dự kiến (Không hoàn tiền).
+                        <p className="mt-4 text-xs text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                            * Yêu cầu thanh toán trước để giữ món. Đơn sẽ bị huỷ nếu không thanh toán kịp thời.
                         </p>
                     </div>
                 </div>
 
-                <div>
+                {/* Cột 3: Tổng cộng / Sticky */}
+                <div className="space-y-6 lg:col-span-1">
                     <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100 sticky top-24">
                         <h2 className="text-lg font-semibold mb-4">Tổng cộng</h2>
                         <div className="flex justify-between mb-2">

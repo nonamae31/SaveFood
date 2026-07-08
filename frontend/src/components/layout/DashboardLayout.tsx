@@ -135,10 +135,7 @@ export function DashboardLayout() {
 
         {/* User & Store Profile Area */}
         <div className="p-4 border-t border-gray-100">
-          <div className="flex justify-between items-center mb-2 px-2">
-            <span className="text-sm font-semibold text-gray-500">Thông báo</span>
-            <NotificationDropdown isDark={false} placement="top-right" />
-          </div>
+
           <div className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors mb-2 group">
             <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center overflow-hidden shrink-0 border border-brand-200">
               {storeProfile?.logoUrl ? (
@@ -179,20 +176,20 @@ export function DashboardLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white border-b border-gray-200 flex items-center px-4 sticky top-0 z-30">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 sticky top-0 z-30">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 cursor-pointer"
+            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 cursor-pointer lg:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
+          <div className="ml-2 font-bold text-gray-900 flex items-center gap-2 lg:hidden">
             <Store className="w-5 h-5 text-brand-600" />
             SaveFood Store
           </div>
-          <div className="ml-auto">
-            <NotificationDropdown isDark={false} />
+          <div className="ml-auto flex items-center">
+            <NotificationDropdown isDark={false} placement="bottom-right" />
           </div>
         </header>
 

@@ -108,10 +108,7 @@ export function AdminLayout() {
 
         {/* User Profile Area */}
         <div className="p-4 border-t border-gray-100">
-          <div className="flex justify-between items-center mb-2 px-2">
-            <span className="text-sm font-semibold text-gray-500">Thông báo</span>
-            <NotificationDropdown isDark={false} placement="top-right" />
-          </div>
+
           <div 
             onClick={() => setIsProfileModalOpen(true)}
             className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors mb-2 group"
@@ -145,20 +142,20 @@ export function AdminLayout() {
 
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Mobile Header */}
-        <header className="lg:hidden h-16 bg-white border-b border-gray-200 flex items-center px-4 sticky top-0 z-30">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 sticky top-0 z-30">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
-            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+            className="p-2 -ml-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 lg:hidden"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <div className="ml-2 font-bold text-gray-900 flex items-center gap-2">
+          <div className="ml-2 font-bold text-gray-900 flex items-center gap-2 lg:hidden">
             <Shield className="w-5 h-5 text-indigo-600" />
             Quản trị SaveFood
           </div>
-          <div className="ml-auto">
-            <NotificationDropdown isDark={false} />
+          <div className="ml-auto flex items-center">
+            <NotificationDropdown isDark={false} placement="bottom-right" />
           </div>
         </header>
 

@@ -181,6 +181,20 @@ export interface ProcessFinanceRequestDTO {
   adminNote?: string;
 }
 
+export interface CustomerWalletTransactionAdminDTO {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  /** 0=Deposit, 1=Withdrawal, 2=Payment, 3=Refund */
+  type: number;
+  /** 0=Pending, 1=Completed, 2=Failed */
+  status: number;
+  orderId?: string;
+  description?: string;
+  createdAt: string;
+}
+
 // API methods
 export const adminApi = {
   getUsers: (params?: GetUsersRequest) => {
@@ -250,12 +264,20 @@ export const adminApi = {
   getSubscriptionStats: () => apiClient<AdminSubscriptionStatsResponse>('/admin/stats/subscriptions'),
 
   // Finance
-  getTransactions: (pageNumber: number = 1, pageSize: number = 10) =>
-    apiClient<PaginatedList<WalletTransactionDTO>>(`/admin/finance/transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`),
+  getTransactions: (pageNumber: number = 1, pageSize: number = 10, search?: string, startDate?: string, endDate?: string) => {
+    let url = `/admin/finance/transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    return apiClient<PaginatedList<WalletTransactionDTO>>(url);
+  },
 
-  getWithdrawals: (pageNumber: number = 1, pageSize: number = 10, status?: number) => {
+  getWithdrawals: (pageNumber: number = 1, pageSize: number = 10, status?: number, search?: string, startDate?: string, endDate?: string) => {
     let url = `/admin/finance/withdrawals?pageNumber=${pageNumber}&pageSize=${pageSize}`;
     if (status !== undefined) url += `&status=${status}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
     return apiClient<PaginatedList<WithdrawalRequestDTO>>(url);
   },
 
@@ -264,4 +286,12 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify(request),
     }),
+
+  getCustomerTransactions: (pageNumber: number = 1, pageSize: number = 15, search?: string, startDate?: string, endDate?: string) => {
+    let url = `/admin/finance/customer-transactions?pageNumber=${pageNumber}&pageSize=${pageSize}`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (startDate) url += `&startDate=${encodeURIComponent(startDate)}`;
+    if (endDate) url += `&endDate=${encodeURIComponent(endDate)}`;
+    return apiClient<PaginatedList<CustomerWalletTransactionAdminDTO>>(url);
+  },
 };

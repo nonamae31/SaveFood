@@ -2,7 +2,7 @@
 
 Dự án **SaveFood** là nền tảng Web Marketplace chuyên bán đồ ăn cận date nhằm mục đích giảm thiểu lãng phí thực phẩm. Đây là mã nguồn Backend (API) của hệ thống.
 
-Dự án này sử dụng kiến trúc **N-Tier Architecture** kết hợp với mô hình **Database-First** (Entity Framework Core) và hướng tới Clean Architecture để tách biệt rõ ràng các tầng nghiệp vụ.
+Dự án này áp dụng mô hình **CQRS (Command Query Responsibility Segregation)** kết hợp **MediatR**, cùng với mẫu thiết kế **Repository & Unit of Work**, hướng tới Clean Architecture để tách biệt rõ ràng các tầng nghiệp vụ và dễ dàng mở rộng.
 
 ---
 
@@ -10,7 +10,9 @@ Dự án này sử dụng kiến trúc **N-Tier Architecture** kết hợp với
 - **Framework**: .NET 8 (ASP.NET Core Web API)
 - **Database**: SQL Server
 - **ORM**: Entity Framework Core 8.0
+- **Architecture Patterns**: CQRS (MediatR), Unit of Work, Repository Pattern
 - **Authentication**: JWT (JSON Web Tokens)
+- **Caching & OTP**: Redis
 - **Thanh toán**: payOS
 - **Lưu trữ ảnh**: Cloudinary
 - **Gửi Email**: MailKit (SMTP)
@@ -19,7 +21,7 @@ Dự án này sử dụng kiến trúc **N-Tier Architecture** kết hợp với
 ---
 
 ## 2. Các Module và Bảng dữ liệu cốt lõi
-Qua việc phân tích toàn bộ source code (`DbContext`, `Controllers`, `Services`), hệ thống được chia thành các phân hệ chính sau:
+Hệ thống được chia thành các phân hệ chính sau:
 
 1. **Phân hệ Người dùng & Xác thực (Auth & Users)**: `Users`, `Roles`, `UserRoles`, `UserSessions`, `PasswordResetTokens`, `EmailVerifications`.
 2. **Phân hệ Cửa hàng (Stores)**: `Stores`, `StoreStaffs` (Quản lý nhân viên quán), `SubscriptionPlans` (Gói cước), `StoreSubscriptions` (Đăng ký gói).
@@ -27,11 +29,12 @@ Qua việc phân tích toàn bộ source code (`DbContext`, `Controllers`, `Serv
 4. **Phân hệ Đặt hàng (Orders)**: `Carts`, `CartItems` (Giỏ hàng), `Orders`, `OrderItems` (Chi tiết đơn), `Payments` (Thanh toán).
 5. **Phân hệ Tài chính & Ví (Wallets)**: `StoreWallets`, `CustomerWallets`, `WalletTransactions`, `CustomerWalletTransactions`, `WithdrawalRequests` (Yêu cầu rút tiền).
 6. **Phân hệ Đánh giá (Reviews)**: `Reviews`, `ReviewImages` (Khách hàng đánh giá đơn).
+7. **Phân hệ Thông báo (Notifications)**: `Notifications` (Quản lý thông báo in-app realtime).
 
 ---
 
 ## 3. Các Background Tasks (Tiến trình chạy ngầm)
-- `DynamicPricingBackgroundService`: Tự động quyét và giảm giá (`SalePrice`) các tin đăng (ClearanceListing) dựa vào `ListingDiscountRules` khi gần đến giờ hết hạn.
+- `DynamicPricingBackgroundService`: Tự động quét và giảm giá (`SalePrice`) các tin đăng (ClearanceListing) dựa vào `ListingDiscountRules` khi gần đến giờ hết hạn.
 - `ExpiredOrderCleanupService`: Tự động hủy các đơn hàng chưa thanh toán quá hạn (Pending payment timeout).
 - `NoShowOrderCompletionService`: Tự động đánh dấu hoàn thành các đơn đã thanh toán online nhưng khách không đến lấy (No Show) sau khoảng thời gian nhất định, để tránh tiền bị treo.
 
@@ -42,6 +45,7 @@ Qua việc phân tích toàn bộ source code (`DbContext`, `Controllers`, `Serv
 ### Yêu cầu hệ thống (Prerequisites)
 - Cài đặt [.NET 8 SDK](https://dotnet.microsoft.com/en-us/download/dotnet/8.0).
 - Cài đặt [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) và SSMS (hoặc Azure Data Studio).
+- Cài đặt [Redis](https://redis.io/download/) (Chạy qua Docker hoặc cài trực tiếp).
 - Cài đặt EF Core CLI: `dotnet tool install --global dotnet-ef`
 
 ### Cấu hình môi trường (appsettings.json)
@@ -61,24 +65,8 @@ Bạn cần cấu hình file `appsettings.json` (hoặc `appsettings.Development
     "Key": "SaveFood_Super_Secret_Key_For_JWT_Authentication_12345!@#",
     "Issuer": "SaveFoodBackend",
     "Audience": "SaveFoodFrontend"
-  },
-  "SmtpSettings": {
-    "Host": "smtp.gmail.com",
-    "Port": 587,
-    "EnableSsl": true,
-    "Username": "your_email@gmail.com",
-    "Password": "your_app_password",
-    "SenderName": "SaveFood System",
-    "SenderEmail": "your_email@gmail.com"
-  },
-  "Google": {
-    "ClientId": "your_google_client_id"
-  },
-  "Cloudinary": {
-    "CloudName": "your_cloud_name",
-    "ApiKey": "your_api_key",
-    "ApiSecret": "your_api_secret"
   }
+  // Các cấu hình SmtpSettings, Google, Cloudinary, PayOS...
 }
 ```
 
@@ -103,17 +91,18 @@ Truy cập `https://localhost:<port>/swagger` để xem giao diện tài liệu 
 
 ---
 
-## 5. Cấu trúc thư mục (Clean Architecture / N-Tier)
+## 5. Cấu trúc thư mục (CQRS & Clean Architecture)
 
-- **`/Controllers`**: Chứa các API Endpoints (Ví dụ: `UsersController`, `OrdersController`). Controller chỉ nhận request, thực hiện validate DTO, và gọi `IService`.
-- **`/Interfaces`**: Định nghĩa các Interface hợp đồng cho Repository và Service, tuân thủ Dependency Inversion (DI).
-- **`/Services`**: Tầng chứa toàn bộ logic nghiệp vụ (Ví dụ: `OrderService.CheckoutAsync` xử lý tồn kho, `AuthService.LoginAsync` sinh JWT).
-- **`/Repositories`**: Nơi thao tác trực tiếp với `DbContext`. Che giấu (Abstract) việc truy xuất Data khỏi Service.
-- **`/Models`**: File entities ánh xạ với bảng SQL Server. Được sinh tự động (Scaffold).
+- **`/Application`**: Tầng trung tâm chứa các Business Use Cases được chia theo mô hình **CQRS** (`Commands` và `Queries`). Các Handler xử lý nghiệp vụ thông qua `MediatR` (Ví dụ: `CheckoutCommand`, `GetMyOrdersQuery`).
+- **`/Controllers`**: Chứa các API Endpoints. Controller hiện tại cực kỳ mỏng, chỉ nhận request, thực thi Command/Query qua `IMediator.Send()`, và trả về kết quả.
+- **`/Interfaces`**: Định nghĩa các Interface hợp đồng cho Repository, Service và Unit of Work, tuân thủ Dependency Inversion (DI).
+- **`/Repositories`**: Nơi thao tác trực tiếp với `DbContext`. Che giấu (Abstract) việc truy xuất Data khỏi Application Layer.
+- **`/Data`**: Chứa `SaveFoodDbContext` và `UnitOfWork` để quản lý Transaction tập trung.
+- **`/Services`**: Chứa các logic phụ trợ hoặc tích hợp với 3rd-party không liên quan trực tiếp đến business flow chính của hệ thống.
+- **`/Models`**: File entities ánh xạ với bảng SQL Server. 
 - **`/DTOs`**: Chứa các class Data Transfer Object định nghĩa Request/Response Payload cho API.
 - **`/BackgroundTasks`**: Chứa các HostedServices (Workers) chạy định kỳ hoặc liên tục.
 - **`/Hubs`**: Cấu hình WebSockets (SignalR) bắn thông báo thời gian thực.
-- **`/Extensions`**: Cấu hình Dependency Injection, Swagger, CORS, JWT cho `Program.cs`.
 - **`/Middleware`**: Chứa `GlobalExceptionMiddleware` để bắt lỗi toàn cục và format chuẩn API Response.
 
 ---

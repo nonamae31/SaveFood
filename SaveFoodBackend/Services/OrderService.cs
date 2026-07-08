@@ -247,7 +247,7 @@ public class OrderService
                         };
                         _ctx.StoreWallets.Add(storeWallet);
                     }
-                    decimal platformFee = order.TotalAmount * 0.05m;
+                    decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
                     storeWallet.PendingBalance += (order.TotalAmount - platformFee);
                 }
             }
@@ -299,7 +299,7 @@ public class OrderService
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
         if (storeWallet != null)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
             decimal storeIncome = order.TotalAmount - platformFee;
 
             storeWallet.AvailableBalance += storeIncome;
@@ -487,7 +487,7 @@ public class OrderService
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, ct);
         if (storeWallet != null)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
             decimal storeIncome = order.TotalAmount - platformFee;
             storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
         }

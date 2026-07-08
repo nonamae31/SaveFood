@@ -22,17 +22,20 @@ public class PaymentsController : ControllerBase
     private readonly IPayOSService _payOSService;
     private readonly IUnitOfWork _uow;
     private readonly PlatformConfig _platformConfig;
+    private readonly INotificationService _notificationService;
 
     public PaymentsController(
         SaveFoodDbContext ctx, 
         IPayOSService payOSService, 
         IUnitOfWork uow, 
-        IOptions<PlatformConfig> platformConfig)
+        IOptions<PlatformConfig> platformConfig,
+        INotificationService notificationService)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _uow = uow;
         _platformConfig = platformConfig.Value;
+        _notificationService = notificationService;
     }
 
     [HttpPost("payos-webhook")]
@@ -61,6 +64,7 @@ public class PaymentsController : ControllerBase
                             // Idempotency Check (Race condition safe due to Serializable IsolationLevel)
                             if (order.Payment != null && order.Payment.Status == 0) // Pending
                             {
+                                order.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending; // Wait for store confirmation
                                 order.Payment.Status = 1; // Paid
                                 order.Payment.PaidAt = DateTime.UtcNow;
                                 order.ReservationExpiresAt = null; // Clear payment timer
@@ -86,6 +90,19 @@ public class PaymentsController : ControllerBase
                                 }
                                 decimal platformFee = order.TotalAmount * _platformConfig.AdminFeePercentage;
                                 storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+
+                                // --- AUDIT TRAIL: Notify Store ---
+                                var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == order.StoreId).Select(s => s.UserId).ToListAsync();
+                                foreach (var uid in staffIds.Distinct())
+                                {
+                                    await _notificationService.SendAsync(
+                                        userId: uid,
+                                        title: "Đơn hàng mới",
+                                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán. Vui lòng kiểm tra và chuẩn bị món!",
+                                        type: "NEW_ORDER",
+                                        referenceId: order.Id
+                                    );
+                                }
                             }
                         }
                         await _uow.SaveChangesAsync();
@@ -93,9 +110,9 @@ public class PaymentsController : ControllerBase
                     else
                     {
                         var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => s.OrderCode == orderCode);
-                        if (subscription != null && subscription.Status == 0)
+                        if (subscription != null && subscription.Status == 3)
                         {
-                            subscription.Status = 1; // Active
+                            subscription.Status = 0; // Active
 
                             // --- AUDIT TRAIL: Save PayOS evidence ---
                             subscription.PayOsTransactionId = data.Reference;
@@ -154,8 +171,15 @@ public class PaymentsController : ControllerBase
             var order = await _ctx.Orders.Include(o => o.Payment)
                                          .FirstOrDefaultAsync(o => (isGuid && o.Id == parsedGuid) || (isLong && o.OrderCode == parsedLong));
             
-            if (order != null && order.Payment != null && order.Payment.Status == 0 && order.OrderCode.HasValue)
+            if (order != null && order.Payment != null)
             {
+                if (order.Payment.Status == 1)
+                {
+                    return Ok(new { success = true, message = "Giao dịch đã hoàn tất thành công." });
+                }
+
+                if (order.Payment.Status == 0 && order.OrderCode.HasValue)
+                {
                 try
                 {
                     var payOSInfo = await payOSClient.PaymentRequests.GetAsync(order.OrderCode.Value);
@@ -177,6 +201,7 @@ public class PaymentsController : ControllerBase
                         {
                             if (o.Payment != null && o.Payment.Status == 0)
                             {
+                                o.OrderStatus = SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending; // Wait for store confirmation
                                 o.Payment.Status = 1;
                                 o.Payment.PaidAt = DateTime.UtcNow;
                                 o.ReservationExpiresAt = null; // Clear payment timer
@@ -206,6 +231,19 @@ public class PaymentsController : ControllerBase
                                 }
                                 decimal platformFee = o.TotalAmount * _platformConfig.AdminFeePercentage;
                                 storeWallet.PendingBalance += (o.TotalAmount - platformFee);
+
+                                // --- AUDIT TRAIL: Notify Store ---
+                                var staffIds = await _ctx.StoreStaffs.Where(s => s.StoreId == o.StoreId).Select(s => s.UserId).ToListAsync();
+                                foreach (var uid in staffIds.Distinct())
+                                {
+                                    await _notificationService.SendAsync(
+                                        userId: uid,
+                                        title: "Đơn hàng mới",
+                                        body: $"Có đơn hàng mới ({o.OrderCode}) vừa được thanh toán. Vui lòng kiểm tra và chuẩn bị món!",
+                                        type: "NEW_ORDER",
+                                        referenceId: o.Id
+                                    );
+                                }
                             }
                         }
                         await _ctx.SaveChangesAsync();
@@ -217,12 +255,13 @@ public class PaymentsController : ControllerBase
                     return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
                 }
                 return Ok(new { success = false, status = "UNKNOWN" });
+                }
             }
             else if (order == null)
             {
                 // check if it's a subscription (orderId could be subscriptionId)
                 var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => (isGuid && s.Id == parsedGuid) || (isLong && s.OrderCode == parsedLong));
-                if (subscription != null && subscription.Status == 0 && subscription.OrderCode.HasValue)
+                if (subscription != null && subscription.Status == 3 && subscription.OrderCode.HasValue)
                 {
                     try
                     {
@@ -230,7 +269,7 @@ public class PaymentsController : ControllerBase
 
                         if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                         {
-                            subscription.Status = 1; // Active
+                            subscription.Status = 0; // Active
                             
                             // --- AUDIT TRAIL: Save PayOS evidence ---
                             var tx = payOSInfo.Transactions?.FirstOrDefault();
@@ -268,7 +307,7 @@ public class PaymentsController : ControllerBase
                 }
             }
 
-            return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch đã hoàn tất." });
+            return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch không ở trạng thái chờ thanh toán qua PayOS." });
         }
         catch (Exception ex)
         {
