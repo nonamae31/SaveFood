@@ -1041,9 +1041,6 @@ namespace SaveFoodBackend.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<byte?>("Gender")
-                        .HasColumnType("tinyint");
-
                     b.Property<string>("ImgCloudinaryId")
                         .HasColumnType("nvarchar(max)");
 

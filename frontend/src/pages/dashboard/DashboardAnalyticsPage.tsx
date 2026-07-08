@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { TrendingUp, Users, ShoppingBag, DollarSign, Download, Lock, BarChart3, PieChart } from 'lucide-react';
+import { TrendingUp, Users, ShoppingBag, DollarSign, Download, Lock, BarChart3, PieChart, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ROUTES } from '@/lib/constants';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useStoreAnalytics } from '@/hooks/useStores';
-import { BentoAnalyticsSkeleton } from '@/components/ui/BentoAnalyticsSkeleton';
 
 export default function DashboardAnalyticsPage() {
   const navigate = useNavigate();
@@ -14,8 +13,10 @@ export default function DashboardAnalyticsPage() {
   const [days, setDays] = useState(7);
   const { data: analytics, isLoading } = useStoreAnalytics(storeId, days);
 
-  const analyticsLevel = analytics?.analyticsLevel ?? 0;
-  const planName = analytics?.planName ?? 'Free';
+  const subscription = {
+    planName: analytics?.planName || 'Free',
+    analyticsLevel: analytics?.analyticsLevel || 0,
+  };
 
   const handleExport = async () => {
     if (!analytics) return;
@@ -23,13 +24,13 @@ export default function DashboardAnalyticsPage() {
     try {
       const token = localStorage.getItem('sf_access_token');
       const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5101/api';
-      
+
       const toDate = new Date();
       const fromDate = new Date();
       fromDate.setDate(toDate.getDate() - days);
 
       const url = `${baseUrl}/stores/${storeId}/orders/export-csv?from=${fromDate.toISOString()}&to=${toDate.toISOString()}`;
-      
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -57,9 +58,8 @@ export default function DashboardAnalyticsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 bg-gray-100 rounded-full w-64 animate-pulse" />
-        <BentoAnalyticsSkeleton analyticsLevel={analyticsLevel} />
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function DashboardAnalyticsPage() {
           <p className="text-sm text-gray-500 mt-1">
             Hiệu suất kinh doanh của cửa hàng.
             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-              Gói {planName}
+              Gói {subscription.planName}
             </span>
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function DashboardAnalyticsPage() {
             Quản lý gói
           </button>
 
-          {analyticsLevel >= 2 ? (
+          {subscription.analyticsLevel >= 2 ? (
             <button
               onClick={handleExport}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium shadow-sm"
@@ -146,9 +146,8 @@ export default function DashboardAnalyticsPage() {
           </h3>
         </div>
 
-        {/* ── RETURN CUSTOMER RATE (Premium): 1x1 ── */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative overflow-hidden group">
-          {analyticsLevel >= 2 ? (
+          {subscription.analyticsLevel >= 2 ? (
             <>
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center text-orange-600">
@@ -168,14 +167,15 @@ export default function DashboardAnalyticsPage() {
             </div>
           )}
         </div>
+      </div>
 
-        {/* ── REVENUE CHART (Plus+): 2x2 ── */}
-        <div className="md:col-span-2 md:row-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[320px] flex flex-col">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[300px]">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-gray-900 flex items-center gap-2">
               <BarChart3 className="w-5 h-5 text-gray-400" /> Doanh thu theo tuần
             </h3>
-            {analyticsLevel >= 1 && (
+            {subscription.analyticsLevel >= 1 && (
               <select
                 className="text-sm border-gray-200 rounded-lg"
                 value={days}
@@ -187,10 +187,10 @@ export default function DashboardAnalyticsPage() {
             )}
           </div>
 
-          <div className="flex-1 flex flex-col">
-            {analyticsLevel >= 1 ? (
-              analytics?.weeklyRevenue && analytics.weeklyRevenue.length > 0 ? (
-                <div className={`flex-1 ${days === 30 ? 'overflow-x-auto pb-2' : ''}`}>
+          {subscription.analyticsLevel >= 1 ? (
+            <div className="h-48 w-full flex items-end justify-between gap-2 px-4">
+              {analytics?.weeklyRevenue && analytics.weeklyRevenue.length > 0 ? (
+                <div className={`w-full h-full ${days === 30 ? 'overflow-x-auto pb-2' : ''}`}>
                   <div className={`flex flex-col h-full justify-end pt-8 ${days === 30 ? 'w-[800px]' : 'w-full'}`}>
                     <div className="flex items-end justify-between gap-2 h-full w-full">
                       {(() => {
@@ -222,48 +222,45 @@ export default function DashboardAnalyticsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="flex-1 flex items-center justify-center text-sm text-gray-400">Chưa có dữ liệu giao dịch trong {days} ngày qua.</div>
-              )
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/80 rounded-2xl border-2 border-dashed border-gray-200">
-                <div className="bg-white p-4 rounded-full shadow-sm mb-3">
-                  <Lock className="w-8 h-8 text-gray-400" />
-                </div>
-                <h4 className="font-bold text-gray-800 mb-1">Biểu đồ Doanh Thu</h4>
-                <p className="text-sm text-gray-500 mb-4 max-w-sm text-center">Nâng cấp lên gói Plus hoặc Premium để xem biểu đồ doanh thu và phân tích xu hướng.</p>
-                <button
-                  onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
-                  className="px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
-                >
-                  Tìm hiểu thêm
-                </button>
+                <div className="w-full text-center text-sm text-gray-400 pb-8">Chưa có dữ liệu giao dịch trong {days} ngày qua.</div>
+              )}
+            </div>
+          ) : (
+            <div className="absolute inset-0 bg-gray-50/80 flex flex-col items-center justify-center z-10 backdrop-blur-sm rounded-2xl m-2 border-2 border-dashed border-gray-200">
+              <div className="bg-white p-4 rounded-full shadow-sm mb-3">
+                <Lock className="w-8 h-8 text-gray-400" />
               </div>
-            )}
-          </div>
+              <h4 className="font-bold text-gray-800 mb-1">Biểu đồ Doanh Thu</h4>
+              <p className="text-sm text-gray-500 mb-4 max-w-sm text-center">Nâng cấp lên gói Plus hoặc Premium để xem biểu đồ doanh thu và phân tích xu hướng.</p>
+              <button
+                onClick={() => navigate(ROUTES.DASHBOARD_SUBSCRIPTION)}
+                className="px-5 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-700 transition-colors shadow-sm"
+              >
+                Tìm hiểu thêm
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ── TOP PRODUCTS (Plus+): 1x2 ── */}
-        <div className="md:col-span-1 md:row-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[320px] flex flex-col">
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm relative min-h-[300px]">
           <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
             <PieChart className="w-5 h-5 text-gray-400" /> Sản phẩm bán chạy
           </h3>
 
-          <div className="flex-1">
-            {analyticsLevel >= 1 ? (
-              analytics?.topSellingProducts && analytics.topSellingProducts.length > 0 ? (
-                <div className="space-y-4">
-                  {analytics.topSellingProducts.map((item, i) => (
-                    <div key={i} className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
-                          #{i + 1}
-                        </div>
-                        <span className="text-sm font-medium text-gray-700">{item.name}</span>
+          {subscription.analyticsLevel >= 1 ? (
+            <div className="space-y-4">
+              {analytics?.topSellingProducts && analytics.topSellingProducts.length > 0 ? (
+                analytics.topSellingProducts.map((item, i) => (
+                  <div key={i} className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                        #{i + 1}
                       </div>
-                      <span className="text-sm font-bold text-gray-900">{item.sales}</span>
+                      <span className="text-sm font-medium text-gray-700">{item.name}</span>
                     </div>
-                  ))}
-                </div>
+                    <span className="text-sm font-bold text-gray-900">{item.sales}</span>
+                  </div>
+                ))
               ) : (
                 <div className="text-sm text-gray-400 text-center py-4">Chưa có dữ liệu sản phẩm.</div>
               )}
@@ -290,7 +287,7 @@ export default function DashboardAnalyticsPage() {
           <h3 className="font-bold text-gray-900 mb-6 flex items-center gap-2">
              Đánh giá của khách hàng (Sentiment)
           </h3>
-          
+
           {subscription.analyticsLevel >= 2 ? (
             <div className="space-y-4">
               {analytics ? (
@@ -341,7 +338,7 @@ export default function DashboardAnalyticsPage() {
             <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                Phân tích khách hàng
             </h3>
-            {subscription.analyticsLevel >= 2 ? (
+          {subscription.analyticsLevel >= 2 ? (
               <div className="flex justify-between items-center p-4 bg-orange-50 rounded-xl border border-orange-100 mb-4">
                 <div>
                   <p className="text-xs text-orange-800 font-medium mb-1">Khách quay lại</p>
@@ -357,7 +354,7 @@ export default function DashboardAnalyticsPage() {
                 </div>
               </div>
             )}
-            
+
             {subscription.analyticsLevel >= 1 ? (
               <div className="flex justify-between items-center p-4 bg-red-50 rounded-xl border border-red-100">
                 <div>
