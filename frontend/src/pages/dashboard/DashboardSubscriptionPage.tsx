@@ -11,7 +11,7 @@ import { useStoreAnalytics } from '@/hooks/useStores';
 type BillingCycle = 'monthly' | 'semiannual' | 'annual';
 
 const formatVND = (amount: number) => {
-  return new Intl.NumberFormat('vi-VN').format(amount) + 'đ';
+  return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + 'đ';
 };
 
 export default function DashboardSubscriptionPage() {

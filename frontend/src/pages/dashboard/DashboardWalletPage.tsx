@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/Input'
 
 // Hàm format tiền VND
 const formatVND = (amount: number) => {
-  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount)
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount))
 }
 
 const getTxTypeLabel = (type: number) => {

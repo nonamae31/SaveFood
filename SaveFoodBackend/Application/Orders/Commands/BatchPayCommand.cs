@@ -83,7 +83,7 @@ public class BatchPayCommandHandler : IRequestHandler<BatchPayCommand, CheckoutR
                         storeWallet = new StoreWallet { Id = Guid.NewGuid(), StoreId = order.StoreId, AvailableBalance = 0, PendingBalance = 0, UpdatedAt = DateTime.UtcNow };
                         _ctx.StoreWallets.Add(storeWallet);
                     }
-                    decimal platformFee = order.TotalAmount * 0.05m;
+                    decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
                     storeWallet.PendingBalance += (order.TotalAmount - platformFee);
                 }
                 

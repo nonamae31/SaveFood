@@ -60,7 +60,7 @@ public class VerifyPickupCommandHandler : IRequestHandler<VerifyPickupCommand, b
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
         if (storeWallet != null)
         {
-            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
             decimal storeIncome = order.TotalAmount - platformFee;
 
             storeWallet.AvailableBalance += storeIncome;

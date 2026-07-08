@@ -8,16 +8,12 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name 'Notific
    at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.Storage.RelationalCommand.ExecuteReaderAsync(RelationalCommandParameterObject parameterObject, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.InitializeReaderAsync(AsyncEnumerator enumerator, CancellationToken cancellationToken)
-   at Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy.<>c__DisplayClass30_0`2.<<ExecuteAsync>b__0>d.MoveNext()
---- End of stack trace from previous location ---
-   at Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy.ExecuteImplementationAsync[TState,TResult](Func`4 operation, Func`4 verifySucceeded, TState state, CancellationToken cancellationToken)
-   at Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy.ExecuteImplementationAsync[TState,TResult](Func`4 operation, Func`4 verifySucceeded, TState state, CancellationToken cancellationToken)
-   at Microsoft.EntityFrameworkCore.Storage.ExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
+   at Microsoft.EntityFrameworkCore.SqlServer.Storage.Internal.SqlServerExecutionStrategy.ExecuteAsync[TState,TResult](TState state, Func`4 operation, Func`4 verifySucceeded, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
    at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
-   at SaveFoodBackend.Services.NotificationService.GetByUserAsync(Guid userId, Int32 page, Int32 pageSize) in D:\blackmyth\folder3\session8\prn232\project\SaveFood\SaveFoodBackend\Services\NotificationService.cs:line 68
-   at SaveFoodBackend.Controllers.NotificationsController.GetNotifications(Int32 page, Int32 pageSize) in D:\blackmyth\folder3\session8\prn232\project\SaveFood\SaveFoodBackend\Controllers\NotificationsController.cs:line 40
+   at SaveFoodBackend.Services.NotificationService.GetUnreadCountAsync(Guid userId) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Services\NotificationService.cs:line 79
+   at SaveFoodBackend.Controllers.NotificationsController.GetUnreadCount() in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Controllers\NotificationsController.cs:line 59
    at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
@@ -29,9 +25,9 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name 'Notific
    at Microsoft.AspNetCore.Mvc.Infrastructure.ResourceInvoker.<InvokeAsync>g__Awaited|17_0(ResourceInvoker invoker, Task task, IDisposable scope)
    at Microsoft.AspNetCore.Authorization.AuthorizationMiddleware.Invoke(HttpContext context)
    at Microsoft.AspNetCore.Authentication.AuthenticationMiddleware.Invoke(HttpContext context)
-   at SaveFoodBackend.Middleware.JwtBlacklistMiddleware.Invoke(HttpContext context, IRedisService redisService) in D:\blackmyth\folder3\session8\prn232\project\SaveFood\SaveFoodBackend\Middleware\JwtBlacklistMiddleware.cs:line 42
+   at SaveFoodBackend.Middleware.JwtBlacklistMiddleware.Invoke(HttpContext context, IRedisService redisService) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\JwtBlacklistMiddleware.cs:line 42
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
-   at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in D:\blackmyth\folder3\session8\prn232\project\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:eca2e0aa-d83a-4e38-9627-31ad9fbc631e
+   at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
+ClientConnectionId:314c3c0b-1763-4db8-bb16-d9a90c7da792
 Error Number:208,State:1,Class:16

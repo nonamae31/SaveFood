@@ -20,6 +20,7 @@ export interface StoreOrderDTO {
   orderCode?: number | null;
   paymentMethod?: number | null;  // 0=Cash, 1=PayOS
   paymentStatus?: number | null;  // 0=Pending, 1=Paid
+  expectedPickupTime?: string | null;
 }
 
 export const storeOrdersApi = {

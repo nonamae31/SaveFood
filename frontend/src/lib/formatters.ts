@@ -8,7 +8,7 @@ import type { ExpiryStatus } from '@/types/product.types'
 
 /** Format số tiền VND — ví dụ: 45000 → "45.000đ" */
 export const formatVND = (amount: number): string =>
-  `${amount.toLocaleString('vi-VN')}đ`
+  `${Math.round(amount).toLocaleString('vi-VN')}đ`
 
 /** Format khoảng giá — ví dụ: "45.000đ – 120.000đ" */
 export const formatPriceRange = (min: number, max: number): string =>

@@ -78,6 +78,18 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.Code == "Customer" || r.Name == "Customer", ct);
             if (role != null) user.UserRoles.Add(new UserRole { RoleId = role.Id, UserId = user.Id });
             _context.Users.Add(user);
+            
+            _context.Notifications.Add(new Notification
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Title = "Chào mừng bạn đến với SaveFood",
+                Body = "Chúc mừng bạn đã tạo tài khoản thành công. Hãy khám phá các món ăn ngon giá rẻ ngay hôm nay!",
+                Type = "SYSTEM",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
             try
             {
                 await _context.SaveChangesAsync(ct);
@@ -102,12 +114,11 @@ public class GoogleLoginCommandHandler : ICommandHandler<GoogleLoginCommand, Log
         var sessionId = Guid.NewGuid().ToString(); var refreshToken = Guid.NewGuid().ToString();
         await _redisService.SetAsync($"session:{refreshToken}", $"{user.Id}:{sessionId}", TimeSpan.FromDays(30));
 
-        var token = _jwtProvider.GenerateJwtToken(user, sessionId);
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
+        var token = _jwtProvider.GenerateJwtToken(user, sessionId, storeStaff?.StoreId);
         var roleCode = user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Admin) ? AppConstants.Roles.Admin :
                        user.UserRoles.Any(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Store) ? AppConstants.Roles.Store :
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? AppConstants.Roles.Customer;
-
-        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
         return new LoginResponse { AccessToken = token, UserId = user.Id, Email = user.Email, FullName = user.FullName, Role = roleCode, RefreshToken = refreshToken, StaffRole = storeStaff?.StaffRole };
     }
 }

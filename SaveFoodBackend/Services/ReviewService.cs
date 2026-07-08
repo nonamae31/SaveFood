@@ -48,7 +48,7 @@ namespace SaveFoodBackend.Services
                 StoreReply = review.StoreReply,
                 StoreReplyAt = review.StoreReplyAt,
                 Images = review.ReviewImages?.Select(img => img.ImageUrl).ToList() ?? new List<string>(),
-                CustomerName = review.OrderItem?.Order?.User?.FullName ?? "KhÃ¡ch hÃ ng",
+                CustomerName = review.OrderItem?.Order?.User?.FullName ?? "Khách hàng",
                 CustomerAvatar = review.OrderItem?.Order?.User?.AvatarUrl,
                 SentimentLabel = review.SentimentLabel,
                 SentimentScore = review.SentimentScore
@@ -59,10 +59,10 @@ namespace SaveFoodBackend.Services
         {
             var orderItem = await _reviewRepo.GetOrderItemWithOrderAsync(orderItemId, ct);
             if (orderItem == null)
-                throw new InvalidOperationException("MÃ³n hÃ ng khÃ´ng tá»“n táº¡i.");
+                throw new InvalidOperationException("Món hàng không tồn tại.");
 
             if (orderItem.Order.UserId != userId)
-                throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n Ä‘Ã¡nh giÃ¡ Ä‘Æ¡n hÃ ng nÃ y.");
+                throw new UnauthorizedAccessException("Bạn không có quyền đánh giá đơn hàng này.");
 
             // Check if order is completed
             if (orderItem.Order.OrderStatus != OrderStatusEnum.Completed)
@@ -71,14 +71,14 @@ namespace SaveFoodBackend.Services
             // Check 7 day window
             var orderCompletedAt = orderItem.Order.CreatedAt; // or Payment.CreatedAt if available
             if ((DateTime.UtcNow - orderCompletedAt).TotalDays > 7)
-                throw new InvalidOperationException("ÄÃ£ quÃ¡ thá»i háº¡n 7 ngÃ y Ä‘á»ƒ Ä‘Ã¡nh giÃ¡ mÃ³n hÃ ng nÃ y.");
+                throw new InvalidOperationException("Đã quá thời hạn 7 ngày để đánh giá món hàng này.");
 
             var existingReview = await _reviewRepo.GetReviewByOrderItemIdAsync(orderItemId, ct);
             if (existingReview != null)
-                throw new InvalidOperationException("Báº¡n Ä‘Ã£ Ä‘Ã¡nh giÃ¡ mÃ³n hÃ ng nÃ y rá»“i (hoáº·c Ä‘Ã¡nh giÃ¡ Ä‘Ã£ bá»‹ xoÃ¡).");
+                throw new InvalidOperationException("Bạn đã đánh giá món hàng này rồi (hoặc đánh giá đã bị xoá).");
 
             if (request.Images != null && request.Images.Count > 5)
-                throw new InvalidOperationException("Chá»‰ Ä‘Æ°á»£c phÃ©p táº£i lÃªn tá»‘i Ä‘a 5 hÃ¬nh áº£nh.");
+                throw new InvalidOperationException("Chỉ được phép tải lên tối đa 5 hình ảnh.");
 
             var review = new Review
             {
@@ -123,8 +123,8 @@ namespace SaveFoodBackend.Services
                 {
                     await _notifService.SendAsync(
                         staff.UserId,
-                        "CÃ³ Ä‘Ã¡nh giÃ¡ má»›i â­",
-                        $"Cá»­a hÃ ng vá»«a nháº­n Ä‘Æ°á»£c Ä‘Ã¡nh giÃ¡ {request.Rating} sao. HÃ£y pháº£n há»“i khÃ¡ch hÃ ng!",
+                        "Có đánh giá mới ⭐",
+                        $"Cửa hàng vừa nhận được đánh giá {request.Rating} sao. Hãy phản hồi khách hàng!",
                         "NEW_REVIEW",
                         review.Id
                     );
@@ -141,17 +141,17 @@ namespace SaveFoodBackend.Services
         {
             var review = await _reviewRepo.GetReviewWithImagesAsync(reviewId, ct);
             if (review == null)
-                throw new InvalidOperationException("ÄÃ¡nh giÃ¡ khÃ´ng tá»“n táº¡i.");
+                throw new InvalidOperationException("Đánh giá không tồn tại.");
 
             if (review.OrderItem.Order.UserId != userId)
-                throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n sá»­a Ä‘Ã¡nh giÃ¡ nÃ y.");
+                throw new UnauthorizedAccessException("Bạn không có quyền sửa đánh giá này.");
 
             var orderCompletedAt = review.OrderItem.Order.CreatedAt;
             if ((DateTime.UtcNow - orderCompletedAt).TotalDays > 7)
-                throw new InvalidOperationException("ÄÃ£ quÃ¡ thá»i háº¡n 7 ngÃ y, khÃ´ng thá»ƒ sá»­a Ä‘Ã¡nh giÃ¡.");
+                throw new InvalidOperationException("Đã quá thời hạn 7 ngày, không thể sửa đánh giá.");
 
             if (request.Images != null && request.Images.Count > 5)
-                throw new InvalidOperationException("Chá»‰ Ä‘Æ°á»£c phÃ©p táº£i lÃªn tá»‘i Ä‘a 5 hÃ¬nh áº£nh.");
+                throw new InvalidOperationException("Chỉ được phép tải lên tối đa 5 hình ảnh.");
 
             review.Rating = request.Rating;
             review.Comment = request.Comment;
@@ -204,10 +204,10 @@ namespace SaveFoodBackend.Services
         {
             var review = await _reviewRepo.GetReviewWithImagesAsync(reviewId, ct);
             if (review == null)
-                throw new InvalidOperationException("ÄÃ¡nh giÃ¡ khÃ´ng tá»“n táº¡i.");
+                throw new InvalidOperationException("Đánh giá không tồn tại.");
 
             if (review.OrderItem.Order.UserId != userId)
-                throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n xoÃ¡ Ä‘Ã¡nh giÃ¡ nÃ y.");
+                throw new UnauthorizedAccessException("Bạn không có quyền xoá đánh giá này.");
 
             review.ReviewFlags |= (byte)ReviewFlagsEnum.IsDeleted;
             _reviewRepo.Update(review);
@@ -264,14 +264,14 @@ namespace SaveFoodBackend.Services
         {
             var store = await _storeRepo.GetStoreWithStaffsAsync(storeId, ct);
             if (store == null || !store.StoreStaffs.Any(s => s.UserId == staffUserId))
-                throw new UnauthorizedAccessException("Báº¡n khÃ´ng cÃ³ quyá»n thao tÃ¡c trÃªn cá»­a hÃ ng nÃ y.");
+                throw new UnauthorizedAccessException("Bạn không có quyền thao tác trên cửa hàng này.");
 
             var review = await _reviewRepo.GetReviewWithImagesAsync(reviewId, ct);
             if (review == null)
-                throw new InvalidOperationException("ÄÃ¡nh giÃ¡ khÃ´ng tá»“n táº¡i.");
+                throw new InvalidOperationException("Đánh giá không tồn tại.");
 
             if (review.OrderItem.Order.StoreId != storeId)
-                throw new InvalidOperationException("ÄÃ¡nh giÃ¡ nÃ y khÃ´ng thuá»™c vá» cá»­a hÃ ng cá»§a báº¡n.");
+                throw new InvalidOperationException("Đánh giá này không thuộc về cửa hàng của bạn.");
 
             review.StoreReply = request.ReplyText;
             review.StoreReplyAt = DateTime.UtcNow;
@@ -285,8 +285,8 @@ namespace SaveFoodBackend.Services
             {
                 await _notifService.SendAsync(
                     customerUserId.Value,
-                    "Cua hang da phan hoi danh gia 💬",
-                    $"{store.Name} vua tra loi danh gia.",
+                    "Cửa hàng đã phản hồi đánh giá 💬",
+                    $"{store.Name} vừa trả lời đánh giá.",
                     "REVIEW_REPLIED",
                     review.Id
                 );

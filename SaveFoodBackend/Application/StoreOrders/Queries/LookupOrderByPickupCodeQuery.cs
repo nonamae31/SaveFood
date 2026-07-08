@@ -56,6 +56,7 @@ public class LookupOrderByPickupCodeQueryHandler : IRequestHandler<LookupOrderBy
             OrderCode     = order.OrderCode,
             PaymentMethod = order.Payment?.PaymentMethod,
             PaymentStatus = order.Payment?.Status,
+            ExpectedPickupTime = order.ExpectedPickupTime,
             Items = order.OrderItems.Select(i => new StoreOrderItemDTO
             {
                 ProductName = i.ProductNameSnapshot,

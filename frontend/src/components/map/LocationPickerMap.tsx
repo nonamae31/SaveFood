@@ -132,7 +132,7 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
     <div className="flex flex-col gap-3 w-full h-full">
       {/* Search Bar & GPS Button */}
       <div className="flex gap-2 relative z-10">
-        <form onSubmit={handleSearch} className="flex-1">
+        <form onSubmit={handleSearch} className="flex-1 min-w-0">
           <div className="flex items-center bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-green-500 focus-within:border-green-500 transition-all">
             <div className="pl-3 text-gray-400">
               <Search className="w-5 h-5" />
@@ -141,8 +141,8 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm kiếm địa chỉ để chấm ghim..."
-              className="flex-1 py-3 px-3 outline-none text-sm"
+              placeholder="Nhập địa chỉ để tìm kiếm"
+              className="flex-1 min-w-0 py-3 px-3 outline-none text-sm"
             />
             <button 
               type="submit"
@@ -173,6 +173,8 @@ export function LocationPickerMap({ onLocationChange, defaultPosition, searchTri
                   console.error(err);
                   if (err.code === 3) { // TIMEOUT
                     toast.error('Quá thời gian lấy vị trí. Thử lại ở khu vực thoáng hơn.');
+                  } else if (err.code === 1) { // PERMISSION_DENIED
+                    toast.error('Bạn đã chặn quyền Vị trí. Vui lòng mở cài đặt trình duyệt (biểu tượng ổ khóa trên thanh địa chỉ) để cấp lại quyền!');
                   } else {
                     toast.error('Không thể lấy vị trí. Kiểm tra cài đặt Vị trí trên thiết bị!');
                   }

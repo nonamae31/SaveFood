@@ -460,7 +460,7 @@ export default function SubscriptionManagementPage() {
                       <div className="font-semibold text-mint-ink text-[15px]">{plan.name}</div>
                     </td>
                     <td className="px-6 py-4 font-medium text-mint-ink">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(plan.monthlyPrice)}
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(plan.monthlyPrice))}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-0.5 rounded-[6px] text-[11px] font-semibold tracking-[0.5px] uppercase ${plan.isActive ? 'bg-[#7cebcb]/20 text-[#1ba673]' : 'bg-[#c37d0d]/10 text-[#c37d0d]'}`}>

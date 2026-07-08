@@ -37,29 +37,33 @@ export function MainLayout() {
       </div>
       <BottomNav />
       {showForcedLocationModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-[--animate-fade-in]">
-            <div className="p-6 text-center bg-orange-50 border-b border-orange-100">
-              <div className="w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md pointer-events-auto">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-[--animate-fade-in]">
+            <div className="p-3 md:p-6 text-center bg-orange-50 border-b border-orange-100 flex-shrink-0">
+              <div className="hidden md:flex w-16 h-16 bg-orange-100 text-orange-500 rounded-full items-center justify-center mx-auto mb-4">
                 <MapPin width={32} height={32} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
+              <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-1 md:mb-2 flex items-center justify-center gap-2">
+                <MapPin className="md:hidden w-5 h-5 text-orange-500" />
                 Bạn chưa cung cấp vị trí
               </h3>
-              <p className="text-gray-600 text-sm">
-                Chúng tôi không thể tự động lấy vị trí của bạn (do bạn đã từ chối quyền hoặc lỗi hệ thống).
-                Để tìm kiếm các quán ăn giải cứu xung quanh, vui lòng chọn vị trí thủ công trên bản đồ dưới đây!
+              <p className="text-gray-600 text-xs md:text-sm">
+                Không thể lấy vị trí tự động. Vui lòng chọn vị trí trên bản đồ để tìm các quán ăn giải cứu xung quanh bạn!
               </p>
             </div>
-            <div className="p-4 bg-gray-50 flex flex-col gap-4">
-              <LocationPickerMap
-                onLocationChange={(lat, lng) => {
-                  setTempLat(lat);
-                  setTempLng(lng);
-                }}
-                defaultPosition={undefined}
-                searchTriggerAddress={undefined}
-              />
+            <div className="p-4 bg-gray-50 flex flex-col overflow-y-auto flex-grow">
+              <div className="min-h-[300px] w-full flex-grow">
+                <LocationPickerMap
+                  onLocationChange={(lat, lng) => {
+                    setTempLat(lat);
+                    setTempLng(lng);
+                  }}
+                  defaultPosition={undefined}
+                  searchTriggerAddress={undefined}
+                />
+              </div>
+            </div>
+            <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
               <button
                 disabled={tempLat === null || tempLng === null}
                 onClick={() => {

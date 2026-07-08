@@ -61,7 +61,7 @@ public class ExportOrdersCsvQueryHandler : IRequestHandler<ExportOrdersCsvQuery,
             var payMethod = order.Payment?.PaymentMethod == (byte)SaveFoodBackend.Models.Enums.PaymentMethodEnum.Cash ? "Tiền mặt" : "Chuyển khoản";
             var payStatus = order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Paid ? "Đã thanh toán" : (order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Pending ? "Chờ thanh toán" : "Hủy/Thất bại");
             
-            decimal platformFee = order.TotalAmount * 0.05m;
+            decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
             decimal storeNet = order.TotalAmount - platformFee;
 
             if (order.OrderStatus == OrderStatusEnum.Cancelled || (order.Payment?.Status != (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Paid && payMethod != "Tiền mặt"))

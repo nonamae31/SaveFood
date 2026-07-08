@@ -69,47 +69,5 @@ public class CustomerWalletController : ApiControllerBase
         }
     }
 
-    [HttpPost("topup")]
-    public async Task<IActionResult> TopUpWallet([FromQuery] decimal amount, [FromServices] SaveFoodBackend.Data.SaveFoodDbContext ctx, CancellationToken ct)
-    {
-        try
-        {
-            var userId = GetRequiredUserId();
-            var wallet = await ctx.CustomerWallets.FindAsync(new object[] { userId }, ct);
-            if (wallet == null)
-            {
-                wallet = new SaveFoodBackend.Models.CustomerWallet
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    Balance = amount,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                ctx.CustomerWallets.Add(wallet);
-            }
-            else
-            {
-                wallet.Balance += amount;
-                wallet.UpdatedAt = DateTime.UtcNow;
-            }
-
-            ctx.CustomerWalletTransactions.Add(new SaveFoodBackend.Models.CustomerWalletTransaction
-            {
-                Id = Guid.NewGuid(),
-                CustomerWalletId = wallet.Id,
-                Amount = amount,
-                Type = 1, // Income/Topup
-                Status = 1, // Completed
-                Description = "Nạp tiền thử nghiệm"
-            });
-
-            await ctx.SaveChangesAsync(ct);
-            return OkResponse(new { Message = "Nạp tiền thành công", NewBalance = wallet.Balance });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { Message = "Có lỗi xảy ra", Error = ex.Message });
-        }
-    }
+    
 }

@@ -28,6 +28,7 @@ export default function DashboardListingsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingListing, setEditingListing] = useState<ListingResponseDTO | null>(null)
+  const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, listingId: string | null, message: React.ReactNode, isLoading: boolean }>({ isOpen: false, listingId: null, message: '', isLoading: false })
 
   if (!storeId) {
     return (
@@ -48,9 +49,42 @@ export default function DashboardListingsPage() {
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (listingId: string) => {
-    if (confirm('Bạn có chắc chắn muốn xóa tin đăng này?')) {
-      await deleteMutation.mutateAsync({ storeId, listingId })
+  const handleDeleteClick = (listingId: string) => {
+    setConfirmModal({
+      isOpen: true,
+      listingId,
+      message: 'Bạn có chắc chắn muốn xóa tin đăng này? Thao tác này sẽ gỡ sản phẩm khỏi hệ thống.',
+      isLoading: false
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!storeId || !confirmModal.listingId) return
+    
+    setConfirmModal(prev => ({ ...prev, isLoading: true }))
+    try {
+      await deleteMutation.mutateAsync({ storeId, listingId: confirmModal.listingId })
+      setConfirmModal({ isOpen: false, listingId: null, message: '', isLoading: false })
+    } catch (error: any) {
+      // Handle 409 Conflict with active orders
+      if (error.response?.status === 409 && error.response?.data?.blockingOrderCodes) {
+        const orderCodes = error.response.data.blockingOrderCodes.join(', ')
+        setConfirmModal({
+          isOpen: true,
+          listingId: null, // Reset so they can only close the modal
+          message: (
+            <div className="text-red-600">
+              <p className="font-semibold mb-2">Không thể xóa sản phẩm do đang có đơn hàng xử lý.</p>
+              <p>Mã đơn hàng đang vướng: <strong>{orderCodes}</strong></p>
+              <p className="mt-2 text-sm text-gray-500">Vui lòng hoàn thành hoặc hủy các đơn hàng này trước khi xóa.</p>
+            </div>
+          ),
+          isLoading: false
+        })
+      } else {
+        alert(error.response?.data?.Message || 'Có lỗi xảy ra khi xóa tin đăng')
+        setConfirmModal({ isOpen: false, listingId: null, message: '', isLoading: false })
+      }
     }
   }
 
@@ -187,7 +221,7 @@ export default function DashboardListingsPage() {
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(listing.id)}
+                            onClick={() => handleDeleteClick(listing.id)}
                             className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Xóa"
                           >
@@ -212,6 +246,39 @@ export default function DashboardListingsPage() {
         products={products || []}
         isLoading={createMutation.isPending || updateMutation.isPending || uploadImageMutation.isPending || deleteImageMutation.isPending}
       />
+
+      {/* ── CUSTOM CONFIRM MODAL ────────────────────────────────────────────── */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm transform transition-all">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">
+              {confirmModal.listingId ? 'Xác nhận xóa' : 'Lỗi xóa sản phẩm'}
+            </h3>
+            <div className="text-sm text-gray-600 mb-6">{confirmModal.message}</div>
+            
+            <div className="flex items-center gap-3 w-full">
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, listingId: null, message: '', isLoading: false })}
+                disabled={confirmModal.isLoading}
+                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+              >
+                {confirmModal.listingId ? 'Hủy' : 'Đóng'}
+              </button>
+              {confirmModal.listingId && (
+                <button
+                  onClick={handleConfirmDelete}
+                  disabled={confirmModal.isLoading}
+                  className="flex-1 px-4 py-2 font-medium rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                >
+                  {confirmModal.isLoading ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : 'Đồng ý xóa'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

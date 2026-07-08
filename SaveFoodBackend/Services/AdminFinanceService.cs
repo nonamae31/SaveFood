@@ -20,15 +20,21 @@ public class AdminFinanceService : IAdminFinanceService
         _notifService = notifService;
     }
 
-    public async Task<PaginatedList<WalletTransactionDTO>> GetTransactionsAsync(int pageNumber, int pageSize)
+    public async Task<PaginatedList<WalletTransactionDTO>> GetTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null)
     {
-        var (items, totalCount) = await _financeRepo.GetTransactionsAsync(pageNumber, pageSize);
+        var (items, totalCount) = await _financeRepo.GetTransactionsAsync(pageNumber, pageSize, search, startDate, endDate);
         return new PaginatedList<WalletTransactionDTO>(items.ToList(), totalCount, pageNumber, pageSize);
     }
 
-    public async Task<PaginatedList<WithdrawalRequestDTO>> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status)
+    public async Task<PaginatedList<WithdrawalRequestDTO>> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status, string? search = null, DateTime? startDate = null, DateTime? endDate = null)
     {
-        var (items, totalCount) = await _financeRepo.GetWithdrawalsAsync(pageNumber, pageSize, status);
+        var (items, totalCount) = await _financeRepo.GetWithdrawalsAsync(pageNumber, pageSize, status, search, startDate, endDate);
         return new PaginatedList<WithdrawalRequestDTO>(items.ToList(), totalCount, pageNumber, pageSize);
+    }
+
+    public async Task<PaginatedList<CustomerWalletTransactionAdminDTO>> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null)
+    {
+        var (items, totalCount) = await _financeRepo.GetCustomerWalletTransactionsAsync(pageNumber, pageSize, search, startDate, endDate);
+        return new PaginatedList<CustomerWalletTransactionAdminDTO>(items.ToList(), totalCount, pageNumber, pageSize);
     }
 }

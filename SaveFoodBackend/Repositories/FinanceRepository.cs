@@ -21,12 +21,34 @@ public class FinanceRepository : IFinanceRepository
         _ctx = ctx;
     }
 
-    public async Task<(IEnumerable<WalletTransactionDTO> Items, int TotalCount)> GetTransactionsAsync(int pageNumber, int pageSize, CancellationToken ct = default)
+    public async Task<(IEnumerable<WalletTransactionDTO> Items, int TotalCount)> GetTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default)
     {
         var query = _ctx.WalletTransactions
             .Include(t => t.StoreWallet)
             .ThenInclude(w => w.Store)
-            .OrderByDescending(t => t.CreatedAt);
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(t => 
+                (t.StoreWallet.Store.Name != null && t.StoreWallet.Store.Name.ToLower().Contains(searchLower)) ||
+                (t.Description != null && t.Description.ToLower().Contains(searchLower)));
+        }
+
+        if (startDate.HasValue)
+        {
+            var sDate = startDate.Value.Date;
+            query = query.Where(t => t.CreatedAt >= sDate);
+        }
+        
+        if (endDate.HasValue)
+        {
+            var eDate = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(t => t.CreatedAt <= eDate);
+        }
+
+        query = query.OrderByDescending(t => t.CreatedAt);
 
         var totalCount = await query.CountAsync(ct);
         var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
@@ -47,7 +69,56 @@ public class FinanceRepository : IFinanceRepository
         return (dtos, totalCount);
     }
 
-    public async Task<(IEnumerable<WithdrawalRequestDTO> Items, int TotalCount)> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status = null, CancellationToken ct = default)
+    public async Task<(IEnumerable<CustomerWalletTransactionAdminDTO> Items, int TotalCount)> GetCustomerWalletTransactionsAsync(int pageNumber, int pageSize, string? search = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default)
+    {
+        var query = _ctx.CustomerWalletTransactions
+            .Include(t => t.CustomerWallet)
+                .ThenInclude(w => w.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(t => 
+                (t.CustomerWallet.User.FullName != null && t.CustomerWallet.User.FullName.ToLower().Contains(searchLower)) ||
+                (t.CustomerWallet.User.Email != null && t.CustomerWallet.User.Email.ToLower().Contains(searchLower)) ||
+                (t.Description != null && t.Description.ToLower().Contains(searchLower)));
+        }
+
+        if (startDate.HasValue)
+        {
+            var sDate = startDate.Value.Date;
+            query = query.Where(t => t.CreatedAt >= sDate);
+        }
+        
+        if (endDate.HasValue)
+        {
+            var eDate = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(t => t.CreatedAt <= eDate);
+        }
+
+        query = query.OrderByDescending(t => t.CreatedAt);
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(ct);
+
+        var dtos = items.Select(t => new CustomerWalletTransactionAdminDTO
+        {
+            Id = t.Id,
+            CustomerName = t.CustomerWallet.User.FullName ?? "N/A",
+            CustomerEmail = t.CustomerWallet.User.Email ?? "N/A",
+            Amount = t.Amount,
+            Type = t.Type,
+            Status = t.Status,
+            OrderId = t.OrderId,
+            Description = t.Description,
+            CreatedAt = t.CreatedAt
+        }).ToList();
+
+        return (dtos, totalCount);
+    }
+
+    public async Task<(IEnumerable<WithdrawalRequestDTO> Items, int TotalCount)> GetWithdrawalsAsync(int pageNumber, int pageSize, byte? status = null, string? search = null, DateTime? startDate = null, DateTime? endDate = null, CancellationToken ct = default)
     {
         var query = _ctx.WithdrawalRequests
             .Include(w => w.Store)
@@ -57,6 +128,29 @@ public class FinanceRepository : IFinanceRepository
         if (status.HasValue)
         {
             query = query.Where(w => w.Status == status.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchLower = search.ToLower();
+            query = query.Where(w => 
+                (w.Store != null && w.Store.Name != null && w.Store.Name.ToLower().Contains(searchLower)) ||
+                (w.User != null && w.User.FullName != null && w.User.FullName.ToLower().Contains(searchLower)) ||
+                (w.BankName != null && w.BankName.ToLower().Contains(searchLower)) ||
+                (w.BankAccountName != null && w.BankAccountName.ToLower().Contains(searchLower)) ||
+                (w.BankAccountNumber != null && w.BankAccountNumber.ToLower().Contains(searchLower)));
+        }
+
+        if (startDate.HasValue)
+        {
+            var sDate = startDate.Value.Date;
+            query = query.Where(w => w.CreatedAt >= sDate);
+        }
+        
+        if (endDate.HasValue)
+        {
+            var eDate = endDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(w => w.CreatedAt <= eDate);
         }
 
         query = query.OrderByDescending(w => w.CreatedAt);

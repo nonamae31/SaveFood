@@ -31,10 +31,23 @@ public class WithdrawalRequestDTO
     public DateTime? ProcessedAt { get; set; }
 }
 
-
-
 public class ProcessFinanceRequestDTO
 {
     public bool IsApproved { get; set; }
     public string? AdminNote { get; set; }
+}
+
+public class CustomerWalletTransactionAdminDTO
+{
+    public Guid Id { get; set; }
+    public string CustomerName { get; set; } = null!;
+    public string CustomerEmail { get; set; } = null!;
+    public decimal Amount { get; set; }
+    /// <summary>0=Deposit, 1=Withdrawal, 2=Payment, 3=Refund</summary>
+    public byte Type { get; set; }
+    /// <summary>0=Pending, 1=Completed, 2=Failed</summary>
+    public byte Status { get; set; }
+    public Guid? OrderId { get; set; }
+    public string? Description { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
