@@ -38,12 +38,7 @@ builder.Services.AddSwaggerWithJwt();
 // ─── 3. Database Context (SQL Server) ─────────────────────────────────────────
 builder.Services.AddDbContext<SaveFoodDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null
-        )
+        builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
