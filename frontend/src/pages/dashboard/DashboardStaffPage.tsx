@@ -497,46 +497,163 @@ export default function DashboardStaffPage() {
             )}
           </div>
         ) : (
-          /* Table */
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="w-10 px-4 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer"
-                    />
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Thành viên
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">
-                    Vai trò
-                  </th>
-                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
-                    Tham gia
-                  </th>
-                  <th className="w-12 px-4 py-3" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {filteredStaff.map(member => {
-                  const isOwner = member.staffRole === 0;
-                  const isSelf = member.userId === currentUserId;
-                  const isPending = processingIds.has(member.userId);
+          <>
+            {/* ── Desktop table ── */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <th className="w-10 px-4 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        onChange={toggleSelectAll}
+                        className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      Thành viên
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">
+                      Vai trò
+                    </th>
+                    <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
+                      Tham gia
+                    </th>
+                    <th className="w-12 px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {filteredStaff.map(member => {
+                    const isOwner = member.staffRole === 0;
+                    const isSelf = member.userId === currentUserId;
+                    const isPending = processingIds.has(member.userId);
 
-                  return (
-                    <tr
-                      key={member.userId}
-                      className={`hover:bg-gray-50/80 transition-colors ${
-                        selectedIds.has(member.userId) ? 'bg-green-50/50' : ''
-                      }`}
-                    >
-                      {/* Checkbox */}
-                      <td className="px-4 py-3">
+                    return (
+                      <tr
+                        key={member.userId}
+                        className={`hover:bg-gray-50/80 transition-colors ${
+                          selectedIds.has(member.userId) ? 'bg-green-50/50' : ''
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <td className="px-4 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(member.userId)}
+                            onChange={() => toggleSelect(member.userId)}
+                            disabled={isOwner}
+                            className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                          />
+                        </td>
+
+                        {/* Avatar + Name + Email */}
+                        <td className="px-3 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative shrink-0">
+                              {member.avatarUrl ? (
+                                <img
+                                  src={member.avatarUrl}
+                                  alt={member.fullName}
+                                  className="w-9 h-9 rounded-full object-cover border-2 border-white shadow"
+                                />
+                              ) : (
+                                <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow ${
+                                  isOwner ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {getInitials(member.fullName)}
+                                </div>
+                              )}
+                              {isOwner && (
+                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white">
+                                  <Crown size={7} className="text-white" />
+                                </div>
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-sm font-medium text-gray-900 truncate">{member.fullName}</span>
+                                {isSelf && (
+                                  <span className="text-xs text-gray-400 font-normal shrink-0">(bạn)</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Role (inline select) */}
+                        <td className="px-3 py-3">
+                          {isOwner ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Crown size={11} />
+                              Owner
+                            </span>
+                          ) : (
+                            <select
+                              value={member.staffRole}
+                              disabled={isPending}
+                              onChange={e => handleRoleChange(member.userId, parseInt(e.target.value))}
+                              className={`text-xs px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 cursor-pointer ${
+                                member.staffRole === 1
+                                  ? 'border-purple-200 text-purple-700'
+                                  : 'border-blue-200 text-blue-700'
+                              }`}
+                            >
+                              <option value={1}>Manager</option>
+                              <option value={2}>Staff</option>
+                            </select>
+                          )}
+                        </td>
+
+                        {/* Joined date */}
+                        <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">
+                          {formatDate(member.joinedAt)}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="px-4 py-3 text-right">
+                          {!isOwner && !isSelf && (
+                            <button
+                              onClick={() => handleRemove(member.userId, member.fullName)}
+                              disabled={isPending}
+                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                              title={`Xóa ${member.fullName}`}
+                            >
+                              {isPending ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Trash2 size={14} />
+                              )}
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* ── Mobile cards ── */}
+            <div className="block md:hidden p-4 space-y-3">
+              {filteredStaff.map(member => {
+                const isOwner = member.staffRole === 0;
+                const isSelf = member.userId === currentUserId;
+                const isPending = processingIds.has(member.userId);
+
+                return (
+                  <div
+                    key={member.userId}
+                    className={`bg-white rounded-2xl border shadow-sm p-4 transition-colors ${
+                      selectedIds.has(member.userId)
+                        ? 'border-green-300 ring-1 ring-green-200 bg-green-50/30'
+                        : 'border-gray-100'
+                    }`}
+                  >
+                    {/* Row 1: checkbox + avatar + name/email + delete */}
+                    <div className="flex items-start gap-3">
+                      <div className="pt-0.5">
                         <input
                           type="checkbox"
                           checked={selectedIds.has(member.userId)}
@@ -544,95 +661,90 @@ export default function DashboardStaffPage() {
                           disabled={isOwner}
                           className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                         />
-                      </td>
+                      </div>
 
-                      {/* Avatar + Name + Email */}
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative shrink-0">
-                            {member.avatarUrl ? (
-                              <img
-                                src={member.avatarUrl}
-                                alt={member.fullName}
-                                className="w-9 h-9 rounded-full object-cover border-2 border-white shadow"
-                              />
-                            ) : (
-                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow ${
-                                isOwner ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                              }`}>
-                                {getInitials(member.fullName)}
-                              </div>
-                            )}
-                            {isOwner && (
-                              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white">
-                                <Crown size={7} className="text-white" />
-                              </div>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-sm font-medium text-gray-900 truncate">{member.fullName}</span>
-                              {isSelf && (
-                                <span className="text-xs text-gray-400 font-normal shrink-0">(bạn)</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Role (inline select) */}
-                      <td className="px-3 py-3">
-                        {isOwner ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                            <Crown size={11} />
-                            Owner
-                          </span>
+                      <div className="relative shrink-0">
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt={member.fullName}
+                            className="w-10 h-10 rounded-full object-cover border-2 border-white shadow"
+                          />
                         ) : (
-                          <select
-                            value={member.staffRole}
-                            disabled={isPending}
-                            onChange={e => handleRoleChange(member.userId, parseInt(e.target.value))}
-                            className={`text-xs px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 cursor-pointer ${
-                              member.staffRole === 1
-                                ? 'border-purple-200 text-purple-700'
-                                : 'border-blue-200 text-blue-700'
-                            }`}
-                          >
-                            <option value={1}>Manager</option>
-                            <option value={2}>Staff</option>
-                          </select>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow ${
+                            isOwner ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {getInitials(member.fullName)}
+                          </div>
                         )}
-                      </td>
-
-                      {/* Joined date */}
-                      <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {formatDate(member.joinedAt)}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-4 py-3 text-right">
-                        {!isOwner && !isSelf && (
-                          <button
-                            onClick={() => handleRemove(member.userId, member.fullName)}
-                            disabled={isPending}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
-                            title={`Xóa ${member.fullName}`}
-                          >
-                            {isPending ? (
-                              <Loader2 size={14} className="animate-spin" />
-                            ) : (
-                              <Trash2 size={14} />
-                            )}
-                          </button>
+                        {isOwner && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white">
+                            <Crown size={7} className="text-white" />
+                          </div>
                         )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium text-gray-900 truncate">{member.fullName}</span>
+                          {isSelf && (
+                            <span className="text-xs text-gray-400 font-normal shrink-0">(bạn)</span>
+                          )}
+                          {isOwner && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                              <Crown size={9} />
+                              Owner
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500 truncate mt-0.5">{member.email}</p>
+                      </div>
+
+                      {!isOwner && !isSelf && (
+                        <button
+                          onClick={() => handleRemove(member.userId, member.fullName)}
+                          disabled={isPending}
+                          className="p-1.5 shrink-0 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                        >
+                          {isPending ? (
+                            <Loader2 size={14} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={14} />
+                          )}
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Row 2: role + joined date */}
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      {isOwner ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                          <Crown size={11} />
+                          Owner
+                        </span>
+                      ) : (
+                        <select
+                          value={member.staffRole}
+                          disabled={isPending}
+                          onChange={e => handleRoleChange(member.userId, parseInt(e.target.value))}
+                          className={`text-xs px-2 py-1.5 rounded-lg border bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 cursor-pointer ${
+                            member.staffRole === 1
+                              ? 'border-purple-200 text-purple-700'
+                              : 'border-blue-200 text-blue-700'
+                          }`}
+                        >
+                          <option value={1}>Manager</option>
+                          <option value={2}>Staff</option>
+                        </select>
+                      )}
+
+                      <span className="text-xs text-gray-400">{formatDate(member.joinedAt)}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
 
