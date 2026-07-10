@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
-  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search
+  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search, CheckCheck
 } from 'lucide-react';
 import { storeStaffApi, type StoreStaffDTO } from '@/api/store.staff.api';
 import toast from 'react-hot-toast';
@@ -18,99 +18,14 @@ function getInitials(name: string) {
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+const ROLE_OPTIONS = [
+  { value: 0, label: 'Owner', disabled: true },
+  { value: 1, label: 'Manager' },
+  { value: 2, label: 'Staff' },
+];
 
-function RoleBadge({ role, label }: { role: number; label: string }) {
-  if (role === 0) {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-        <Crown size={11} />
-        {label}
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-      <Shield size={11} />
-      {label}
-    </span>
-  );
-}
-
-function StaffCard({
-  member,
-  currentUserId,
-  onRemove,
-  isRemoving,
-}: {
-  member: StoreStaffDTO;
-  currentUserId: string;
-  onRemove: (userId: string, name: string) => void;
-  isRemoving: boolean;
-}) {
-  const isOwner = member.staffRole === 0;
-  const isSelf = member.userId === currentUserId;
-
-  return (
-    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-      {/* Avatar */}
-      <div className="relative shrink-0">
-        {member.avatarUrl ? (
-          <img
-            src={member.avatarUrl}
-            alt={member.fullName}
-            className="w-12 h-12 rounded-full object-cover border-2 border-white shadow"
-          />
-        ) : (
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold border-2 border-white shadow ${
-            isOwner ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-          }`}>
-            {getInitials(member.fullName)}
-          </div>
-        )}
-        {isOwner && (
-          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center border-2 border-white">
-            <Crown size={9} className="text-white" />
-          </div>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-semibold text-gray-900 truncate">{member.fullName}</p>
-          {isSelf && (
-            <span className="text-xs text-gray-400 font-normal">(bạn)</span>
-          )}
-        </div>
-        <p className="text-xs text-gray-500 truncate flex items-center gap-1 mt-0.5">
-          <Mail size={11} />
-          {member.email}
-        </p>
-        <p className="text-xs text-gray-400 mt-1">
-          Tham gia: {formatDate(member.joinedAt)}
-        </p>
-      </div>
-
-      {/* Role badge */}
-      <div className="shrink-0">
-        <RoleBadge role={member.staffRole} label={member.staffRoleLabel} />
-      </div>
-
-      {/* Remove button — chỉ hiển thị cho Staff (không phải Owner, không phải chính mình) */}
-      {!isOwner && !isSelf && (
-        <button
-          id={`remove-staff-${member.userId}`}
-          onClick={() => onRemove(member.userId, member.fullName)}
-          disabled={isRemoving}
-          className="ml-2 shrink-0 p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50 disabled:cursor-not-allowed"
-          title={`Xóa ${member.fullName}`}
-        >
-          <Trash2 size={16} />
-        </button>
-      )}
-    </div>
-  );
+function getRoleLabel(role: number) {
+  return ROLE_OPTIONS.find(r => r.value === role)?.label ?? 'Staff';
 }
 
 // ── Add Staff Modal ────────────────────────────────────────────────────────────
@@ -199,18 +114,22 @@ function AddStaffModal({
   );
 }
 
-// ── Confirm Remove Modal ──────────────────────────────────────────────────────
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
 
-function ConfirmRemoveModal({
-  staffName,
+function ConfirmModal({
+  title,
+  message,
+  confirmLabel,
+  isProcessing,
   onConfirm,
   onClose,
-  isRemoving,
 }: {
-  staffName: string;
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  isProcessing: boolean;
   onConfirm: () => void;
   onClose: () => void;
-  isRemoving: boolean;
 }) {
   return (
     <div
@@ -218,33 +137,31 @@ function ConfirmRemoveModal({
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 animate-[--animate-fade-in]"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
-            <UserX size={20} className="text-red-500" />
+            <Trash2 size={20} className="text-red-500" />
           </div>
-          <h3 className="text-base font-bold text-gray-900">Xác nhận xóa nhân viên</h3>
+          <h3 className="text-base font-bold text-gray-900">{title}</h3>
         </div>
-        <p className="text-sm text-gray-600 mb-6">
-          Bạn có chắc muốn xóa <span className="font-semibold text-gray-900">{staffName}</span> khỏi cửa hàng? Hành động này không thể hoàn tác.
-        </p>
+        <p className="text-sm text-gray-600 mb-6">{message}</p>
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+            disabled={isProcessing}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50"
           >
             Hủy
           </button>
           <button
-            id="confirm-remove-staff-btn"
             onClick={onConfirm}
-            disabled={isRemoving}
-            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            disabled={isProcessing}
+            className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isRemoving ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
-            {isRemoving ? 'Đang xóa...' : 'Xác nhận xóa'}
+            {isProcessing ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+            {isProcessing ? 'Đang xóa...' : (confirmLabel || 'Xác nhận xóa')}
           </button>
         </div>
       </div>
@@ -263,11 +180,22 @@ export default function DashboardStaffPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
   // Modal state
   const [showAddModal, setShowAddModal] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<{ userId: string; name: string } | null>(null);
-  const [isRemoving, setIsRemoving] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isProcessing?: boolean;
+  } | null>(null);
+
+  // Processing state
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
+  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
 
   // ── Fetch staff list ──────────────────────────────────────────────────────────
   const fetchStaff = useCallback(async () => {
@@ -287,6 +215,119 @@ export default function DashboardStaffPage() {
     fetchStaff();
   }, [fetchStaff]);
 
+  // ── Selection ─────────────────────────────────────────────────────────────────
+  const toggleSelect = (userId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId);
+      else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableStaff.map(s => s.userId)));
+    }
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  // ── Inline role change ─────────────────────────────────────────────────────────
+  const handleRoleChange = async (targetUserId: string, newRole: number) => {
+    setProcessingIds(prev => new Set(prev).add(targetUserId));
+    try {
+      await storeStaffApi.batchUpdateRole(storeId, { userIds: [targetUserId], newRole });
+      setStaffList(prev => prev.map(s =>
+        s.userId === targetUserId ? { ...s, staffRole: newRole, staffRoleLabel: getRoleLabel(newRole) } : s
+      ));
+      toast.success('Đã cập nhật vai trò.');
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+      toast.error(msg);
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(targetUserId);
+        return next;
+      });
+    }
+  };
+
+  // ── Delete single staff ────────────────────────────────────────────────────────
+  const handleRemove = (targetUserId: string, name: string) => {
+    setConfirmModal({
+      title: 'Xóa nhân viên',
+      message: `Bạn có chắc muốn xóa ${name} khỏi cửa hàng? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setProcessingIds(prev => new Set(prev).add(targetUserId));
+        try {
+          await storeStaffApi.removeStoreStaff(storeId, targetUserId);
+          setStaffList(prev => prev.filter(s => s.userId !== targetUserId));
+          setSelectedIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
+          toast.success(`Đã xóa ${name}.`);
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+          toast.error(msg);
+        } finally {
+          setProcessingIds(prev => {
+            const next = new Set(prev);
+            next.delete(targetUserId);
+            return next;
+          });
+        }
+      },
+    });
+  };
+
+  // ── Batch operations ───────────────────────────────────────────────────────────
+  const handleBatchRoleChange = async (newRole: number) => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setIsBatchProcessing(true);
+    try {
+      await storeStaffApi.batchUpdateRole(storeId, { userIds: ids, newRole });
+      setStaffList(prev => prev.map(s =>
+        ids.includes(s.userId) && s.staffRole !== 0
+          ? { ...s, staffRole: newRole, staffRoleLabel: getRoleLabel(newRole) }
+          : s
+      ));
+      toast.success(`Đã cập nhật vai trò cho ${ids.length} nhân viên.`);
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+      toast.error(msg);
+    } finally {
+      setIsBatchProcessing(false);
+    }
+  };
+
+  const handleBatchRemove = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setConfirmModal({
+      title: 'Xóa nhân viên hàng loạt',
+      message: `Bạn có chắc muốn xóa ${ids.length} nhân viên đã chọn? Hành động này không thể hoàn tác.`,
+      onConfirm: async () => {
+        setConfirmModal(null);
+        setIsBatchProcessing(true);
+        try {
+          await storeStaffApi.batchRemoveStaff(storeId, { userIds: ids });
+          setStaffList(prev => prev.filter(s => !ids.includes(s.userId)));
+          clearSelection();
+          toast.success(`Đã xóa ${ids.length} nhân viên.`);
+        } catch (error: unknown) {
+          const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra.';
+          toast.error(msg);
+        } finally {
+          setIsBatchProcessing(false);
+        }
+      },
+    });
+  };
+
   // ── Add staff ─────────────────────────────────────────────────────────────────
   const handleAddStaff = async (email: string) => {
     if (!storeId) return;
@@ -304,23 +345,6 @@ export default function DashboardStaffPage() {
     }
   };
 
-  // ── Remove staff ──────────────────────────────────────────────────────────────
-  const handleConfirmRemove = async () => {
-    if (!storeId || !removeTarget) return;
-    setIsRemoving(true);
-    try {
-      await storeStaffApi.removeStoreStaff(storeId, removeTarget.userId);
-      setStaffList(prev => prev.filter(s => s.userId !== removeTarget.userId));
-      toast.success(`Đã xóa ${removeTarget.name} khỏi cửa hàng.`);
-      setRemoveTarget(null);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa nhân viên.';
-      toast.error(msg);
-    } finally {
-      setIsRemoving(false);
-    }
-  };
-
   // ── Filtered list ─────────────────────────────────────────────────────────────
   const filteredStaff = searchQuery.trim()
     ? staffList.filter(s =>
@@ -329,8 +353,10 @@ export default function DashboardStaffPage() {
       )
     : staffList;
 
+  const selectableStaff = filteredStaff.filter(s => s.staffRole !== 0);
   const ownerCount = staffList.filter(s => s.staffRole === 0).length;
   const staffCount = staffList.filter(s => s.staffRole === 2).length;
+  const allSelected = selectableStaff.length > 0 && selectedIds.size === selectableStaff.length;
 
   // ── Render ────────────────────────────────────────────────────────────────────
   return (
@@ -392,12 +418,12 @@ export default function DashboardStaffPage() {
 
       {/* Staff list card */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Header + Search */}
         <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex items-center gap-2">
             <Users size={18} className="text-gray-500" />
             <h2 className="text-base font-bold text-gray-900">Danh sách nhân viên</h2>
           </div>
-          {/* Search */}
           <div className="relative sm:ml-auto w-full sm:w-64">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -411,34 +437,203 @@ export default function DashboardStaffPage() {
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
-              <Loader2 className="animate-spin w-6 h-6 mr-2" />
-              <span className="text-sm">Đang tải...</span>
+        {/* Bulk action toolbar */}
+        {selectedIds.size > 0 && (
+          <div className="px-6 py-3 bg-green-50 border-b border-green-100 flex items-center gap-3 flex-wrap">
+            <span className="text-sm font-medium text-green-800 flex items-center gap-1.5">
+              <CheckCheck size={15} />
+              Đã chọn: {selectedIds.size}
+            </span>
+            <div className="flex items-center gap-2 ml-auto">
+              <select
+                id="batch-role-select"
+                disabled={isBatchProcessing}
+                defaultValue=""
+                onChange={e => {
+                  const val = parseInt(e.target.value);
+                  if (!isNaN(val)) handleBatchRoleChange(val);
+                  e.target.value = '';
+                }}
+                className="text-xs px-3 py-1.5 min-w-[120px] border border-green-200 rounded-lg bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/30 disabled:opacity-50"
+              >
+                <option value="" disabled>Đổi vai trò</option>
+                <option value={1}>Manager</option>
+                <option value={2}>Staff</option>
+              </select>
+              <button
+                id="batch-remove-btn"
+                onClick={handleBatchRemove}
+                disabled={isBatchProcessing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-colors disabled:opacity-50"
+              >
+                {isBatchProcessing ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                Xóa đã chọn
+              </button>
+              <button
+                onClick={clearSelection}
+                disabled={isBatchProcessing}
+                className="text-xs text-gray-500 hover:text-gray-700 underline disabled:opacity-50"
+              >
+                Bỏ chọn
+              </button>
             </div>
-          ) : filteredStaff.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-              <Users size={40} className="mb-3 opacity-40" />
-              <p className="text-sm font-medium text-gray-500">
-                {searchQuery ? 'Không tìm thấy nhân viên nào.' : 'Chưa có nhân viên nào.'}
-              </p>
-              {!searchQuery && (
-                <p className="text-xs text-gray-400 mt-1">Nhấn "Thêm nhân viên" để bắt đầu.</p>
-              )}
-            </div>
-          ) : (
-            filteredStaff.map(member => (
-              <StaffCard
-                key={member.userId}
-                member={member}
-                currentUserId={currentUserId}
-                onRemove={(userId, name) => setRemoveTarget({ userId, name })}
-                isRemoving={isRemoving && removeTarget?.userId === member.userId}
-              />
-            ))
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Loading state */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-16 text-gray-400">
+            <Loader2 className="animate-spin w-6 h-6 mr-2" />
+            <span className="text-sm">Đang tải...</span>
+          </div>
+        ) : filteredStaff.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <Users size={40} className="mb-3 opacity-40" />
+            <p className="text-sm font-medium text-gray-500">
+              {searchQuery ? 'Không tìm thấy nhân viên nào.' : 'Chưa có nhân viên nào.'}
+            </p>
+            {!searchQuery && (
+              <p className="text-xs text-gray-400 mt-1">Nhấn "Thêm nhân viên" để bắt đầu.</p>
+            )}
+          </div>
+        ) : (
+          /* Table */
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <th className="w-10 px-4 py-3 text-left">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer"
+                    />
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                    Thành viên
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-36">
+                    Vai trò
+                  </th>
+                  <th className="px-3 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-28">
+                    Tham gia
+                  </th>
+                  <th className="w-12 px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredStaff.map(member => {
+                  const isOwner = member.staffRole === 0;
+                  const isSelf = member.userId === currentUserId;
+                  const isPending = processingIds.has(member.userId);
+
+                  return (
+                    <tr
+                      key={member.userId}
+                      className={`hover:bg-gray-50/80 transition-colors ${
+                        selectedIds.has(member.userId) ? 'bg-green-50/50' : ''
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(member.userId)}
+                          onChange={() => toggleSelect(member.userId)}
+                          disabled={isOwner}
+                          className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-green-500/30 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        />
+                      </td>
+
+                      {/* Avatar + Name + Email */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="relative shrink-0">
+                            {member.avatarUrl ? (
+                              <img
+                                src={member.avatarUrl}
+                                alt={member.fullName}
+                                className="w-9 h-9 rounded-full object-cover border-2 border-white shadow"
+                              />
+                            ) : (
+                              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow ${
+                                isOwner ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                              }`}>
+                                {getInitials(member.fullName)}
+                              </div>
+                            )}
+                            {isOwner && (
+                              <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-amber-400 rounded-full flex items-center justify-center border border-white">
+                                <Crown size={7} className="text-white" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-medium text-gray-900 truncate">{member.fullName}</span>
+                              {isSelf && (
+                                <span className="text-xs text-gray-400 font-normal shrink-0">(bạn)</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 truncate">{member.email}</p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Role (inline select) */}
+                      <td className="px-3 py-3">
+                        {isOwner ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                            <Crown size={11} />
+                            Owner
+                          </span>
+                        ) : (
+                          <select
+                            value={member.staffRole}
+                            disabled={isPending}
+                            onChange={e => handleRoleChange(member.userId, parseInt(e.target.value))}
+                            className={`text-xs px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-green-500/30 disabled:opacity-50 cursor-pointer ${
+                              member.staffRole === 1
+                                ? 'border-purple-200 text-purple-700'
+                                : 'border-blue-200 text-blue-700'
+                            }`}
+                          >
+                            <option value={1}>Manager</option>
+                            <option value={2}>Staff</option>
+                          </select>
+                        )}
+                      </td>
+
+                      {/* Joined date */}
+                      <td className="px-3 py-3 text-xs text-gray-500 whitespace-nowrap">
+                        {formatDate(member.joinedAt)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-4 py-3 text-right">
+                        {!isOwner && !isSelf && (
+                          <button
+                            onClick={() => handleRemove(member.userId, member.fullName)}
+                            disabled={isPending}
+                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all disabled:opacity-50"
+                            title={`Xóa ${member.fullName}`}
+                          >
+                            {isPending ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Permissions info box */}
@@ -451,6 +646,10 @@ export default function DashboardStaffPage() {
           <li className="flex items-start gap-2">
             <Crown size={11} className="mt-0.5 shrink-0 text-amber-500" />
             <span><strong>Owner (Chủ cửa hàng):</strong> Toàn quyền quản lý: sản phẩm, đợt giảm giá, đơn hàng, nhân viên, cài đặt và thanh toán.</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Shield size={11} className="mt-0.5 shrink-0 text-blue-500" />
+            <span><strong>Manager:</strong> Quản lý sản phẩm, đợt giảm giá, xem đơn hàng, nhưng không quản lý được nhân viên.</span>
           </li>
           <li className="flex items-start gap-2">
             <Shield size={11} className="mt-0.5 shrink-0 text-blue-500" />
@@ -468,12 +667,13 @@ export default function DashboardStaffPage() {
         />
       )}
 
-      {removeTarget && (
-        <ConfirmRemoveModal
-          staffName={removeTarget.name}
-          onConfirm={handleConfirmRemove}
-          onClose={() => setRemoveTarget(null)}
-          isRemoving={isRemoving}
+      {confirmModal && (
+        <ConfirmModal
+          title={confirmModal.title}
+          message={confirmModal.message}
+          isProcessing={isBatchProcessing || processingIds.size > 0}
+          onConfirm={confirmModal.onConfirm}
+          onClose={() => setConfirmModal(null)}
         />
       )}
     </div>

@@ -67,6 +67,54 @@ public class StoreStaffController : ApiControllerBase
         }
     }
 
+    // PATCH: api/stores/{storeId}/staff/batch-role
+    [HttpPatch("batch-role")]
+    public async Task<IActionResult> BatchUpdateRole(Guid storeId, [FromBody] BatchUpdateRoleRequest request, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        try
+        {
+            await _staffService.BatchUpdateRoleAsync(storeId, userId, request, ct);
+            return OkResponse(new { message = "Cập nhật vai trò thành công!" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+        }
+    }
+
+    // DELETE: api/stores/{storeId}/staff/batch
+    [HttpDelete("batch")]
+    public async Task<IActionResult> BatchRemoveStaff(Guid storeId, [FromBody] BatchRemoveStaffRequest request, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        try
+        {
+            await _staffService.BatchRemoveStaffAsync(storeId, userId, request, ct);
+            return OkResponse(new { message = "Xóa nhân viên thành công!" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+        }
+    }
+
     // DELETE: api/stores/{storeId}/staff/{targetUserId}
     /// <summary>Xóa một Staff khỏi cửa hàng. Chỉ Owner mới có quyền thực hiện. Thu hồi quyền Store nếu User không còn làm việc cho cửa hàng nào khác.</summary>
     [HttpDelete("{targetUserId}")]
