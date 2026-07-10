@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json;
 using System.Threading.Tasks;
 using SaveFoodBackend.DTOs.Store;
 using SaveFoodBackend.Interfaces;
@@ -18,6 +19,7 @@ namespace SaveFoodBackend.Services
         private readonly ISubscriptionRepository _subscriptionRepo;
         private readonly IPayOSService _payOSService;
         private readonly SaveFoodBackend.Interfaces.Repositories.IReviewRepository _reviewRepo;
+        private readonly IRedisService _redisService;
 
         public StoreService(
             IStoreRepository storeRepo, 
@@ -25,7 +27,8 @@ namespace SaveFoodBackend.Services
             IOrderRepository orderRepo,
             ISubscriptionRepository subscriptionRepo,
             IPayOSService payOSService,
-            SaveFoodBackend.Interfaces.Repositories.IReviewRepository reviewRepo)
+            SaveFoodBackend.Interfaces.Repositories.IReviewRepository reviewRepo,
+            IRedisService redisService)
         {
             _storeRepo = storeRepo;
             _cloudinaryService = cloudinaryService;
@@ -33,7 +36,33 @@ namespace SaveFoodBackend.Services
             _subscriptionRepo = subscriptionRepo;
             _payOSService = payOSService;
             _reviewRepo = reviewRepo;
+            _redisService = redisService;
         }
+
+        private async Task<(string planName, int analyticsLevel, bool hasCustomBanner)> GetActiveSubscriptionDataAsync(Guid storeId, CancellationToken ct = default)
+        {
+            var cacheKey = $"store-subscription:active:{storeId}";
+            var cached = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cached))
+            {
+                Console.WriteLine($"[CACHE HIT] {cacheKey}");
+                var data = JsonSerializer.Deserialize<ActiveSubscriptionCache>(cached);
+                return (data.PlanName, data.AnalyticsLevel, data.HasCustomBanner);
+            }
+            Console.WriteLine($"[CACHE MISS] {cacheKey}");
+
+            var now = DateTime.UtcNow;
+            var sub = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, now, ct);
+            var planName = sub?.Plan?.Name ?? "Free";
+            var analyticsLevel = sub?.Plan?.AnalyticsLevel ?? 0;
+            var hasCustomBanner = sub?.Plan?.HasCustomBanner ?? false;
+
+            var cacheData = new ActiveSubscriptionCache(planName, analyticsLevel, hasCustomBanner);
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(cacheData), TimeSpan.FromMinutes(5));
+            return (planName, analyticsLevel, hasCustomBanner);
+        }
+
+        private record ActiveSubscriptionCache(string PlanName, int AnalyticsLevel, bool HasCustomBanner);
 
         public async Task<StoreProfileDTO?> GetStoreDashboardProfileAsync(Guid storeId, Guid userId, CancellationToken ct = default)
         {
@@ -45,9 +74,7 @@ namespace SaveFoodBackend.Services
             if (!isStaff)
                 throw new UnauthorizedAccessException("Bạn không có quyền truy cập thông tin cửa hàng này.");
 
-            var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, DateTime.UtcNow, ct);
-            var planName = activeSubscription?.Plan?.Name ?? "Free";
-            var hasCustomBanner = activeSubscription?.Plan?.HasCustomBanner ?? false;
+            var (planName, _, hasCustomBanner) = await GetActiveSubscriptionDataAsync(storeId, ct);
 
             return new StoreProfileDTO
             {
@@ -312,9 +339,7 @@ namespace SaveFoodBackend.Services
                 orderChange = 100;
             }
             
-            var activeSubscription = await _subscriptionRepo.GetActiveSubscriptionForStoreAsync(storeId, now, ct);
-            string planName = activeSubscription?.Plan?.Name ?? "Free";
-            int analyticsLevel = activeSubscription?.Plan?.AnalyticsLevel ?? 0;
+            var (planName, analyticsLevel, _) = await GetActiveSubscriptionDataAsync(storeId, ct);
 
             List<decimal> weeklyRevenue = new();
             List<TopSellingProductDTO> topProducts = new();
@@ -432,6 +457,10 @@ namespace SaveFoodBackend.Services
 
             _subscriptionRepo.AddStoreSubscription(subscription);
             await _subscriptionRepo.SaveChangesAsync(ct);
+
+            await _redisService.DeleteAsync($"store-subscription:active:{storeId}");
+            await _redisService.DeleteAsync("admin:subscription-stats");
+            Console.WriteLine($"[CACHE INVALIDATE] store-subscription:active:{storeId} & admin:subscription-stats (Checkout)");
 
             string description = $"Mua goi {plan.Name}".PadRight(0).Substring(0, Math.Min(25, $"Mua goi {plan.Name}".Length));
             

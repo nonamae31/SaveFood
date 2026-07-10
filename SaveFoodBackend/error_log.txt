@@ -12,8 +12,8 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name 'Notific
    at Microsoft.EntityFrameworkCore.Query.Internal.SingleQueryingEnumerable`1.AsyncEnumerator.MoveNextAsync()
    at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
    at Microsoft.EntityFrameworkCore.Query.ShapedQueryCompilingExpressionVisitor.SingleAsync[TSource](IAsyncEnumerable`1 asyncEnumerable, CancellationToken cancellationToken)
-   at SaveFoodBackend.Services.NotificationService.GetUnreadCountAsync(Guid userId) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Services\NotificationService.cs:line 79
-   at SaveFoodBackend.Controllers.NotificationsController.GetUnreadCount() in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Controllers\NotificationsController.cs:line 59
+   at SaveFoodBackend.Services.NotificationService.GetByUserAsync(Guid userId, Int32 page, Int32 pageSize) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Services\NotificationService.cs:line 68
+   at SaveFoodBackend.Controllers.NotificationsController.GetNotifications(Int32 page, Int32 pageSize) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Controllers\NotificationsController.cs:line 40
    at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
@@ -29,5 +29,5 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name 'Notific
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:314c3c0b-1763-4db8-bb16-d9a90c7da792
+ClientConnectionId:516d42d2-cf18-4c10-8e68-3786ec934bc7
 Error Number:208,State:1,Class:16
