@@ -59,10 +59,14 @@ public abstract class ApiControllerBase : ControllerBase
         => CurrentStoreId ?? throw new Common.Exceptions.UnauthorizedException("Tài khoản của bạn không liên kết với cửa hàng nào.");
 
     /// <summary>
-    /// Lấy CurrentUserId và throw UnauthorizedException nếu null.
+    /// Lấy CurrentUserId và throw UnauthorizedException nếu null hoặc chưa xác thực.
     /// </summary>
     protected Guid GetRequiredUserId()
-        => CurrentUserId ?? throw new Common.Exceptions.UnauthorizedException();
+    {
+        if (User.Identity?.IsAuthenticated != true)
+            throw new Common.Exceptions.UnauthorizedException();
+        return CurrentUserId ?? throw new Common.Exceptions.UnauthorizedException();
+    }
 
     // ─── Helper methods để trả về ApiResponse chuẩn ───────────────────────────
 

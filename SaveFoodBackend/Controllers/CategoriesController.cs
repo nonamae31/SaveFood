@@ -20,6 +20,7 @@ public class CategoriesController : ControllerBase
 
     // GET: api/categories
     [HttpGet]
+    [AllowAnonymous]
     public async Task<IActionResult> GetAll()
     {
         var categories = await _categoryService.GetAllAsync(includeDeleted: false);
