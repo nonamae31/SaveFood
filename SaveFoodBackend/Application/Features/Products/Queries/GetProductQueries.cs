@@ -53,7 +53,7 @@ public class GetProductByIdQueryHandler : IRequestHandler<GetProductByIdQuery, P
     };
 }
 
-// ─── Query: Get all products by store ────────────────────────────────────────
+//Query: Get all products by store
 
 public record GetProductsByStoreQuery(Guid StoreId) : IRequest<IEnumerable<ProductResponseDTO>>;
 
