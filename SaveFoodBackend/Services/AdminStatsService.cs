@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.DTOs.Admin;
@@ -12,11 +13,13 @@ public class AdminStatsService : IAdminStatsService
 {
     private readonly IFinanceRepository _financeRepo;
     private readonly ISubscriptionRepository _subscriptionRepo;
+    private readonly IRedisService _redisService;
 
-    public AdminStatsService(IFinanceRepository financeRepo, ISubscriptionRepository subscriptionRepo)
+    public AdminStatsService(IFinanceRepository financeRepo, ISubscriptionRepository subscriptionRepo, IRedisService redisService)
     {
         _financeRepo = financeRepo;
         _subscriptionRepo = subscriptionRepo;
+        _redisService = redisService;
     }
 
     public async Task<AdminRevenueStatsResponse> GetRevenueStatsAsync()
@@ -37,6 +40,15 @@ public class AdminStatsService : IAdminStatsService
 
     public async Task<AdminSubscriptionStatsResponse> GetSubscriptionStatsAsync()
     {
+        var cacheKey = "admin:subscription-stats";
+        var cached = await _redisService.GetAsync(cacheKey);
+        if (!string.IsNullOrEmpty(cached))
+        {
+            Console.WriteLine($"[CACHE HIT] {cacheKey}");
+            return JsonSerializer.Deserialize<AdminSubscriptionStatsResponse>(cached);
+        }
+        Console.WriteLine($"[CACHE MISS] {cacheKey}");
+
         var currentDate = DateTime.UtcNow;
 
         var totalActiveSubscriptions = await _subscriptionRepo.GetTotalActiveStoreSubscriptionsAsync(currentDate);
@@ -44,12 +56,15 @@ public class AdminStatsService : IAdminStatsService
         var monthlyStats = await _subscriptionRepo.GetMonthlySubscriptionRevenuesAsync();
         var activeSubscriptionsByPlan = await _subscriptionRepo.GetActiveSubscriptionsByPlanAsync(currentDate);
 
-        return new AdminSubscriptionStatsResponse
+        var result = new AdminSubscriptionStatsResponse
         {
             TotalActiveSubscriptions = totalActiveSubscriptions,
             TotalSubscriptionRevenue = totalRevenue,
             MonthlyStats = monthlyStats,
             ActiveSubscriptionsByPlan = activeSubscriptionsByPlan
         };
+
+        await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(result), TimeSpan.FromMinutes(5));
+        return result;
     }
 }

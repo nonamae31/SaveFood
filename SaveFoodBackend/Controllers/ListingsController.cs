@@ -58,8 +58,29 @@ public class ListingsController : ApiControllerBase
     [HttpDelete("{listingId}")]
     public async Task<IActionResult> DeleteListing(Guid storeId, Guid listingId, CancellationToken ct)
     {
+<<<<<<< HEAD
         await _sender.Send(new DeleteListingCommand(storeId, listingId), ct);
         return NoContent();
+=======
+        try
+        {
+            await _listingService.DeleteListingAsync(storeId, listingId, ct);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("ACTIVE_ORDERS_CONFLICT:"))
+        {
+            var orderCodesStr = ex.Message.Substring("ACTIVE_ORDERS_CONFLICT:".Length);
+            var orderCodes = orderCodesStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            return StatusCode(409, new { 
+                Message = "Không thể xóa sản phẩm do đang có đơn hàng xử lý.", 
+                BlockingOrderCodes = orderCodes 
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+>>>>>>> origin/Develop_2
     }
 
     /// <summary>Upload ảnh cho Listing — tự động invalidate Redis cache.</summary>

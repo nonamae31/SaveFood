@@ -35,7 +35,7 @@ const PaymentCountdown = ({ expiresAt }: { expiresAt: string }) => {
   const m = Math.floor(timeLeft / 60)
   const s = timeLeft % 60
   return (
-    <span className="text-orange-600 font-bold flex items-center gap-1 ml-2">
+    <span className="text-red-700 font-bold flex items-center gap-1">
       <Clock size={16} /> {m}:{s.toString().padStart(2, '0')}
     </span>
   )
@@ -63,7 +63,7 @@ export function ProfileOrdersTab() {
     return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
   }, []);
 
-  const handleTabChange = (status: number | null) => {
+  const handleTabChange = (status: number) => {
     setActiveStatus(status);
     setCurrentPage(1); 
     setSelectedOrders([]);
@@ -74,8 +74,8 @@ export function ProfileOrdersTab() {
     batchPayMutation.mutate(
       { 
         orderIds: selectedOrders,
-        returnUrl: window.location.origin + '/payment/success',
-        cancelUrl: window.location.origin + '/payment/cancel'
+        returnUrl: window.location.origin + '/checkout/success',
+        cancelUrl: window.location.origin + '/checkout/cancel'
       },
       {
         onSuccess: (res) => {
@@ -184,9 +184,9 @@ export function ProfileOrdersTab() {
                     </span>
                   </div>
                   
-                  {order.orderStatus === 0 && order.reservationExpiresAt && (
-                    <div className="flex items-center text-sm mb-2">
-                      <span className="text-gray-500 mr-2">Hạn thanh toán:</span>
+                  {order.orderStatus === 0 && order.reservationExpiresAt && order.paymentMethod === 1 && (order.paymentStatus === 0 || order.paymentStatus === 2) && (
+                    <div className="flex items-center text-sm mb-3 bg-red-50/80 text-red-700 px-3 py-2 rounded-lg border border-red-100/50 w-max">
+                      <span className="font-medium mr-1">Thanh toán trong:</span>
                       <PaymentCountdown expiresAt={order.reservationExpiresAt} />
                     </div>
                   )}

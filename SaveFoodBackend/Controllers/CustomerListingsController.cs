@@ -30,10 +30,11 @@ public class CustomerListingsController : ApiControllerBase
     /// <summary>Gợi ý cá nhân hóa dựa trên lịch sử mua hàng.</summary>
     [HttpGet("recommendations")]
     [Authorize]
-    public async Task<IActionResult> GetRecommendations(CancellationToken ct)
+    public async Task<IActionResult> GetRecommendations([FromQuery] double? userLat, [FromQuery] double? userLng, CancellationToken ct)
     {
         var userId = GetRequiredUserId();
-        var listings = await _listingService.GetRecommendationsAsync(userId, ct);
+        
+        var listings = await _listingService.GetRecommendationsAsync(userId, userLat, userLng, ct);
         return Ok(listings);
     }
 }

@@ -32,7 +32,17 @@ export function getListings(filter: ListingFilter = {}): Promise<PaginatedResult
   return apiClient<PaginatedResult<CustomerListingDTO>>(`/customerlistings${toQueryString(filter)}`)
 }
 
+<<<<<<< HEAD
 /** GET /api/customerlistings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
 export function getRecommendations(): Promise<CustomerListingDTO[]> {
   return apiClient<CustomerListingDTO[]>('/customerlistings/recommendations')
+=======
+/** GET /api/listings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
+export function getRecommendations(userLat?: number, userLng?: number): Promise<CustomerListingDTO[]> {
+  const params = new URLSearchParams()
+  if (userLat !== undefined) params.set('userLat', String(userLat))
+  if (userLng !== undefined) params.set('userLng', String(userLng))
+  const qs = params.toString()
+  return apiClient<CustomerListingDTO[]>(`/listings/recommendations${qs ? `?${qs}` : ''}`)
+>>>>>>> origin/Develop_2
 }

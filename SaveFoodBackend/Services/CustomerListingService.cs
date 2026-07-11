@@ -138,7 +138,7 @@ public class CustomerListingService : ICustomerListingService
         return new PaginatedList<CustomerListingDTO>(items, totalCount, page, pageSize);
     }
 
-    public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, CancellationToken ct = default)
+    public async Task<IEnumerable<CustomerListingDTO>> GetRecommendationsAsync(Guid userId, double? userLat = null, double? userLng = null, CancellationToken ct = default)
     {
         var cacheKey = $"listings:recs:{userId}";
         var cached = await _redis.GetAsync(cacheKey);
@@ -158,6 +158,7 @@ public class CustomerListingService : ICustomerListingService
         if (!favoriteCategoryIds.Any())
         {
             var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", null, ct);
+<<<<<<< HEAD
             result = recentListings.Take(10).Select(MapToDTO);
         }
         else
@@ -191,6 +192,48 @@ public class CustomerListingService : ICustomerListingService
         var resultList = result.ToList();
         await _redis.SetAsync(cacheKey, JsonSerializer.Serialize(resultList), RecommendationsCacheTtl);
         return resultList;
+=======
+            var recentDtos = recentListings.Take(10).Select(l => 
+            {
+                var dto = MapToDTO(l);
+                if (userLat.HasValue && userLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
+                {
+                    dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
+                }
+                return dto;
+            });
+            return recentDtos;
+        }
+
+        // Lấy các tin đăng thuộc danh mục yêu thích
+        var recommendedListings = await _ctx.ClearanceListings
+            .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                        .ThenInclude(sub => sub.Plan)
+            .Include(l => l.Product)
+                .ThenInclude(p => p.ProductImages)
+            .Include(l => l.ListingImages)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active) // Status 1 = Published
+            .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
+            .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
+            .ThenBy(l => l.ExpiryDate)
+            .Take(10)
+            .AsNoTracking()
+            .ToListAsync(ct);
+
+        var dtos = recommendedListings.Select(l => 
+        {
+            var dto = MapToDTO(l);
+            if (userLat.HasValue && userLng.HasValue && l.Product.Store.Latitude.HasValue && l.Product.Store.Longitude.HasValue)
+            {
+                dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
+            }
+            return dto;
+        });
+
+        return dtos;
+>>>>>>> origin/Develop_2
     }
 
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)

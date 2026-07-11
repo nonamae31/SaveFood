@@ -155,6 +155,57 @@ public class StoreStaffService : IStoreStaffService
         }
     }
 
+    public async Task BatchUpdateRoleAsync(Guid storeId, Guid requestingUserId, BatchUpdateRoleRequest request, CancellationToken ct = default)
+    {
+        var requesterRecord = await _staffRepo.GetByStoreAndUserIdAsync(storeId, requestingUserId, ct);
+        if (requesterRecord == null || requesterRecord.StaffRoleEnum != StaffRole.Owner)
+            throw new UnauthorizedAccessException("Chỉ Chủ cửa hàng (Owner) mới có quyền thay đổi vai trò.");
+
+        if (request.NewRole != (byte)StaffRole.Manager && request.NewRole != (byte)StaffRole.Staff)
+            throw new InvalidOperationException("Vai trò không hợp lệ.");
+
+        var allStaff = await _staffRepo.GetByStoreIdAsync(storeId, ct);
+        var targets = allStaff.Where(s => request.UserIds.Contains(s.UserId) && s.StaffRoleEnum != StaffRole.Owner);
+
+        foreach (var staff in targets)
+            staff.StaffRole = request.NewRole;
+
+        await _staffRepo.SaveChangesAsync(ct);
+    }
+
+    public async Task BatchRemoveStaffAsync(Guid storeId, Guid requestingUserId, BatchRemoveStaffRequest request, CancellationToken ct = default)
+    {
+        var requesterRecord = await _staffRepo.GetByStoreAndUserIdAsync(storeId, requestingUserId, ct);
+        if (requesterRecord == null || requesterRecord.StaffRoleEnum != StaffRole.Owner)
+            throw new UnauthorizedAccessException("Chỉ Chủ cửa hàng (Owner) mới có quyền xóa nhân viên.");
+
+        var allStaff = await _staffRepo.GetByStoreIdAsync(storeId, ct);
+        var targets = allStaff.Where(s => request.UserIds.Contains(s.UserId) && s.StaffRoleEnum != StaffRole.Owner && s.UserId != requestingUserId).ToList();
+
+        foreach (var staff in targets)
+            _staffRepo.Remove(staff);
+
+        await _staffRepo.SaveChangesAsync(ct);
+
+        foreach (var target in targets)
+        {
+            var remainingStores = await _staffRepo.CountStoresByUserIdAsync(target.UserId, ct);
+            if (remainingStores == 0)
+            {
+                var storeRole = await _userRepo.GetRoleByCodeAsync("Store", ct);
+                if (storeRole != null)
+                {
+                    var hasStoreRole = await _userRepo.HasUserRoleAsync(target.UserId, storeRole.Id, ct);
+                    if (hasStoreRole)
+                    {
+                        await _userRepo.RemoveUserRoleAsync(target.UserId, storeRole.Id, ct);
+                        await _userRepo.SaveChangesAsync(ct);
+                    }
+                }
+            }
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────────
 
     private static StoreStaffDTO MapToDTO(StoreStaff ss) => new()

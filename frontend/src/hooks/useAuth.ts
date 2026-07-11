@@ -11,9 +11,10 @@ export function useLogin() {
   
   return useMutation({
     mutationFn: login,
-    onSuccess: () => {
-      // Invalidate profile query to refetch user data after successful login
-      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.profile });
+    onSuccess: async () => {
+      // Refetch profile immediately and wait for it to finish
+      // before the caller navigates — avoids blank-screen race condition on mobile
+      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEYS.profile });
     },
   });
 }
@@ -25,8 +26,9 @@ export function useGoogleLoginMutation() {
   
   return useMutation({
     mutationFn: googleLogin,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: AUTH_QUERY_KEYS.profile });
+    onSuccess: async () => {
+      // Refetch profile immediately and wait for it to finish
+      await queryClient.refetchQueries({ queryKey: AUTH_QUERY_KEYS.profile });
     },
   });
 }

@@ -8,7 +8,9 @@ using SaveFoodBackend.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Models.Enums;
 using SaveFoodBackend.Common.Exceptions;
+using SaveFoodBackend.Interfaces;
 
 namespace SaveFoodBackend.Application.StoreOrders.Commands;
 
@@ -20,13 +22,15 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
     private readonly IStoreRepository _storeRepo;
     private readonly IFinanceRepository _financeRepo;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly INotificationService _notificationService;
 
-    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext)
+    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _financeRepo = financeRepo;
         _hubContext = hubContext;
+        _notificationService = notificationService;
     }
 
     public async Task<bool> Handle(CompleteOrderCommand request, CancellationToken cancellationToken)
@@ -61,7 +65,7 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
             _financeRepo.AddStoreWallet(storeWallet);
         }
 
-        decimal platformFee = order.TotalAmount * 0.05m;
+        decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
         decimal storeIncome = order.TotalAmount - platformFee;
 
         storeWallet.AvailableBalance += storeIncome;
@@ -94,6 +98,14 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
         await _financeRepo.SaveChangesAsync(cancellationToken);
         
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusUpdated", order.Id, (int)order.OrderStatus, cancellationToken: cancellationToken);
+        
+        await _notificationService.SendAsync(
+            userId: order.UserId,
+            title: "Đơn hàng đã hoàn thành",
+            body: $"Bạn đã nhận thành công đơn hàng {order.OrderCode}. Chúc bạn ngon miệng và cảm ơn bạn đã cùng giải cứu thức ăn!",
+            type: "ORDER_STATUS_UPDATE",
+            referenceId: order.Id
+        );
 
         return true;
     }

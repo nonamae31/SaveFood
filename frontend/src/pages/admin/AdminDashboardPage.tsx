@@ -93,7 +93,7 @@ export default function AdminDashboardPage() {
   const PIE_COLORS = ['#10B981', '#0EA5E9', '#F59E0B', '#8B5CF6', '#EC4899'];
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount));
   };
 
   return (
@@ -108,7 +108,7 @@ export default function AdminDashboardPage() {
         {/* Row 1: KPI Stats */}
         <StatCard 
           title="Tổng doanh thu nền tảng" 
-          value={(revenueStats?.totalRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0)} 
+          value={(revenueStats?.totalRevenue || 0) + (revenueStats?.totalShopNetRevenue || 0) + (subStats?.totalSubscriptionRevenue || 0)} 
           isCurrency
           icon={<DollarSign className="w-5 h-5" />} 
           trend="Toàn thời gian"
@@ -148,7 +148,7 @@ export default function AdminDashboardPage() {
 
         {/* Row 2 & 3: Main Chart */}
         <div className="lg:col-span-8 lg:row-span-2 bg-mint-canvas border border-mint-hairline rounded-[16px] p-5 shadow-sm flex flex-col h-[300px] lg:h-full">
-          <h3 className="text-[15px] font-semibold text-mint-ink mb-4 shrink-0">Doanh thu phí Nền tảng (Hàng tháng)</h3>
+          <h3 className="text-[15px] font-semibold text-mint-ink mb-4 shrink-0">Doanh thu phí (Hàng tháng)</h3>
           <div className="flex-1 min-h-0 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={revenueChartData}>
@@ -164,11 +164,12 @@ export default function AdminDashboardPage() {
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fill: '#64748B', fontSize: 12 }}
-                  tickFormatter={(val) => `₫${val.toLocaleString()}`}
+                  tickFormatter={(val) => formatCurrency(val)}
                 />
                 <RechartsTooltip 
                   cursor={{ fill: '#F1F5F9' }}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: any) => [formatCurrency(Number(value)), 'Doanh thu phí']}
                 />
                 <Bar dataKey="Revenue" fill="#0EA5E9" radius={[4, 4, 0, 0]} barSize={40} />
               </BarChart>
@@ -197,6 +198,7 @@ export default function AdminDashboardPage() {
                 />
                 <RechartsTooltip 
                   contentStyle={{ borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  formatter={(value: any) => [value, 'Cửa hàng mới']}
                 />
                 <Line 
                   type="monotone" 

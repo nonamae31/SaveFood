@@ -23,6 +23,7 @@ public class CustomerStoreDTO
 public class CustomerStoreFilterDTO
 {
     public string? SearchQuery { get; set; }
+    public string? City { get; set; }
     public double? UserLat { get; set; }
     public double? UserLng { get; set; }
     public double? RadiusKm { get; set; }

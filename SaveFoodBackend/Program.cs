@@ -38,12 +38,7 @@ builder.Services.AddSwaggerWithJwt();
 // ─── 3. Database Context (SQL Server) ─────────────────────────────────────────
 builder.Services.AddDbContext<SaveFoodDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection"),
-        sqlOptions => sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 3,
-            maxRetryDelay: TimeSpan.FromSeconds(5),
-            errorNumbersToAdd: null
-        )
+        builder.Configuration.GetConnectionString("DefaultConnection")
     )
 );
 
@@ -62,8 +57,12 @@ builder.Services.AddSaveFoodCors(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 
 // ─── 7. Redis Cache ───────────────────────────────────────────────────────────
-builder.Services.AddStackExchangeRedisCache(options =>
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
+// Tạm thời vô hiệu hóa Redis trên Production (SmarterASP) do bị chặn port,
+// chỉ dùng Redis trên môi trường Development.
+if (!string.IsNullOrEmpty(redisConnectionString) && builder.Environment.IsDevelopment())
 {
+<<<<<<< HEAD
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "SaveFood_";
 });
@@ -73,6 +72,19 @@ builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
         builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"
     )
 );
+=======
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnectionString;
+        options.InstanceName = "SaveFood_";
+    });
+}
+else
+{
+    // Fallback to in-memory cache if Redis is not configured (e.g., on SmarterASP)
+    builder.Services.AddDistributedMemoryCache();
+}
+>>>>>>> origin/Develop_2
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.
@@ -146,7 +158,7 @@ app.UseRouting();
 app.UseCors("SaveFoodCors");
 
 // ─── 11. Authentication & Authorization ──────────────────────────────────────
-app.UseMiddleware<SaveFoodBackend.Middleware.JwtBlacklistMiddleware>();
+app.UseMiddleware<JwtBlacklistMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -53,12 +53,11 @@ public class LoginCommandHandler : ICommandHandler<LoginCommand, LoginResponse>
         } var sessionId = Guid.NewGuid().ToString(); var refreshToken = Guid.NewGuid().ToString();
         await _redisService.SetAsync($"session:{refreshToken}", $"{user.Id}:{sessionId}", TimeSpan.FromDays(30));
 
-        var token = _jwtProvider.GenerateJwtToken(user, sessionId);
+        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
+        var token = _jwtProvider.GenerateJwtToken(user, sessionId, storeStaff?.StoreId);
         var roleCode = user.UserRoles.FirstOrDefault(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Admin)?.Role?.Code ??
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null && ur.Role.Code == AppConstants.Roles.Store)?.Role?.Code ??
                        user.UserRoles.FirstOrDefault(ur => ur.Role != null)?.Role?.Code ?? AppConstants.Roles.Customer;
-
-        var storeStaff = await _context.StoreStaffs.FirstOrDefaultAsync(ss => ss.UserId == user.Id, ct);
 
         return new LoginResponse { AccessToken = token, UserId = user.Id, Email = user.Email, FullName = user.FullName, Role = roleCode, RefreshToken = refreshToken, StaffRole = storeStaff?.StaffRole };
     }
