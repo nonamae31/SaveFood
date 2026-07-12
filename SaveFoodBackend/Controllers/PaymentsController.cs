@@ -146,7 +146,7 @@ public class PaymentsController : ControllerBase
                             
                             // We must cancel any other active subscriptions for this store to prevent overlap
                             var activeSubs = await _ctx.StoreSubscriptions
-                                                       .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                       .Where(s => s.StoreId == subscription.StoreId && s.Status == 0 && s.Id != subscription.Id) // 0 is Active
                                                        .ToListAsync();
                             foreach(var sub in activeSubs)
                             {
@@ -415,12 +415,12 @@ public class PaymentsController : ControllerBase
                     var subscription = await _ctx.StoreSubscriptions.FirstOrDefaultAsync(s => (isGuid && s.Id == parsedGuid) || (isLong && s.OrderCode == parsedLong));
                     if (subscription != null)
                     {
-                        if (subscription.Status == 1)
+                        if (subscription.Status == 0) // 0 is Active
                         {
                             return Ok(new { success = true, message = "Thanh toán gói đăng ký đã hoàn tất." });
                         }
 
-                        if (subscription.Status == 0 && subscription.OrderCode.HasValue)
+                        if (subscription.Status == 3 && subscription.OrderCode.HasValue) // 3 is Pending
                         {
                             try
                             {
@@ -428,7 +428,7 @@ public class PaymentsController : ControllerBase
 
                                 if (payOSInfo.Status.ToString().ToUpper() == "PAID")
                                 {
-                                    subscription.Status = 1; // Active
+                                    subscription.Status = 0; // 0 is Active
                                     
                                     // --- AUDIT TRAIL: Save PayOS evidence ---
                                     var tx = payOSInfo.Transactions?.FirstOrDefault();
@@ -441,7 +441,7 @@ public class PaymentsController : ControllerBase
                                     }
 
                                     var activeSubs = await _ctx.StoreSubscriptions
-                                                               .Where(s => s.StoreId == subscription.StoreId && s.Status == 1 && s.Id != subscription.Id)
+                                                               .Where(s => s.StoreId == subscription.StoreId && s.Status == 0 && s.Id != subscription.Id) // 0 is Active
                                                                .ToListAsync();
                                     foreach(var sub in activeSubs)
                                     {
