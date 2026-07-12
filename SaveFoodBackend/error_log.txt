@@ -30,5 +30,5 @@ Microsoft.Data.SqlClient.SqlException (0x80131904): Invalid object name 'Notific
    at Swashbuckle.AspNetCore.SwaggerUI.SwaggerUIMiddleware.Invoke(HttpContext httpContext)
    at Swashbuckle.AspNetCore.Swagger.SwaggerMiddleware.Invoke(HttpContext httpContext, ISwaggerProvider swaggerProvider)
    at SaveFoodBackend.Middleware.GlobalExceptionMiddleware.InvokeAsync(HttpContext context) in C:\Users\admin\OneDrive\Desktop\Ky8\SaveFood\SaveFoodBackend\Middleware\GlobalExceptionMiddleware.cs:line 33
-ClientConnectionId:a619c8e0-7243-46e7-8a02-dad394605866
+ClientConnectionId:62ff348f-6f31-46d8-85f7-56d858b558c2
 Error Number:208,State:1,Class:16
