@@ -2,7 +2,8 @@ import { apiClient } from './client'
 import type { 
   ListingResponseDTO, 
   CreateListingDTO, 
-  UpdateListingDTO 
+  UpdateListingDTO,
+  RuleTemplateDTO
 } from '@/types/store.types'
 
 export function getStoreListings(storeId: string): Promise<ListingResponseDTO[]> {
@@ -48,4 +49,16 @@ export function deleteStoreListingImage(storeId: string, listingId: string, imag
   return apiClient<ListingResponseDTO>(`/stores/${storeId}/listings/${listingId}/images/${imageId}`, {
     method: 'DELETE',
   })
+}
+
+/** PATCH — toggle Published ↔ Draft */
+export function toggleStoreListingVisibility(storeId: string, listingId: string): Promise<ListingResponseDTO> {
+  return apiClient<ListingResponseDTO>(`/stores/${storeId}/listings/${listingId}/toggle-visibility`, {
+    method: 'PATCH',
+  })
+}
+
+/** GET — lấy danh sách Discount Rule Templates từ lịch sử */
+export function getListingRuleTemplates(storeId: string): Promise<RuleTemplateDTO[]> {
+  return apiClient<RuleTemplateDTO[]>(`/stores/${storeId}/listings/rule-templates`)
 }

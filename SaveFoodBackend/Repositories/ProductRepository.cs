@@ -36,7 +36,7 @@ public class ProductRepository : IProductRepository
         return await _set
             .Include(p => p.ProductImages)
             .Include(p => p.Category)
-            .Where(p => p.StoreId == storeId && !p.IsDeleted)
+            .Where(p => p.StoreId == storeId)
             .AsSplitQuery()
             .AsNoTracking()
             .ToListAsync(ct);

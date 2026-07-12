@@ -14,7 +14,7 @@ namespace SaveFoodBackend.Controllers;
 
 [ApiController]
 [Route("api/stores/{storeId}/listings")]
-[Authorize(Roles = "Store,StoreStaff")]
+[Authorize(Roles = "STORE,STORE_OWNER,Store,StoreStaff")]
 public class ListingsController : ApiControllerBase
 {
     private readonly ISender _sender;
@@ -54,33 +54,12 @@ public class ListingsController : ApiControllerBase
         return Ok(result);
     }
 
-    /// <summary>Xóa Listing — tự động invalidate Redis cache.</summary>
+    /// <summary>Xóa mềm Listing — tự động invalidate Redis cache.</summary>
     [HttpDelete("{listingId}")]
     public async Task<IActionResult> DeleteListing(Guid storeId, Guid listingId, CancellationToken ct)
     {
-<<<<<<< HEAD
         await _sender.Send(new DeleteListingCommand(storeId, listingId), ct);
         return NoContent();
-=======
-        try
-        {
-            await _listingService.DeleteListingAsync(storeId, listingId, ct);
-            return NoContent();
-        }
-        catch (InvalidOperationException ex) when (ex.Message.StartsWith("ACTIVE_ORDERS_CONFLICT:"))
-        {
-            var orderCodesStr = ex.Message.Substring("ACTIVE_ORDERS_CONFLICT:".Length);
-            var orderCodes = orderCodesStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            return StatusCode(409, new { 
-                Message = "Không thể xóa sản phẩm do đang có đơn hàng xử lý.", 
-                BlockingOrderCodes = orderCodes 
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { Message = ex.Message });
-        }
->>>>>>> origin/Develop_2
     }
 
     /// <summary>Upload ảnh cho Listing — tự động invalidate Redis cache.</summary>
@@ -96,6 +75,22 @@ public class ListingsController : ApiControllerBase
     public async Task<IActionResult> DeleteListingImage(Guid storeId, Guid listingId, Guid imageId, CancellationToken ct)
     {
         var result = await _sender.Send(new DeleteListingImageCommand(storeId, listingId, imageId), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Bật/Tắt hiển thị Listing (toggle Published ↔ Draft).</summary>
+    [HttpPatch("{listingId}/toggle-visibility")]
+    public async Task<IActionResult> ToggleListingVisibility(Guid storeId, Guid listingId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new ToggleListingVisibilityCommand(storeId, listingId), ct);
+        return Ok(result);
+    }
+
+    /// <summary>Lấy danh sách Discount Rule Templates từ lịch sử Listings của Store.</summary>
+    [HttpGet("rule-templates")]
+    public async Task<IActionResult> GetRuleTemplates(Guid storeId, CancellationToken ct)
+    {
+        var result = await _sender.Send(new GetListingRuleTemplatesQuery(storeId), ct);
         return Ok(result);
     }
 }

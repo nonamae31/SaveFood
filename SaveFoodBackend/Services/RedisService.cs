@@ -3,21 +3,22 @@ using SaveFoodBackend.Interfaces;
 using StackExchange.Redis;
 using System;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace SaveFoodBackend.Services
 {
     public class RedisService : IRedisService
     {
         private readonly IDistributedCache _cache;
-        private readonly IConnectionMultiplexer _redis;
+        private readonly IConnectionMultiplexer? _redis;
 
         // Prefix phải khớp với InstanceName trong AddStackExchangeRedisCache (Program.cs)
         private const string InstancePrefix = "SaveFood_";
 
-        public RedisService(IDistributedCache cache, IConnectionMultiplexer redis)
+        public RedisService(IDistributedCache cache, IServiceProvider serviceProvider)
         {
             _cache = cache;
-            _redis = redis;
+            _redis = serviceProvider.GetService<IConnectionMultiplexer>();
         }
 
         public async Task SetAsync(string key, string value, TimeSpan? expiry = null)
@@ -45,6 +46,8 @@ namespace SaveFoodBackend.Services
         /// </summary>
         public async Task DeleteByPatternAsync(string pattern)
         {
+            if (_redis == null) return; // Nếu không dùng Redis thực tế (in-memory) thì bỏ qua scan keys
+
             var server = _redis.GetServer(_redis.GetEndPoints()[0]);
             var db = _redis.GetDatabase();
             var fullPattern = $"{InstancePrefix}{pattern}";

@@ -34,6 +34,10 @@ export interface CustomerListingDTO {
   storeStatus: number
   storeLatitude?: number   // Tọa độ Store — dùng để đặt Marker trên Map
   storeLongitude?: number  // Tọa độ Store — dùng để đặt Marker trên Map
+  /** Thời điểm UTC kích hoạt Sale Milestone tiếp theo — null nếu không có */
+  nextMilestoneTime?: string
+  /** Giá bán dự kiến tại Sale Milestone tiếp theo — null nếu không có */
+  nextMilestonePrice?: number
 }
 
 /** Query params cho GET /api/customerlistings — khớp với CustomerListingFilterDTO Backend */

@@ -65,8 +65,7 @@ public class CreateListingCommandHandler : IRequestHandler<CreateListingCommand,
             QuantityAvailable = request.Dto.QuantityAvailable,
             ExpiryDate = request.Dto.ExpiryDate.ToUniversalTime(),
             Status = (byte)ListingStatus.Published,
-            CreatedAt = DateTime.UtcNow,
-            Product = product
+            CreatedAt = DateTime.UtcNow
         };
 
         if (listing.ExpiryDate <= DateTime.UtcNow)
@@ -243,13 +242,51 @@ public class DeleteListingCommandHandler : IRequestHandler<DeleteListingCommand>
         if (listing == null || listing.Product?.StoreId != request.StoreId)
             throw new InvalidOperationException("Listing not found or access denied.");
 
-        _repo.Delete(listing);
+        _repo.Delete(listing); // soft-delete: IsDeleted = true
         await _repo.SaveChangesAsync(ct);
 
         // ✅ Invalidate all listings cache
         await _redis.DeleteByPatternAsync("listings:*");
     }
 }
+
+// ─── Toggle Listing Visibility ──────────────────────────────────────────────────
+
+public record ToggleListingVisibilityCommand(Guid StoreId, Guid ListingId) : IRequest<ListingResponseDTO>;
+
+public class ToggleListingVisibilityCommandHandler : IRequestHandler<ToggleListingVisibilityCommand, ListingResponseDTO>
+{
+    private readonly IListingRepository _repo;
+    private readonly IRedisService _redis;
+
+    public ToggleListingVisibilityCommandHandler(IListingRepository repo, IRedisService redis)
+    {
+        _repo = repo;
+        _redis = redis;
+    }
+
+    public async Task<ListingResponseDTO> Handle(ToggleListingVisibilityCommand request, CancellationToken ct)
+    {
+        var listing = await _repo.GetByIdWithRulesAsync(request.ListingId, ct);
+        if (listing == null || listing.Product?.StoreId != request.StoreId)
+            throw new InvalidOperationException("Listing not found or access denied.");
+
+        // Toggle: Published ↔ Draft
+        listing.Status = listing.Status == (byte)ListingStatus.Published
+            ? (byte)ListingStatus.Draft
+            : (byte)ListingStatus.Published;
+
+        await _repo.SaveChangesAsync(ct);
+
+        // ✅ Invalidate all listings cache
+        await _redis.DeleteByPatternAsync("listings:*");
+
+        var updated = await _repo.GetByIdWithRulesAsync(request.ListingId, ct);
+        return GetListingsByStoreQueryHandler.MapToDTO(updated!);
+    }
+}
+
+
 
 // ─── Upload Listing Images ─────────────────────────────────────────────────────
 

@@ -158,41 +158,6 @@ public class CustomerListingService : ICustomerListingService
         if (!favoriteCategoryIds.Any())
         {
             var recentListings = await _listingRepo.GetCustomerListingsAsync(null, null, null, null, null, "expiry_asc", null, ct);
-<<<<<<< HEAD
-            result = recentListings.Take(10).Select(MapToDTO);
-        }
-        else
-        {
-            var recommendedListings = await _ctx.ClearanceListings
-                .Include(l => l.Product)
-                    .ThenInclude(p => p.Store)
-                        .ThenInclude(s => s.StoreSubscriptions.Where(sub =>
-                            sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active &&
-                            sub.StartDate <= DateTime.UtcNow &&
-                            sub.EndDate >= DateTime.UtcNow))
-                            .ThenInclude(sub => sub.Plan)
-                .Include(l => l.Product)
-                    .ThenInclude(p => p.ProductImages)
-                .Include(l => l.ListingImages)
-                .Where(l =>
-                    (l.ListingFlags & 1) == 0 &&
-                    l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published &&
-                    l.ExpiryDate > DateTime.UtcNow &&
-                    l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active &&
-                    favoriteCategoryIds.Contains(l.Product.CategoryId))
-                .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
-                .ThenBy(l => l.ExpiryDate)
-                .Take(10)
-                .AsNoTracking()
-                .ToListAsync(ct);
-
-            result = recommendedListings.Select(MapToDTO);
-        }
-
-        var resultList = result.ToList();
-        await _redis.SetAsync(cacheKey, JsonSerializer.Serialize(resultList), RecommendationsCacheTtl);
-        return resultList;
-=======
             var recentDtos = recentListings.Take(10).Select(l => 
             {
                 var dto = MapToDTO(l);
@@ -214,7 +179,8 @@ public class CustomerListingService : ICustomerListingService
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active) // Status 1 = Published
+            .Include(l => l.ListingDiscountRules)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
             .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
             .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
             .ThenBy(l => l.ExpiryDate)
@@ -233,12 +199,42 @@ public class CustomerListingService : ICustomerListingService
         });
 
         return dtos;
->>>>>>> origin/Develop_2
     }
 
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)
     {
         var activeSub = l.Product.Store.StoreSubscriptions?.FirstOrDefault();
+
+        // ─── Tính Sale Milestone ─────────────────────────────────────────────────────
+        DateTime? nextMilestoneTime = null;
+        decimal? nextMilestonePrice = null;
+
+        if (l.ListingDiscountRules != null && l.ListingDiscountRules.Any())
+        {
+            var now = DateTime.UtcNow;
+            // Chỉ xét TimeBeforeExpiry (TriggerType = 0), loại bỏ đã xóa
+            var upcomingRules = l.ListingDiscountRules
+                .Where(r => !r.IsDeleted && r.TriggerType == 0)
+                .Select(r => new
+                {
+                    Rule = r,
+                    // TriggerValue đơn vị phút
+                    MilestoneTime = l.ExpiryDate - TimeSpan.FromMinutes(r.TriggerValue)
+                })
+                .Where(x => x.MilestoneTime > now) // chưa kích hoạt
+                .OrderBy(x => x.MilestoneTime)     // gần nhất trước
+                .FirstOrDefault();
+
+            if (upcomingRules != null)
+            {
+                nextMilestoneTime = upcomingRules.MilestoneTime;
+                var rule = upcomingRules.Rule;
+                if (rule.TargetPrice.HasValue)
+                    nextMilestonePrice = rule.TargetPrice.Value;
+                else if (rule.DiscountPercent.HasValue)
+                    nextMilestonePrice = Math.Round(l.SalePrice * (1 - rule.DiscountPercent.Value / 100m), 0);
+            }
+        }
 
         return new CustomerListingDTO
         {
@@ -262,6 +258,8 @@ public class CustomerListingService : ICustomerListingService
             StoreStatus = l.Product.Store.Status,
             StoreLatitude = l.Product.Store.Latitude,
             StoreLongitude = l.Product.Store.Longitude,
+            NextMilestoneTime = nextMilestoneTime,
+            NextMilestonePrice = nextMilestonePrice,
         };
     }
 }

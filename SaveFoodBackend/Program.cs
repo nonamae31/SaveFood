@@ -62,17 +62,9 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 // chỉ dùng Redis trên môi trường Development.
 if (!string.IsNullOrEmpty(redisConnectionString) && builder.Environment.IsDevelopment())
 {
-<<<<<<< HEAD
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-    options.InstanceName = "SaveFood_";
-});
-// IConnectionMultiplexer dùng cho DeleteByPatternAsync (SCAN+UNLINK)
-builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
-    StackExchange.Redis.ConnectionMultiplexer.Connect(
-        builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"
-    )
-);
-=======
+    builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
+        StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
+
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
@@ -84,7 +76,6 @@ else
     // Fallback to in-memory cache if Redis is not configured (e.g., on SmarterASP)
     builder.Services.AddDistributedMemoryCache();
 }
->>>>>>> origin/Develop_2
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TODO: Các thành viên sẽ đăng ký DI của tính năng mình vào đây.

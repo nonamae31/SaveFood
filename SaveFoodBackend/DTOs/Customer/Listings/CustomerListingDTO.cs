@@ -25,6 +25,10 @@ public class CustomerListingDTO
     public decimal? StoreLatitude { get; set; }
     /// <summary>Tọa độ cửa hàng — dùng để đặt Marker trên Map.</summary>
     public decimal? StoreLongitude { get; set; }
+    /// <summary>Thời điểm (UTC) mà mức giảm giá tiếp theo sẽ kích hoạt. Null nếu không có Sale Milestone.</summary>
+    public DateTime? NextMilestoneTime { get; set; }
+    /// <summary>Giá bán dự kiến sau khi Sale Milestone kích hoạt. Null nếu không có Sale Milestone.</summary>
+    public decimal? NextMilestonePrice { get; set; }
 }
 
 public class CustomerListingFilterDTO

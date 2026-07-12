@@ -87,24 +87,63 @@ public class UpdateProductCommandHandler : IRequestHandler<UpdateProductCommand,
     }
 }
 
-// ─── Delete Product ────────────────────────────────────────────────────────────
+// ─── Delete Product (Soft Delete) ─────────────────────────────────────────────
 
 public record DeleteProductCommand(Guid StoreId, Guid ProductId) : IRequest;
 
 public class DeleteProductCommandHandler : IRequestHandler<DeleteProductCommand>
 {
-    private readonly IProductRepository _repo;
+    private readonly IProductRepository _productRepo;
+    private readonly IListingRepository _listingRepo;
 
-    public DeleteProductCommandHandler(IProductRepository repo) => _repo = repo;
+    public DeleteProductCommandHandler(IProductRepository productRepo, IListingRepository listingRepo)
+    {
+        _productRepo = productRepo;
+        _listingRepo = listingRepo;
+    }
 
     public async Task Handle(DeleteProductCommand request, CancellationToken ct)
+    {
+        var product = await _productRepo.GetByIdAsync(request.ProductId, ct);
+        if (product == null || product.StoreId != request.StoreId)
+            throw new InvalidOperationException("Product not found or access denied");
+
+        // Block soft-delete nếu sản phẩm đang có Listing đang Published
+        var listings = await _listingRepo.GetByStoreIdAsync(request.StoreId, ct);
+        var hasActiveListings = listings.Any(l =>
+            l.ProductId == request.ProductId &&
+            !l.IsDeleted &&
+            l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published);
+
+        if (hasActiveListings)
+            throw new InvalidOperationException("ACTIVE_LISTINGS_CONFLICT: Sản phẩm đang có tin đăng giảm giá đang hoạt động. Vui lòng xóa hoặc ẩn các tin đăng trước khi xóa sản phẩm.");
+
+        _productRepo.Delete(product); // soft-delete: IsDeleted = true
+        await _productRepo.SaveChangesAsync(ct);
+    }
+}
+
+// ─── Toggle Product Visibility ─────────────────────────────────────────────────
+
+public record ToggleProductVisibilityCommand(Guid StoreId, Guid ProductId) : IRequest<ProductResponseDTO>;
+
+public class ToggleProductVisibilityCommandHandler : IRequestHandler<ToggleProductVisibilityCommand, ProductResponseDTO>
+{
+    private readonly IProductRepository _repo;
+
+    public ToggleProductVisibilityCommandHandler(IProductRepository repo) => _repo = repo;
+
+    public async Task<ProductResponseDTO> Handle(ToggleProductVisibilityCommand request, CancellationToken ct)
     {
         var product = await _repo.GetByIdAsync(request.ProductId, ct);
         if (product == null || product.StoreId != request.StoreId)
             throw new InvalidOperationException("Product not found or access denied");
 
-        _repo.Delete(product);
+        product.IsHidden = !product.IsHidden;
+        _repo.Update(product);
         await _repo.SaveChangesAsync(ct);
+
+        return GetProductByIdQueryHandler.MapToDTO(product);
     }
 }
 
@@ -180,5 +219,40 @@ public class DeleteProductImageCommandHandler : IRequestHandler<DeleteProductIma
         }
 
         return GetProductByIdQueryHandler.MapToDTO(product);
+    }
+}
+
+// ─── Bulk Toggle Product Visibility ────────────────────────────────────────────
+
+public record BulkToggleProductVisibilityCommand(Guid StoreId, IEnumerable<Guid> ProductIds, bool IsHidden) : IRequest<bool>;
+
+public class BulkToggleProductVisibilityCommandHandler : IRequestHandler<BulkToggleProductVisibilityCommand, bool>
+{
+    private readonly IProductRepository _repo;
+
+    public BulkToggleProductVisibilityCommandHandler(IProductRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public async Task<bool> Handle(BulkToggleProductVisibilityCommand request, CancellationToken ct)
+    {
+        if (request.ProductIds == null || !request.ProductIds.Any())
+            return true;
+
+        var products = await _repo.GetByStoreIdAsync(request.StoreId, ct);
+        var targetProducts = products.Where(p => request.ProductIds.Contains(p.Id)).ToList();
+
+        if (!targetProducts.Any())
+            return false;
+
+        foreach (var product in targetProducts)
+        {
+            product.IsHidden = request.IsHidden;
+            _repo.Update(product);
+        }
+
+        await _repo.SaveChangesAsync(ct);
+        return true;
     }
 }

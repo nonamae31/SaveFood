@@ -8,6 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Models.Enums;
+using SaveFoodBackend.Interfaces;
 
 namespace SaveFoodBackend.Services.BackgroundTasks;
 
@@ -47,6 +48,7 @@ public class DynamicPricingBackgroundService : BackgroundService
 
         using var scope = _serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+        var redis = scope.ServiceProvider.GetRequiredService<IRedisService>();
 
         var currentTime = DateTime.UtcNow;
 
@@ -105,7 +107,7 @@ public class DynamicPricingBackgroundService : BackgroundService
                         priceChanged = true;
                         
                         // Disable rule để không áp dụng lại
-                        rule.IsActive = false; 
+                        rule.RuleFlags = (byte)(rule.RuleFlags & ~1); 
                     }
                 }
             }
@@ -119,7 +121,8 @@ public class DynamicPricingBackgroundService : BackgroundService
         if (updatedCount > 0)
         {
             await ctx.SaveChangesAsync(ct);
-            _logger.LogInformation("Updated pricing for {count} listings.", updatedCount);
+            await redis.DeleteByPatternAsync("listings:*");
+            _logger.LogInformation("Updated pricing for {count} listings and cleared cache.", updatedCount);
         }
 
         // ─── Tự động chuyển sang Đã Bán Hết khi số lượng về 0 ─────────────────
@@ -137,6 +140,7 @@ public class DynamicPricingBackgroundService : BackgroundService
                 listing.Status = (byte)ListingStatus.SoldOut;
             }
             await ctx.SaveChangesAsync(ct);
+            await redis.DeleteByPatternAsync("listings:*");
             _logger.LogInformation("Auto sold-out {count} listings.", soldOutListings.Count);
         }
 
@@ -156,6 +160,7 @@ public class DynamicPricingBackgroundService : BackgroundService
                 listing.Status = (byte)ListingStatus.Expired;
             }
             await ctx.SaveChangesAsync(ct);
+            await redis.DeleteByPatternAsync("listings:*");
             _logger.LogInformation("Auto-expired {count} listings.", expiredListings.Count);
         }
     }

@@ -49,6 +49,17 @@ public class ListingRepository : IListingRepository
             .ToListAsync(ct);
     }
 
+    /// <summary>Lấy TẤT CẢ Listing (kể cả đã IsDeleted) — dùng cho Rule Templates.</summary>
+    public async Task<IEnumerable<ClearanceListing>> GetAllByStoreIdAsync(Guid storeId, CancellationToken ct = default)
+    {
+        return await _set
+            .Include(l => l.Product)
+            .Include(l => l.ListingDiscountRules)
+            .Where(l => l.Product.StoreId == storeId)
+            .AsNoTracking()
+            .ToListAsync(ct);
+    }
+
     public async Task<int> GetActiveListingsCountByStoreAsync(Guid storeId, CancellationToken ct = default)
     {
         return await _set
@@ -80,6 +91,7 @@ public class ListingRepository : IListingRepository
             .Include(l => l.Product)
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
+            .Include(l => l.ListingDiscountRules) // ✅ cần cho Sale Milestone
             .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
