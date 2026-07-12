@@ -66,6 +66,8 @@ export const ROUTES = {
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
   MY_ORDERS:      '/profile?tab=orders',
   MY_WALLET:      '/my-wallet',
+  CUSTOMER_COMPLAINTS: '/complaints',
+  CUSTOMER_COMPLAINT_DETAIL: (id: string) => '/complaints/' + id,
 
   // Auth
   LOGIN:          '/login',
@@ -88,6 +90,7 @@ export const ROUTES = {
   DASHBOARD_STAFF:        '/dashboard/staff',
   DASHBOARD_WALLET:       '/dashboard/wallet',
   DASHBOARD_REVIEWS:      '/dashboard/reviews',
+  DASHBOARD_COMPLAINTS:   '/dashboard/complaints',
 
   // Admin
   ADMIN:               '/admin',
@@ -98,6 +101,7 @@ export const ROUTES = {
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
   ADMIN_CATEGORIES:    '/admin/categories',
   ADMIN_AUDIT:         '/admin/audit',
+  ADMIN_COMPLAINTS:    '/admin/complaints',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────

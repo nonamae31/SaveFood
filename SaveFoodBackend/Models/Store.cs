@@ -56,4 +56,6 @@ public partial class Store
     public virtual StoreWallet? StoreWallet { get; set; }
 
     public virtual ICollection<WithdrawalRequest> WithdrawalRequests { get; set; } = new List<WithdrawalRequest>();
+
+    public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 }

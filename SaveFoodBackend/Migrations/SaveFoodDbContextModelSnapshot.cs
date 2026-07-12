@@ -134,6 +134,166 @@ namespace SaveFoodBackend.Migrations
                     b.ToTable("ClearanceListings");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsStopRequested")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StopRequestedByRole")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("Complaints");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintEvidence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.ToTable("ComplaintEvidences");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ActionById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<int>("NewStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("OldStatus")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionById");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.ToTable("ComplaintHistories");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SenderRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("ComplaintMessages");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerWallet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1245,6 +1405,81 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "Customer")
+                        .WithMany("Complaints")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.Order", "Order")
+                        .WithMany("Complaints")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SaveFoodBackend.Models.Store", "Store")
+                        .WithMany("Complaints")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintEvidence", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintEvidences")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintHistory", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "ActionBy")
+                        .WithMany()
+                        .HasForeignKey("ActionById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintHistories")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionBy");
+
+                    b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintMessage", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintMessages")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+
+                    b.Navigation("Sender");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerWallet", b =>
                 {
                     b.HasOne("SaveFoodBackend.Models.User", "User")
@@ -1571,6 +1806,15 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("OrderItems");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.Navigation("ComplaintEvidences");
+
+                    b.Navigation("ComplaintHistories");
+
+                    b.Navigation("ComplaintMessages");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerWallet", b =>
                 {
                     b.Navigation("CustomerWalletTransactions");
@@ -1578,6 +1822,8 @@ namespace SaveFoodBackend.Migrations
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>
                 {
+                    b.Navigation("Complaints");
+
                     b.Navigation("CustomerWalletTransactions");
 
                     b.Navigation("OrderItems");
@@ -1611,6 +1857,8 @@ namespace SaveFoodBackend.Migrations
 
             modelBuilder.Entity("SaveFoodBackend.Models.Store", b =>
                 {
+                    b.Navigation("Complaints");
+
                     b.Navigation("Orders");
 
                     b.Navigation("Products");
@@ -1637,6 +1885,8 @@ namespace SaveFoodBackend.Migrations
             modelBuilder.Entity("SaveFoodBackend.Models.User", b =>
                 {
                     b.Navigation("Cart");
+
+                    b.Navigation("Complaints");
 
                     b.Navigation("CustomerWallet");
 

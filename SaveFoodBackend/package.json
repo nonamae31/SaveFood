@@ -1,0 +1,6 @@
+{
+  "name": "backend",
+  "scripts": {
+    "start": "dotnet run --urls https://localhost:7251"
+  }
+}

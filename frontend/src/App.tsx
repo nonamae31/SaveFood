@@ -56,6 +56,10 @@ import { OrderDetailPage } from '@/pages/cart/OrderDetailPage'
 import { PaymentReturnPage } from '@/pages/cart/PaymentReturnPage'
 import { CustomerWalletPage } from '@/pages/profile/CustomerWalletPage'
 import { HelpCenterPage } from '@/pages/profile/HelpCenterPage'
+import ComplaintFormContainer from '@/app/(customer)/complaints/new/page'
+import ShopComplaintsPage from '@/app/(shop)/complaints/page'
+import AdminComplaintsPage from '@/app/(admin)/complaints/page'
+import CustomerComplaintDetail from '@/app/(customer)/complaints/[id]/page'
 
 function PlaceholderPage({ title }: { title: string }) {
   return (
@@ -106,6 +110,7 @@ function App() {
                 <Route path={ROUTES.STORE_REGISTER}  element={<StoreRegisterPage />} />
                 <Route path={ROUTES.POLICY}          element={<PolicyPage />} />
                 <Route path="/stores/:id"            element={<StoreDetailPage />} />
+                <Route path="/complaints/new"        element={<ComplaintFormContainer />} />
 
                 {/* ── Protected Customer Routes ── */}
                 <Route element={<CustomerProtectedRoute />}>
@@ -115,6 +120,7 @@ function App() {
                   <Route path="/checkout/success"      element={<PaymentReturnPage />} />
                   <Route path="/checkout/cancel"       element={<PaymentReturnPage />} />
                   <Route path="/orders/:id"            element={<OrderDetailPage />} />
+                  <Route path="/complaints/:id"        element={<CustomerComplaintDetail />} />
 
                   {/* Profile Routes */}
                   <Route path={ROUTES.PROFILE}         element={<ProfilePage />} />
@@ -147,6 +153,7 @@ function App() {
                 <Route path={ROUTES.DASHBOARD_STAFF}     element={<DashboardStaffPage />} />
                 <Route path={ROUTES.DASHBOARD_WALLET}    element={<DashboardWalletPage />} />
                 <Route path={ROUTES.DASHBOARD_REVIEWS}   element={<DashboardReviewsPage />} />
+                <Route path={ROUTES.DASHBOARD_COMPLAINTS} element={<ShopComplaintsPage />} />
                 <Route path="/dashboard/notifications"   element={<NotificationsPage />} />
               </Route>
             </Route>
@@ -162,6 +169,7 @@ function App() {
                 <Route path={ROUTES.ADMIN_SUBSCRIPTIONS} element={<SubscriptionManagementPage />} />
                 <Route path={ROUTES.ADMIN_CATEGORIES} element={<CategoryManagementPage />} />
                 <Route path={ROUTES.ADMIN_AUDIT} element={<AdminAuditPage />} />
+                <Route path={ROUTES.ADMIN_COMPLAINTS} element={<AdminComplaintsPage />} />
                 <Route path="/admin/notifications" element={<NotificationsPage />} />
               </Route>
             </Route>
