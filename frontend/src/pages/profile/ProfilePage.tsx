@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, ClipboardList, User, Shield, Store, LogOut } from 'lucide-react';
+import { ArrowLeft, Wallet, ClipboardList, User, Shield, Store, LogOut, Gift } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
 import { ProfileInfoTab } from './components/ProfileInfoTab';
 import { ProfileStoresTab } from './components/ProfileStoresTab';
 import { ProfileSecurityTab } from './components/ProfileSecurityTab';
 import { ProfileOrdersTab } from './components/ProfileOrdersTab';
+import { ProfileVoucherTab } from './components/ProfileVoucherTab';
 
-type TabId = 'info' | 'stores' | 'security' | 'orders';
+type TabId = 'info' | 'stores' | 'security' | 'orders' | 'voucher';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export function ProfilePage() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['info', 'stores', 'security', 'orders'].includes(tabParam)) {
+    if (tabParam && ['info', 'stores', 'security', 'orders', 'voucher'].includes(tabParam)) {
       setActiveTab(tabParam as TabId);
     }
   }, [window.location.search]);
@@ -40,6 +41,7 @@ export function ProfilePage() {
     { id: 'stores', label: 'Cửa hàng của tôi', icon: <Store size={18} /> },
     { id: 'security', label: 'Bảo mật', icon: <Shield size={18} /> },
     { id: 'orders', label: 'Đơn mua', icon: <ClipboardList size={18} /> },
+    { id: 'voucher', label: 'Voucher', icon: <Gift size={18} /> },
   ] as const;
 
   return (
@@ -54,8 +56,8 @@ export function ProfilePage() {
             <ArrowLeft size={18} /> Quay lại
           </button>
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
-            <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Trang cá nhân</span>
+            <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
+            <span className="text-sm font-bold text-brand-700 uppercase tracking-wider">Trang cá nhân</span>
           </div>
           <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">
             Cài đặt <span className="text-[--color-brand-600]">hồ sơ</span>
@@ -149,6 +151,7 @@ export function ProfilePage() {
             {activeTab === 'stores' && <ProfileStoresTab />}
             {activeTab === 'security' && <ProfileSecurityTab />}
             {activeTab === 'orders' && <ProfileOrdersTab />}
+            {activeTab === 'voucher' && <ProfileVoucherTab />}
           </div>
         </div>
       </div>

@@ -64,6 +64,7 @@ public class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, Paginat
             StoreId = o.StoreId,
             StoreName = o.Store.Name,
             TotalAmount = o.TotalAmount,
+            VoucherDiscount = o.VoucherDiscount,
             OrderStatus = o.OrderStatus,
             CreatedAt = o.CreatedAt,
             TotalItems = o.OrderItems.Sum(oi => oi.Quantity),

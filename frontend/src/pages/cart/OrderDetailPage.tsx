@@ -283,10 +283,20 @@ export function OrderDetailPage() {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-dashed border-gray-200">
-            <div className="flex justify-between items-center text-lg font-bold">
+          <div className="pt-4 border-t border-dashed border-gray-200 space-y-2">
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Tổng tiền hàng</span>
+              <span className="font-medium">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
+            </div>
+            {(order.voucherDiscount ?? 0) > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Voucher SaveFood</span>
+                <span className="font-medium">-{(order.voucherDiscount!).toLocaleString('vi-VN')} đ</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-lg font-bold pt-2 border-t border-gray-100">
               <span>Tổng thanh toán</span>
-              <span className="text-brand-600">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
+              <span className="text-brand-600">{(order.totalAmount - (order.voucherDiscount || 0)).toLocaleString('vi-VN')} đ</span>
             </div>
           </div>
         </div>

@@ -332,7 +332,8 @@ export default function DashboardOrdersPage() {
 
     const connection = new HubConnectionBuilder()
       .withUrl(`${baseUrl}/hubs/notifications`, {
-        withCredentials: true
+        withCredentials: true,
+        accessTokenFactory: () => localStorage.getItem('sf_access_token') || ''
       })
       .withAutomaticReconnect()
       .build();

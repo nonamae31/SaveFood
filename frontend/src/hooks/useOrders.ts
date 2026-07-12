@@ -6,6 +6,7 @@ export interface OrderHistoryDTO {
   storeId: string
   storeName: string
   totalAmount: number
+  voucherDiscount?: number
   orderStatus: number
   createdAt: string
   firstItemImageUrl?: string
@@ -21,6 +22,7 @@ export interface OrderDetailDTO {
   storeName: string
   storeAddress: string
   totalAmount: number
+  voucherDiscount?: number
   orderStatus: number
   createdAt: string
   pickupCode?: string

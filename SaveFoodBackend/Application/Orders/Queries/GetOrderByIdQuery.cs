@@ -42,6 +42,7 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             StoreName = order.Store.Name,
             StoreAddress = $"{order.Store.DetailedAddress}, {order.Store.Ward}, {order.Store.City}".Replace(" ,", ",").Trim(',', ' '),
             TotalAmount = order.TotalAmount,
+            VoucherDiscount = order.VoucherDiscount,
             OrderStatus = order.OrderStatus,
             CreatedAt = order.CreatedAt,
             PickupCode = order.PickupCode,

@@ -65,7 +65,7 @@ export function StoreListPage() {
 
         <div className="relative max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 sm:pt-36 sm:pb-20">
           <div className="flex items-center gap-2 mb-4">
-            <div className="w-8 h-[3px] rounded-full bg-[#8ced7f]"></div>
+            <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
             <span className="text-sm font-medium text-[#8ced7f]/80 uppercase tracking-wider">Đối tác</span>
           </div>
           <h1 className="text-4xl sm:text-5xl font-bold font-[--font-display] leading-tight mb-3">

@@ -6,6 +6,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Hubs;
+using SaveFoodBackend.Application.Orders.Events;
 using Microsoft.AspNetCore.SignalR;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
@@ -19,11 +20,13 @@ public class VerifyPickupCommandHandler : IRequestHandler<VerifyPickupCommand, b
 {
     private readonly SaveFoodDbContext _ctx;
     private readonly IHubContext<NotificationHub> _hubContext;
+    private readonly IPublisher _publisher;
 
-    public VerifyPickupCommandHandler(SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext)
+    public VerifyPickupCommandHandler(SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext, IPublisher publisher)
     {
         _ctx = ctx;
         _hubContext = hubContext;
+        _publisher = publisher;
     }
 
     public async Task<bool> Handle(VerifyPickupCommand request, CancellationToken cancellationToken)
@@ -96,6 +99,8 @@ public class VerifyPickupCommandHandler : IRequestHandler<VerifyPickupCommand, b
         await _ctx.SaveChangesAsync(cancellationToken);
 
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusChanged", order.Id, 2, cancellationToken: cancellationToken);
+
+        await _publisher.Publish(new OrderCompletedEvent(order.Id, order.UserId, order.TotalAmount, OrderCompletionSource.StaffScan), cancellationToken);
 
         return true;
     }

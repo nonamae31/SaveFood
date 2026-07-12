@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/hooks/useCart";
 import { apiClient } from "@/lib/apiClient";
 import { ROUTES } from "@/lib/constants";
@@ -8,10 +8,12 @@ import { customerWalletApi } from "@/api/wallet.api";
 import { useLocationContext } from "@/contexts/LocationContext";
 import { ShieldCheckIcon } from "lucide-react";
 import { calculateDistance } from "@/utils/distance";
+import { useVoucherFund } from "@/hooks/useVoucherFund";
+import { CoinsIcon } from "lucide-react";
 
 // Placeholder for API
 const checkoutApi = {
-    checkout: async (data: { cartItemIds: string[]; paymentMethod: number; expectedPickupTime: string; agreedToNoRefundPolicy: boolean; returnUrl?: string; cancelUrl?: string; }) => {
+    checkout: async (data: { cartItemIds: string[]; paymentMethod: number; expectedPickupTime: string; agreedToNoRefundPolicy: boolean; returnUrl?: string; cancelUrl?: string; applyVoucherAmount?: number; }) => {
         return apiClient<{ orderId: string; pickupCode: string; checkoutUrl?: string; reservationExpiresAt?: string }>(
             "/orders/checkout",
             {
@@ -28,6 +30,7 @@ export function CheckoutPage() {
     const [paymentMethod, setPaymentMethod] = useState<number>(0); // 0 = Wallet, 1 = PayOS
     const [expectedPickupTime, setExpectedPickupTime] = useState<string>("");
     const [agreedToPolicy, setAgreedToPolicy] = useState<boolean>(false);
+    const [applyVoucher, setApplyVoucher] = useState<boolean>(false);
     const [showDistanceWarning, setShowDistanceWarning] = useState<boolean>(false);
     const { location: userLocation } = useLocationContext();
 
@@ -41,28 +44,36 @@ export function CheckoutPage() {
         queryFn: customerWalletApi.getMyWallet
     });
 
+    const { data: voucherFund, isLoading: isVoucherLoading } = useVoucherFund();
+
     const hasSetDefaultPaymentRef = useRef(false);
 
     const totalAmount = (cartItems?.filter(item => selectedItemIds.includes(item.id)) || [])
         .reduce((sum, item) => sum + item.salePrice * item.quantity, 0);
 
+    const availableVoucher = voucherFund?.availableBalance || 0;
+    const voucherDiscount = applyVoucher ? Math.min(availableVoucher, totalAmount) : 0;
+    const grandTotal = totalAmount - voucherDiscount;
+
     useEffect(() => {
-        if (!isWalletLoading && wallet !== undefined && cartItems && selectedItemIds.length > 0 && !hasSetDefaultPaymentRef.current) {
+        if (!isWalletLoading && !isVoucherLoading && wallet !== undefined && cartItems && selectedItemIds.length > 0 && !hasSetDefaultPaymentRef.current) {
             hasSetDefaultPaymentRef.current = true;
-            if (wallet && wallet.balance >= totalAmount) {
+            if (wallet && wallet.balance >= grandTotal) {
                 setPaymentMethod(0);
             } else {
                 setPaymentMethod(1);
             }
         }
-    }, [wallet, isWalletLoading, cartItems, selectedItemIds, totalAmount]);
+    }, [wallet, isWalletLoading, isVoucherLoading, cartItems, selectedItemIds, grandTotal]);
 
-    // Ensure PayOS is selected if wallet balance becomes insufficient (e.g. after quantity change)
+    // Ensure PayOS is selected if wallet balance becomes insufficient (e.g. after quantity change or voucher toggle)
     useEffect(() => {
-        if (paymentMethod === 0 && wallet !== undefined && wallet.balance < totalAmount) {
+        if (paymentMethod === 0 && wallet !== undefined && wallet.balance < grandTotal) {
             setPaymentMethod(1);
         }
-    }, [wallet, totalAmount, paymentMethod]);
+    }, [wallet, grandTotal, paymentMethod]);
+
+    const queryClient = useQueryClient();
 
     const checkoutMutation = useMutation({
         mutationFn: checkoutApi.checkout,
@@ -81,11 +92,18 @@ export function CheckoutPage() {
             }
         },
         onError: (error: any) => {
-            alert(error.message || "Có lỗi xảy ra khi thanh toán.");
+            const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
+            alert(errorMsg);
+            
+            // If it's the voucher changed error, refresh the fund and toggle off
+            if (errorMsg.includes("Số dư voucher đã thay đổi") || errorMsg.includes("voucher")) {
+                queryClient.invalidateQueries({ queryKey: ["voucher-fund"] });
+                setApplyVoucher(false);
+            }
         },
     });
 
-    if (isCartLoading || isWalletLoading) return <div className="p-8 text-center">Đang tải...</div>;
+    if (isCartLoading || isWalletLoading || isVoucherLoading) return <div className="p-8 text-center">Đang tải...</div>;
 
     const checkoutItems = cartItems?.filter((item) => selectedItemIds.includes(item.id)) || [];
 
@@ -119,7 +137,8 @@ export function CheckoutPage() {
             expectedPickupTime: expectedPickupTime,
             agreedToNoRefundPolicy: agreedToPolicy,
             returnUrl: `${window.location.origin}/checkout/success`,
-            cancelUrl: `${window.location.origin}/checkout/cancel`
+            cancelUrl: `${window.location.origin}/checkout/cancel`,
+            applyVoucherAmount: voucherDiscount > 0 ? voucherDiscount : undefined
         });
     };
 
@@ -132,7 +151,7 @@ export function CheckoutPage() {
             alert("Vui lòng đồng ý với chính sách không hoàn tiền.");
             return;
         }
-        if (paymentMethod === 0 && wallet && wallet.balance < totalAmount) {
+        if (paymentMethod === 0 && wallet && wallet.balance < grandTotal) {
             alert("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
             return;
         }
@@ -300,8 +319,33 @@ export function CheckoutPage() {
                     {/* Thanh toán */}
                     <div className="bg-white p-5 sm:p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
                         <h2 className="text-lg font-semibold mb-3">3. Thanh toán</h2>
+                        
+                        {/* Mới: Toggle sử dụng Voucher */}
+                        {availableVoucher > 0 && (
+                            <div className="mb-4 p-4 border border-brand-200 bg-brand-50 rounded-xl flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-brand-100 rounded-full flex items-center justify-center text-brand-600">
+                                        <CoinsIcon className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-gray-900">Quỹ Voucher SaveFood</p>
+                                        <p className="text-sm text-gray-600">Khả dụng: <strong className="text-brand-600">{availableVoucher.toLocaleString("vi-VN")} đ</strong></p>
+                                    </div>
+                                </div>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only peer" 
+                                        checked={applyVoucher}
+                                        onChange={(e) => setApplyVoucher(e.target.checked)}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-500"></div>
+                                </label>
+                            </div>
+                        )}
+
                         <div className="space-y-3 flex-1">
-                            <label className={`flex flex-col p-4 border rounded-xl transition-colors ${wallet && wallet.balance < totalAmount ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed' : paymentMethod === 0 ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500 cursor-pointer' : 'border-gray-200 cursor-pointer hover:border-brand-300'}`}>
+                            <label className={`flex flex-col p-4 border rounded-xl transition-colors ${wallet && wallet.balance < grandTotal ? 'bg-gray-50 border-gray-200 opacity-70 cursor-not-allowed' : paymentMethod === 0 ? 'bg-brand-50 border-brand-500 ring-1 ring-brand-500 cursor-pointer' : 'border-gray-200 cursor-pointer hover:border-brand-300'}`}>
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                                     <div className="flex items-center gap-3">
                                         <input
@@ -310,24 +354,24 @@ export function CheckoutPage() {
                                             value={0}
                                             checked={paymentMethod === 0}
                                             onChange={() => setPaymentMethod(0)}
-                                            disabled={wallet && wallet.balance < totalAmount}
+                                            disabled={wallet && wallet.balance < grandTotal}
                                             className="w-4 h-4 text-brand-500 focus:ring-brand-500 disabled:opacity-50"
                                         />
-                                        <span className={`font-medium flex flex-wrap items-center gap-2 ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'}`}>
+                                        <span className={`font-medium flex flex-wrap items-center gap-2 ${wallet && wallet.balance < grandTotal ? 'text-gray-500' : 'text-gray-900'}`}>
                                             Ví SaveFood
                                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">
                                                 <ShieldCheckIcon className="w-3 h-3" /> Guarantee
                                             </span>
                                         </span>
                                     </div>
-                                    <span className={`text-sm font-semibold sm:text-right ${wallet && wallet.balance < totalAmount ? 'text-gray-500' : 'text-gray-900'} ml-7 sm:ml-0`}>
+                                    <span className={`text-sm font-semibold sm:text-right ${wallet && wallet.balance < grandTotal ? 'text-gray-500' : 'text-gray-900'} ml-7 sm:ml-0`}>
                                         Số dư: {wallet?.balance.toLocaleString("vi-VN")} đ
                                     </span>
                                 </div>
                                 
-                                {wallet && wallet.balance < totalAmount ? (
+                                {wallet && wallet.balance < grandTotal ? (
                                     <div className="mt-2 ml-7 text-xs sm:text-sm text-red-500 font-medium">
-                                        Không đủ số dư để thanh toán đơn này.
+                                        Không đủ số dư để thanh toán.
                                     </div>
                                 ) : paymentMethod === 0 && (
                                     <div className="mt-2 ml-7 text-xs sm:text-sm text-gray-600">
@@ -369,9 +413,15 @@ export function CheckoutPage() {
                             <span>Tạm tính</span>
                             <span>{totalAmount.toLocaleString("vi-VN")} đ</span>
                         </div>
+                        {applyVoucher && voucherDiscount > 0 && (
+                            <div className="flex justify-between mb-2 text-green-600 font-medium">
+                                <span>Giảm giá Voucher</span>
+                                <span>-{voucherDiscount.toLocaleString("vi-VN")} đ</span>
+                            </div>
+                        )}
                         <div className="flex justify-between font-bold text-lg border-t pt-4 mt-4">
                             <span>Tổng tiền</span>
-                            <span className="text-brand-600">{totalAmount.toLocaleString("vi-VN")} đ</span>
+                            <span className="text-brand-600">{grandTotal.toLocaleString("vi-VN")} đ</span>
                         </div>
 
                         <div className="flex items-start gap-3 mt-4 mb-4">
@@ -389,10 +439,14 @@ export function CheckoutPage() {
 
                         <button
                             onClick={handleCheckout}
-                            disabled={checkoutMutation.isPending || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < totalAmount)}
+                            disabled={checkoutMutation.isPending || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < grandTotal)}
                             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {checkoutMutation.isPending ? "Đang xử lý..." : "Xác nhận thanh toán"}
+                            {checkoutMutation.isPending 
+                                ? "Đang xử lý..." 
+                                : grandTotal === 0 
+                                    ? "Xác nhận đơn (Miễn phí)" 
+                                    : "Xác nhận thanh toán"}
                         </button>
                     </div>
                 </div>

@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SaveFoodBackend.Application.Orders.Events;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.DTOs.Customer.Orders;
 using SaveFoodBackend.DTOs;
@@ -21,13 +23,15 @@ public class OrderService
     private readonly IPayOSService _payOSService;
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly INotificationService _notifService;
+    private readonly IMediator _mediator;
 
-    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService)
+    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService, IMediator mediator)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _hubContext = hubContext;
         _notifService = notifService;
+        _mediator = mediator;
     }
 
     public async Task<CheckoutResponseDTO> CheckoutAsync(Guid userId, CheckoutRequestDTO req, CancellationToken ct = default)
@@ -333,6 +337,13 @@ public class OrderService
         }
 
         await _ctx.SaveChangesAsync(ct);
+
+        // Publish OrderCompletedEvent — triggers voucher accrual (StaffScan only)
+        await _mediator.Publish(new OrderCompletedEvent(
+            OrderId: order.Id,
+            CustomerId: order.UserId,
+            OrderTotal: order.TotalAmount,
+            Source: OrderCompletionSource.StaffScan), ct);
 
         // Notify user via SignalR
         await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusChanged", order.Id, 2, ct);

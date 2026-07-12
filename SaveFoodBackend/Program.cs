@@ -86,6 +86,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBack
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IVoucherFundService, SaveFoodBackend.Services.VoucherFundService>();
 
 // Admin Repositories
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUnitOfWork, SaveFoodBackend.Repositories.UnitOfWork>();
@@ -111,7 +112,6 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBac
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUnitOfWork, SaveFoodBackend.Data.UnitOfWork>();
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
 

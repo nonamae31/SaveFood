@@ -74,6 +74,10 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
+    public virtual DbSet<CustomerVoucherFund> CustomerVoucherFunds { get; set; }
+
+    public virtual DbSet<CustomerVoucherTransaction> CustomerVoucherTransactions { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
@@ -578,6 +582,45 @@ public partial class SaveFoodDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── CustomerVoucherFund ─────────────────────────────────────────────────────
+        modelBuilder.Entity<CustomerVoucherFund>(entity =>
+        {
+            entity.HasIndex(e => e.CustomerId, "UQ_CustomerVoucherFunds_CustomerId").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AccumulatedBalance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalEarned).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Customer).WithOne()
+                .HasForeignKey<CustomerVoucherFund>(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerVoucherFunds_Users");
+        });
+
+        modelBuilder.Entity<CustomerVoucherTransaction>(entity =>
+        {
+            // UNIQUE on OrderId — the DB-level idempotency guard
+            entity.HasIndex(e => e.OrderId, "UQ_CustomerVoucherTransactions_OrderId").IsUnique();
+            entity.HasIndex(e => e.CustomerVoucherFundId, "IX_CustomerVoucherTransactions_FundId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OrderTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Fund).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.CustomerVoucherFundId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerVoucherTransactions_Funds");
+
+            entity.HasOne(d => d.Order).WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_CustomerVoucherTransactions_Orders");
         });
 
         // ─── Wallet Idempotency Indexes ──────────────────────────────────────────────

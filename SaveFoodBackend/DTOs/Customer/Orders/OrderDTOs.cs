@@ -9,6 +9,7 @@ public class OrderHistoryDTO
     public Guid StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal VoucherDiscount { get; set; }
     public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     
@@ -28,6 +29,7 @@ public class OrderDetailDTO
     public string StoreAddress { get; set; } = string.Empty;
     
     public decimal TotalAmount { get; set; }
+    public decimal VoucherDiscount { get; set; }
     public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     

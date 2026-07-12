@@ -204,7 +204,7 @@ export function ProfileOrdersTab() {
                   
                   <div className="flex justify-between items-end mt-auto">
                     <div className="font-bold text-lg text-brand-600">
-                      {order.totalAmount.toLocaleString('vi-VN')} đ
+                      {(order.totalAmount - (order.voucherDiscount || 0)).toLocaleString('vi-VN')} đ
                     </div>
                     <div className="flex items-center text-sm text-brand-600 font-medium">
                       Xem chi tiết <ChevronRight className="w-4 h-4 ml-1" />

@@ -69,6 +69,30 @@ public class PaymentsController : ControllerBase
                                 order.Payment.PaidAt = DateTime.UtcNow;
                                 order.ReservationExpiresAt = null; // Clear payment timer
 
+                                if (order.VoucherDiscount > 0)
+                                {
+                                    var fundId = await _ctx.CustomerVoucherFunds.Where(v => v.CustomerId == order.UserId).Select(v => v.Id).FirstOrDefaultAsync();
+                                    if (fundId != Guid.Empty)
+                                    {
+                                        await _ctx.CustomerVoucherFunds
+                                            .Where(v => v.Id == fundId)
+                                            .ExecuteUpdateAsync(s => s
+                                                .SetProperty(v => v.AccumulatedBalance, v => v.AccumulatedBalance - order.VoucherDiscount)
+                                                .SetProperty(v => v.ReservedAmount, v => v.ReservedAmount - order.VoucherDiscount));
+
+                                        _ctx.CustomerVoucherTransactions.Add(new SaveFoodBackend.Models.CustomerVoucherTransaction
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            CustomerVoucherFundId = fundId,
+                                            OrderId = order.Id,
+                                            Amount = -order.VoucherDiscount,
+                                            OrderTotal = order.TotalAmount,
+                                            Type = 2, // Used
+                                            CreatedAt = DateTime.UtcNow
+                                        });
+                                    }
+                                }
+
                                 // --- AUDIT TRAIL: Save PayOS evidence ---
                                 order.Payment.PayOsReference = data.Reference;
                                 order.Payment.PayerAccountNumber = data.CounterAccountNumber;
@@ -240,6 +264,30 @@ public class PaymentsController : ControllerBase
                                 o.Payment.Status = 1;
                                 o.Payment.PaidAt = DateTime.UtcNow;
                                 o.ReservationExpiresAt = null; // Clear payment timer
+
+                                if (o.VoucherDiscount > 0)
+                                {
+                                    var fundId = await _ctx.CustomerVoucherFunds.Where(v => v.CustomerId == o.UserId).Select(v => v.Id).FirstOrDefaultAsync();
+                                    if (fundId != Guid.Empty)
+                                    {
+                                        await _ctx.CustomerVoucherFunds
+                                            .Where(v => v.Id == fundId)
+                                            .ExecuteUpdateAsync(s => s
+                                                .SetProperty(v => v.AccumulatedBalance, v => v.AccumulatedBalance - o.VoucherDiscount)
+                                                .SetProperty(v => v.ReservedAmount, v => v.ReservedAmount - o.VoucherDiscount));
+
+                                        _ctx.CustomerVoucherTransactions.Add(new SaveFoodBackend.Models.CustomerVoucherTransaction
+                                        {
+                                            Id = Guid.NewGuid(),
+                                            CustomerVoucherFundId = fundId,
+                                            OrderId = o.Id,
+                                            Amount = -o.VoucherDiscount,
+                                            OrderTotal = o.TotalAmount,
+                                            Type = 2, // Used
+                                            CreatedAt = DateTime.UtcNow
+                                        });
+                                    }
+                                }
                                 
                                 // --- AUDIT TRAIL: Save PayOS evidence ---
                                 var tx = payOSInfo.Transactions?.FirstOrDefault();

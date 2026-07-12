@@ -2,10 +2,12 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SaveFoodBackend.Application.Orders.Events;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Models;
 
@@ -46,6 +48,7 @@ public class NoShowOrderCompletionService : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var ctx = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+        var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 
         // Threshold for late order: Current time is 1 hour past the ExpectedPickupTime
         var thresholdTime = DateTime.UtcNow.AddHours(-1);
@@ -152,6 +155,16 @@ public class NoShowOrderCompletionService : BackgroundService
 
             await ctx.SaveChangesAsync(cancellationToken);
             _logger.LogInformation($"Auto-processed {lateOrders.Count} late orders.");
+
+            // Publish AutoNoShow events — VoucherAccrualHandler will skip these
+            foreach (var order in lateOrders)
+            {
+                await mediator.Publish(new OrderCompletedEvent(
+                    OrderId: order.Id,
+                    CustomerId: order.UserId,
+                    OrderTotal: order.TotalAmount,
+                    Source: OrderCompletionSource.AutoNoShow), cancellationToken);
+            }
         }
     }
 }

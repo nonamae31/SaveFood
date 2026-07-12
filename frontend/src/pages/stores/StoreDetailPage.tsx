@@ -114,7 +114,7 @@ export function StoreDetailPage() {
         <div className="lg:col-span-2 space-y-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+              <div className="w-10 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
               <h2 className="text-2xl font-bold font-[--font-display] text-[--color-ink-primary]">Sản phẩm hôm nay</h2>
             </div>
           </div>
@@ -150,7 +150,7 @@ export function StoreDetailPage() {
           {id && (
             <div className="mt-10">
               <div className="flex items-center gap-2 mb-6">
-                <div className="w-6 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+                <div className="w-10 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
                 <h2 className="text-2xl font-bold font-[--font-display] text-[--color-ink-primary]">Đánh giá từ khách hàng</h2>
               </div>
               <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">

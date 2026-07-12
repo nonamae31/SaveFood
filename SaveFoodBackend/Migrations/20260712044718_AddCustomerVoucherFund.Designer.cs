@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SaveFoodBackend.Data;
 
@@ -11,9 +12,11 @@ using SaveFoodBackend.Data;
 namespace SaveFoodBackend.Migrations
 {
     [DbContext(typeof(SaveFoodDbContext))]
-    partial class SaveFoodDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260712044718_AddCustomerVoucherFund")]
+    partial class AddCustomerVoucherFund
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,9 +154,6 @@ namespace SaveFoodBackend.Migrations
 
                     b.Property<Guid>("CustomerId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("ReservedAmount")
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalEarned")
                         .HasColumnType("decimal(18, 2)");
@@ -485,9 +485,6 @@ namespace SaveFoodBackend.Migrations
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uniqueidentifier");
-
-                    b.Property<decimal>("VoucherDiscount")
-                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
 

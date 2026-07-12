@@ -93,7 +93,7 @@ export function HomePage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+                <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
                 <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Ưu đãi hôm nay</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold font-[--font-display] text-[--color-ink-primary] leading-tight">
@@ -133,9 +133,9 @@ export function HomePage() {
         <div className="relative max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+              <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
               <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Quy trình</span>
-              <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+              <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold font-[--font-display] text-[--color-ink-primary]">
               Đơn giản như <span className="text-[--color-brand-600]">1, 2, 3</span>

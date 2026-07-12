@@ -60,6 +60,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
         var firstOrderId = Guid.Empty;
         string firstPickupCode = "";
         string? checkoutUrl = null;
+        bool isFullyPaidByVoucher = false;
 
         // START TRANSACTION (Wrapped in ExecutionStrategy for Retry support)
         var strategy = _ctx.Database.CreateExecutionStrategy();
@@ -76,23 +77,44 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                     .ToListAsync(cancellationToken);
 
                 if (cartItems.Count != req.CartItemIds.Count)
-                    throw new BusinessException("Có sản phẩm không hợp lệ trong giỏ hàng.");
+                    throw new BusinessException("Một hoặc nhiều sản phẩm đã thay đổi hoặc không còn trong giỏ hàng. Vui lòng tải lại giỏ hàng và thử lại.");
 
                 long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
 
                 decimal totalCheckoutAmount = cartItems.Sum(ci => ci.Listing.SalePrice * ci.Quantity);
                 CustomerWallet? customerWallet = null;
-                if (req.PaymentMethod == 0) // Wallet
+                
+                var fundInfo = await _ctx.CustomerVoucherFunds.Where(v => v.CustomerId == userId).Select(v => new { v.Id, v.AccumulatedBalance, v.ReservedAmount }).FirstOrDefaultAsync(cancellationToken);
+                Guid? customerVoucherFundId = fundInfo?.Id;
+                decimal remainingVoucher = 0;
+
+                if (req.ApplyVoucherAmount.HasValue && req.ApplyVoucherAmount.Value > 0)
+                {
+                    if (fundInfo == null)
+                        throw new BusinessException("Không tìm thấy quỹ voucher.");
+
+                    decimal availableVoucher = fundInfo.AccumulatedBalance - fundInfo.ReservedAmount;
+                    if (req.ApplyVoucherAmount.Value > availableVoucher)
+                        throw new BusinessException("Số tiền voucher áp dụng vượt quá số dư khả dụng.");
+
+                    if (req.ApplyVoucherAmount.Value > totalCheckoutAmount)
+                        throw new BusinessException("Số tiền voucher áp dụng không được vượt quá tổng giá trị đơn hàng.");
+
+                    remainingVoucher = req.ApplyVoucherAmount.Value;
+                }
+
+                decimal grandTotalAmount = 0; // Total after voucher
+
+                if (req.PaymentMethod == 0 && (totalCheckoutAmount - remainingVoucher) > 0) // Wallet
                 {
                     customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == userId, cancellationToken);
-                    if (customerWallet == null || customerWallet.Balance < totalCheckoutAmount)
+                    if (customerWallet == null || customerWallet.Balance < (totalCheckoutAmount - remainingVoucher))
                     {
                         throw new BusinessException("Số dư trong Ví SaveFood không đủ để thanh toán.");
                     }
                 }
                 
                 var storeGroups = cartItems.GroupBy(ci => ci.Listing.Product.StoreId).ToList();
-                decimal grandTotalAmount = 0;
                 createdOrders.Clear();
                 firstOrderId = Guid.Empty;
                 firstPickupCode = "";
@@ -113,7 +135,10 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
 
                         storeTotalAmount += item.Listing.SalePrice * item.Quantity;
                     }
-                    grandTotalAmount += storeTotalAmount;
+
+                    decimal discountForThisOrder = Math.Min(storeTotalAmount, remainingVoucher);
+                    remainingVoucher -= discountForThisOrder;
+                    grandTotalAmount += (storeTotalAmount - discountForThisOrder);
 
                     string pickupCode = GenerateRandomCode(6);
 
@@ -131,6 +156,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                         UserId = userId,
                         StoreId = storeId,
                         TotalAmount = storeTotalAmount,
+                        VoucherDiscount = discountForThisOrder,
                         OrderStatus = OrderStatusEnum.Pending,
                         PickupCode = pickupCode,
                         OrderCode = orderCode,
@@ -173,7 +199,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                     {
                         Id = Guid.NewGuid(),
                         OrderId = order.Id,
-                        Amount = storeTotalAmount,
+                        Amount = storeTotalAmount - discountForThisOrder,
                         PaymentMethod = req.PaymentMethod,
                         Status = 0 // Pending
                     };
@@ -182,7 +208,72 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
 
                 _ctx.CartItems.RemoveRange(cartItems);
 
-                if (req.PaymentMethod == 1) // PayOS
+                if (req.ApplyVoucherAmount.HasValue && req.ApplyVoucherAmount.Value > 0 && customerVoucherFundId.HasValue)
+                {
+                    int updated = await _ctx.CustomerVoucherFunds
+                        .Where(v => v.Id == customerVoucherFundId.Value && (v.AccumulatedBalance - v.ReservedAmount) >= req.ApplyVoucherAmount.Value)
+                        .ExecuteUpdateAsync(s => s.SetProperty(v => v.ReservedAmount, v => v.ReservedAmount + req.ApplyVoucherAmount.Value), cancellationToken);
+
+                    if (updated == 0)
+                        throw new BusinessException("Số dư voucher đã thay đổi. Vui lòng thử lại.");
+                }
+
+                if (grandTotalAmount == 0)
+                {
+                    // Fully paid by voucher (0 VND)
+                    foreach (var order in createdOrders)
+                    {
+                        order.OrderStatus = OrderStatusEnum.Pending; // Wait for store confirmation
+                        order.ReservationExpiresAt = null; // Paid
+                        var payment = order.Payment;
+                        if (payment != null) payment.Status = 1; // Paid
+                        
+                        if (order.VoucherDiscount > 0 && customerVoucherFundId.HasValue)
+                        {
+                            await _ctx.CustomerVoucherFunds
+                                .Where(v => v.Id == customerVoucherFundId.Value)
+                                .ExecuteUpdateAsync(s => s
+                                    .SetProperty(v => v.AccumulatedBalance, v => v.AccumulatedBalance - order.VoucherDiscount)
+                                    .SetProperty(v => v.ReservedAmount, v => v.ReservedAmount - order.VoucherDiscount), cancellationToken);
+
+                            var customerTransaction = new CustomerVoucherTransaction
+                            {
+                                Id = Guid.NewGuid(),
+                                CustomerVoucherFundId = customerVoucherFundId.Value,
+                                OrderId = order.Id,
+                                Amount = -order.VoucherDiscount, // Âm
+                                OrderTotal = order.TotalAmount,
+                                Type = 2, // Used
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            _ctx.CustomerVoucherTransactions.Add(customerTransaction);
+                        }
+
+                        // Increment Store Wallet PendingBalance
+                        var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
+                        if (storeWallet == null)
+                        {
+                            storeWallet = new StoreWallet
+                            {
+                                Id = Guid.NewGuid(),
+                                StoreId = order.StoreId,
+                                AvailableBalance = 0,
+                                PendingBalance = 0,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            _ctx.StoreWallets.Add(storeWallet);
+                        }
+                        
+                        // Default admin fee 5% based on original TotalAmount
+                        decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
+                        storeWallet.PendingBalance += (order.TotalAmount - platformFee);
+                    }
+                    if (grandTotalAmount == 0)
+                    {
+                        isFullyPaidByVoucher = true;
+                    }
+                }
+                else if (req.PaymentMethod == 1) // PayOS
                 {
                     try
                     {
@@ -213,13 +304,34 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                             Id = Guid.NewGuid(),
                             CustomerWalletId = customerWallet.Id,
                             OrderId = order.Id,
-                            Amount = order.TotalAmount,
+                            Amount = order.TotalAmount - order.VoucherDiscount, // Âm
                             Type = 2, // Payment
                             Status = 1, // Completed
                             Description = $"Thanh toán đơn hàng {order.OrderCode}",
                             CreatedAt = DateTime.UtcNow
                         };
                         _ctx.CustomerWalletTransactions.Add(customerTransaction);
+
+                        if (order.VoucherDiscount > 0 && customerVoucherFundId.HasValue)
+                        {
+                            await _ctx.CustomerVoucherFunds
+                                .Where(v => v.Id == customerVoucherFundId.Value)
+                                .ExecuteUpdateAsync(s => s
+                                    .SetProperty(v => v.AccumulatedBalance, v => v.AccumulatedBalance - order.VoucherDiscount)
+                                    .SetProperty(v => v.ReservedAmount, v => v.ReservedAmount - order.VoucherDiscount), cancellationToken);
+
+                            var voucherTransaction = new CustomerVoucherTransaction
+                            {
+                                Id = Guid.NewGuid(),
+                                CustomerVoucherFundId = customerVoucherFundId.Value,
+                                OrderId = order.Id,
+                                Amount = -order.VoucherDiscount, // Âm
+                                OrderTotal = order.TotalAmount,
+                                Type = 2, // Used
+                                CreatedAt = DateTime.UtcNow
+                            };
+                            _ctx.CustomerVoucherTransactions.Add(voucherTransaction);
+                        }
 
                         // Increment Store Wallet PendingBalance
                         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
@@ -252,7 +364,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
         });
 
         // Notifications
-        if (req.PaymentMethod == 0) // Only notify immediately if Wallet (since PayOS needs webhook)
+        if (req.PaymentMethod == 0 || isFullyPaidByVoucher) // Only notify immediately if Wallet or 0 VND
         {
             foreach (var order in createdOrders)
             {
@@ -266,7 +378,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                     await _notificationService.SendAsync(
                         userId: uid,
                         title: "Đơn hàng mới",
-                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán qua ví. Vui lòng kiểm tra và chuẩn bị món!",
+                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán. Vui lòng kiểm tra và chuẩn bị món!",
                         type: "NEW_ORDER",
                         referenceId: order.Id
                     );
@@ -278,7 +390,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
         {
             OrderId = firstOrderId,
             CheckoutUrl = checkoutUrl,
-            PickupCode = req.PaymentMethod == 0 ? firstPickupCode : null,
+            PickupCode = (req.PaymentMethod == 0 || isFullyPaidByVoucher) ? firstPickupCode : null,
             ReservationExpiresAt = createdOrders.FirstOrDefault()?.ReservationExpiresAt
         };
     }

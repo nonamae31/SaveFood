@@ -13,6 +13,8 @@ public partial class Order
 
     public decimal TotalAmount { get; set; }
 
+    public decimal VoucherDiscount { get; set; } = 0;
+
     public Guid? ConfirmedById { get; set; }
 
     public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }

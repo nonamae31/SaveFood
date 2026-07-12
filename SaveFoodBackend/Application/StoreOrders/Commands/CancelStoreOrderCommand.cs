@@ -55,35 +55,67 @@ public class CancelStoreOrderCommandHandler : IRequestHandler<CancelStoreOrderCo
 
         if (order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
         {
-            var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, cancellationToken);
-            if (customerWallet == null)
+            decimal refundAmount = order.Payment.Amount;
+            if (refundAmount > 0)
             {
-                customerWallet = new CustomerWallet
+                var customerWallet = await _ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, cancellationToken);
+                if (customerWallet == null)
+                {
+                    customerWallet = new CustomerWallet
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = order.UserId,
+                        Balance = 0,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _ctx.CustomerWallets.Add(customerWallet);
+                }
+
+                customerWallet.Balance += refundAmount;
+                customerWallet.UpdatedAt = DateTime.UtcNow;
+
+                _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
                 {
                     Id = Guid.NewGuid(),
-                    UserId = order.UserId,
-                    Balance = 0,
+                    CustomerWalletId = customerWallet.Id,
+                    Amount = refundAmount,
+                    Type = 0, // Refund / Deposit
+                    Status = 1, // Completed
+                    OrderId = order.Id,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _ctx.CustomerWallets.Add(customerWallet);
+                    Description = $"Hoàn tiền cho đơn hàng bị cửa hàng hủy {order.OrderCode ?? 0}"
+                });
             }
-
-            customerWallet.Balance += order.TotalAmount;
-            customerWallet.UpdatedAt = DateTime.UtcNow;
-
-            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
-            {
-                Id = Guid.NewGuid(),
-                CustomerWalletId = customerWallet.Id,
-                Amount = order.TotalAmount,
-                Type = 0, // Refund / Deposit
-                Status = 1, // Completed
-                OrderId = order.Id,
-                CreatedAt = DateTime.UtcNow,
-                Description = $"Hoàn tiền cho đơn hàng bị cửa hàng hủy {order.OrderCode ?? 0}"
-            });
             await _ctx.SaveChangesAsync(cancellationToken);
+        }
+
+        if (order.VoucherDiscount > 0)
+        {
+            var voucherFund = await _ctx.CustomerVoucherFunds.FirstOrDefaultAsync(v => v.CustomerId == order.UserId, cancellationToken);
+            if (voucherFund != null)
+            {
+                bool isPaid = order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid;
+                if (isPaid)
+                {
+                    voucherFund.AccumulatedBalance += order.VoucherDiscount;
+                    _ctx.CustomerVoucherTransactions.Add(new CustomerVoucherTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        CustomerVoucherFundId = voucherFund.Id,
+                        OrderId = order.Id,
+                        Amount = order.VoucherDiscount, // Positive
+                        OrderTotal = order.TotalAmount,
+                        Type = 3, // Refunded
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    voucherFund.ReservedAmount = Math.Max(0, voucherFund.ReservedAmount - order.VoucherDiscount);
+                }
+                await _ctx.SaveChangesAsync(cancellationToken);
+            }
         }
 
         var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == request.StoreId, cancellationToken);
