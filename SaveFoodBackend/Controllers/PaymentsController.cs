@@ -131,7 +131,42 @@ public class PaymentsController : ControllerBase
 
                             await _uow.SaveChangesAsync();
                         }
+                        else
+                        {
+                            // ─── Nhánh 3: Wallet Top-up ──────────────────────────────────────────────
+                            // Nằm trong Serializable transaction → FirstOrDefaultAsync + Status check
+                            // là idempotency guard chống double-credit khi PayOS retry webhook.
+                            var topUpTx = await _ctx.CustomerWalletTransactions
+                                .Include(t => t.CustomerWallet)
+                                .FirstOrDefaultAsync(t =>
+                                    t.PayOsOrderCode == orderCode &&
+                                    t.Type == 0 &&    // Deposit
+                                    (t.Status == 0 || t.Status == 2));   // Allow PENDING or CANCELLED (if user paid after clicking cancel)
+
+                            if (topUpTx != null)
+                            {
+                                topUpTx.CustomerWallet.Balance += topUpTx.Amount;
+                                topUpTx.CustomerWallet.UpdatedAt = DateTime.UtcNow;
+                                topUpTx.Status = 1; // Completed
+
+                                await _uow.SaveChangesAsync();
+
+                                // Notify user
+                                await _notificationService.SendAsync(
+                                    userId: topUpTx.CustomerWallet.UserId,
+                                    title: "Nạp tiền thành công",
+                                    body: $"Ví của bạn đã được nạp {topUpTx.Amount:N0}đ.",
+                                    type: "WALLET_TOPUP",
+                                    referenceId: topUpTx.Id
+                                );
+                            }
+                            else
+                            {
+                                Console.WriteLine($"[PayOS Webhook] Unknown orderCode: {orderCode} — không khớp Order, Subscription, hay TopUp.");
+                            }
+                        }
                     }
+
 
                     await _uow.CommitTransactionAsync();
                 }
@@ -305,6 +340,72 @@ public class PaymentsController : ControllerBase
                         return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
                     }
                 }
+                
+                // check if it's a CustomerWalletTransaction (top-up)
+                var topUpTx = await _ctx.CustomerWalletTransactions
+                    .Include(t => t.CustomerWallet)
+                    .FirstOrDefaultAsync(t => (isGuid && t.Id == parsedGuid) || (isLong && t.PayOsOrderCode == parsedLong));
+                
+                if (topUpTx != null && topUpTx.Type == 0) // Deposit
+                {
+                    if (topUpTx.Status == 1) return Ok(new { success = true, message = "Giao dịch đã hoàn tất." });
+                    
+                    if (topUpTx.Status == 0 && topUpTx.PayOsOrderCode.HasValue)
+                    {
+                        try 
+                        {
+                            var payOSInfo = await payOSClient.PaymentRequests.GetAsync(topUpTx.PayOsOrderCode.Value);
+                            if (payOSInfo.Status.ToString().ToUpper() == "PAID")
+                            {
+                                await _uow.BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+                                try
+                                {
+                                    // Re-fetch inside lock to ensure it hasn't been processed by webhook
+                                    var lockedTx = await _ctx.CustomerWalletTransactions
+                                        .Include(t => t.CustomerWallet)
+                                        .FirstOrDefaultAsync(t => t.Id == topUpTx.Id && (t.Status == 0 || t.Status == 2));
+                                        
+                                    if (lockedTx != null)
+                                    {
+                                        lockedTx.CustomerWallet.Balance += lockedTx.Amount;
+                                        lockedTx.CustomerWallet.UpdatedAt = DateTime.UtcNow;
+                                        lockedTx.Status = 1;
+
+                                        await _uow.SaveChangesAsync();
+
+                                        await _notificationService.SendAsync(
+                                            userId: lockedTx.CustomerWallet.UserId,
+                                            title: "Nạp tiền thành công",
+                                            body: $"Ví của bạn đã được nạp {lockedTx.Amount:N0}đ.",
+                                            type: "WALLET_TOPUP",
+                                            referenceId: lockedTx.Id
+                                        );
+                                    }
+                                    
+                                    await _uow.CommitTransactionAsync();
+                                }
+                                catch
+                                {
+                                    await _uow.RollbackTransactionAsync();
+                                    throw;
+                                }
+
+                                return Ok(new { success = true });
+                            }
+                            else if (payOSInfo.Status.ToString().ToUpper() == "CANCELLED")
+                            {
+                                topUpTx.Status = 2; // Failed / Cancelled
+                                await _ctx.SaveChangesAsync();
+                                return Ok(new { success = false, status = "CANCELLED" });
+                            }
+                            return Ok(new { success = false, status = payOSInfo.Status.ToString() });
+                        }
+                        catch (Exception ex)
+                        {
+                            return Ok(new { success = false, message = "Lỗi kết nối đến cổng thanh toán PayOS", error = ex.Message });
+                        }
+                    }
+                }
             }
 
             return Ok(new { success = false, message = "Không tìm thấy giao dịch hoặc giao dịch không ở trạng thái chờ thanh toán qua PayOS." });
@@ -312,6 +413,26 @@ public class PaymentsController : ControllerBase
         catch (Exception ex)
         {
             return BadRequest(new { Message = ex.Message });
+        }
+    }
+
+    [HttpPost("cancel-topup/{orderCode}")]
+    public async Task<IActionResult> CancelTopup(long orderCode)
+    {
+        try
+        {
+            var topUpTx = await _ctx.CustomerWalletTransactions.FirstOrDefaultAsync(t => t.PayOsOrderCode == orderCode && t.Type == 0);
+            if (topUpTx != null && topUpTx.Status == 0)
+            {
+                topUpTx.Status = 2; // Cancelled
+                await _ctx.SaveChangesAsync();
+                return Ok(new { success = true });
+            }
+            return Ok(new { success = false, message = "Transaction not found or already processed" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
         }
     }
 }

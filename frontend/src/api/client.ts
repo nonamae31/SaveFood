@@ -19,14 +19,16 @@ export async function apiClient<T>(
   const isFormData = options?.body instanceof FormData;
   const defaultHeaders: HeadersInit = isFormData ? {} : { 'Content-Type': 'application/json' };
 
+  const { headers, ...restOptions } = options || {};
+
   const res = await fetch(`${BASE_URL}${path}`, {
     // RẤT QUAN TRỌNG ĐỂ GỬI VÀ NHẬN HTTPONLY COOKIE
     credentials: 'include',
+    ...restOptions,
     headers: { 
       ...defaultHeaders,
-      ...options?.headers 
+      ...headers 
     },
-    ...options,
   });
 
   if (!res.ok) {

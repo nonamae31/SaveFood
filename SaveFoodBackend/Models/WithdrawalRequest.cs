@@ -23,6 +23,11 @@ public partial class WithdrawalRequest
 
     public string? AdminNote { get; set; }
 
+    /// <summary>
+    /// UNIQUE (filtered on NOT NULL). DB-level backstop chống double-withdraw khi race condition vượt qua Redis.
+    /// </summary>
+    public string? IdempotencyKey { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public DateTime? ProcessedAt { get; set; }
@@ -31,3 +36,4 @@ public partial class WithdrawalRequest
 
     public virtual User? User { get; set; }
 }
+

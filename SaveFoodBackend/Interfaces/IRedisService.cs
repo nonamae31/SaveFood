@@ -10,5 +10,10 @@ namespace SaveFoodBackend.Interfaces
         Task DeleteAsync(string key);
         Task SetTokenBlacklistAsync(string token, TimeSpan expiry);
         Task<bool> IsTokenBlacklistedAsync(string token);
+        /// <summary>
+        /// GET then SET pattern. Returns true nếu key chưa tồn tại và đã set thành công.
+        /// Race window ~1ms, chấp nhận được vì có DB unique constraint làm backstop.
+        /// </summary>
+        Task<bool> SetIfNotExistsAsync(string key, string value, TimeSpan expiry);
     }
 }

@@ -580,6 +580,19 @@ public partial class SaveFoodDbContext : DbContext
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
+        // ─── Wallet Idempotency Indexes ──────────────────────────────────────────────
+        // PayOsOrderCode UNIQUE: webhook dùng để tìm đúng top-up transaction, tránh double-credit
+        modelBuilder.Entity<CustomerWalletTransaction>()
+            .HasIndex(t => t.PayOsOrderCode)
+            .IsUnique()
+            .HasFilter("[PayOsOrderCode] IS NOT NULL");
+
+        // WithdrawalRequest.IdempotencyKey UNIQUE: DB backstop chống double-withdraw
+        modelBuilder.Entity<WithdrawalRequest>()
+            .HasIndex(r => r.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
+
         OnModelCreatingPartial(modelBuilder);
 
     }

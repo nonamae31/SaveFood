@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SaveFoodBackend.Controllers;
+using SaveFoodBackend.DTOs.Customer.Wallets;
 using SaveFoodBackend.Interfaces;
 
 namespace SaveFoodBackend.Controllers.Customer;
@@ -50,14 +51,67 @@ public class CustomerWalletController : ApiControllerBase
         }
     }
 
-    [HttpPost("withdraw")]
-    public async Task<IActionResult> RequestWithdrawal([FromBody] SaveFoodBackend.DTOs.Customer.Wallets.CustomerWithdrawRequest request, CancellationToken ct)
+    /// <summary>
+    /// Tạo PayOS payment link để nạp tiền vào ví.
+    /// Yêu cầu header Idempotency-Key (UUID) để chống double-submit.
+    /// </summary>
+    [HttpPost("top-up")]
+    public async Task<IActionResult> TopUp(
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        [FromBody] TopUpRequest request,
+        CancellationToken ct)
     {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            return BadRequestResponse("Header 'Idempotency-Key' là bắt buộc.");
+
         try
         {
             var userId = GetRequiredUserId();
-            await _walletService.RequestWithdrawalAsync(userId, request, ct);
+            var checkoutUrl = await _walletService.CreateTopUpPaymentAsync(userId, request.Amount, idempotencyKey, ct);
+            return OkResponse(new TopUpResponse { CheckoutUrl = checkoutUrl }, "Tạo link thanh toán thành công.");
+        }
+        catch (InvalidOperationException ex) when (ex.Message.StartsWith("IDEMPOTENCY:"))
+        {
+            // Trả lại checkoutUrl cũ kèm 409 — FE redirect luôn
+            var oldUrl = ex.Message["IDEMPOTENCY:".Length..];
+            return Conflict(new { checkoutUrl = oldUrl, message = "Request này đã được xử lý trước đó." });
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "IDEMPOTENCY_PROCESSING")
+        {
+            return Conflict(new { message = "Yêu cầu đang được xử lý, vui lòng đợi." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { Message = "Có lỗi xảy ra khi tạo link thanh toán.", Error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Rút tiền về ngân hàng.
+    /// Yêu cầu header Idempotency-Key (UUID) để chống double-submit.
+    /// </summary>
+    [HttpPost("withdraw")]
+    public async Task<IActionResult> RequestWithdrawal(
+        [FromHeader(Name = "Idempotency-Key")] string? idempotencyKey,
+        [FromBody] CustomerWithdrawRequest request,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            return BadRequestResponse("Header 'Idempotency-Key' là bắt buộc.");
+
+        try
+        {
+            var userId = GetRequiredUserId();
+            await _walletService.RequestWithdrawalAsync(userId, request, idempotencyKey, ct);
             return OkResponse("Tạo yêu cầu rút tiền thành công.");
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "IDEMPOTENCY_DUPLICATE")
+        {
+            return Conflict(new { message = "Yêu cầu rút tiền này đã được gửi trước đó." });
         }
         catch (InvalidOperationException ex)
         {
@@ -68,6 +122,4 @@ public class CustomerWalletController : ApiControllerBase
             return StatusCode(500, new { Message = "Có lỗi xảy ra", Error = ex.Message });
         }
     }
-
-    
 }

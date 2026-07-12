@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, ApiError } from './client';
 
 export interface CustomerWallet {
   id: string;
@@ -24,19 +24,53 @@ export interface CustomerWithdrawRequest {
   accountName: string;
 }
 
+export interface TopUpRequest {
+  amount: number;
+}
+
+export interface TopUpResponse {
+  checkoutUrl: string;
+}
+
 export const customerWalletApi = {
-  getMyWallet: async () => {
+  getMyWallet: async (): Promise<CustomerWallet> => {
     return await apiClient<CustomerWallet>('/customer/wallet');
   },
-  
-  getMyTransactions: async () => {
+
+  getMyTransactions: async (): Promise<CustomerWalletTransaction[]> => {
     return await apiClient<CustomerWalletTransaction[]>('/customer/wallet/transactions');
   },
-  
-  requestWithdraw: async (data: CustomerWithdrawRequest) => {
-    return await apiClient<any>('/customer/wallet/withdraw', {
+
+  /**
+   * Tạo PayOS payment link để nạp tiền.
+   * - Nếu Idempotency-Key trùng (409): trả về checkoutUrl cũ để redirect luôn.
+   */
+  topUp: async (amount: number, idempotencyKey: string): Promise<TopUpResponse> => {
+    try {
+      return await apiClient<TopUpResponse>('/customer/wallet/top-up', {
+        method: 'POST',
+        headers: { 'Idempotency-Key': idempotencyKey },
+        body: JSON.stringify({ amount }),
+      });
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        // 409 từ idempotency: trả checkoutUrl cũ để FE redirect luôn
+        const checkoutUrl = error.details?.checkoutUrl;
+        if (checkoutUrl) return { checkoutUrl };
+      }
+      throw error;
+    }
+  },
+
+  /**
+   * Tạo yêu cầu rút tiền.
+   * - Idempotency-Key chống double-submit.
+   */
+  requestWithdraw: async (data: CustomerWithdrawRequest, idempotencyKey: string): Promise<void> => {
+    await apiClient<void>('/customer/wallet/withdraw', {
       method: 'POST',
-      body: JSON.stringify(data)
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify(data),
     });
-  }
+  },
 };

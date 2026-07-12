@@ -12,8 +12,10 @@ public partial class CustomerWalletTransaction
     public Guid? OrderId { get; set; }
     public Guid? ReferenceId { get; set; }
     public string? Description { get; set; }
+    public long? PayOsOrderCode { get; set; } // PayOS orderCode dùng để tra cứu trong webhook top-up
     public DateTime CreatedAt { get; set; }
 
     public virtual Order? Order { get; set; }
     public virtual CustomerWallet CustomerWallet { get; set; } = null!;
 }
+
