@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Plus, X, Pencil, Trash2, RotateCcw, Search, Tag } from 'lucide-react';
 import { useAdminCategories, useCreateCategory, useUpdateCategory, useDeleteCategory, useRestoreCategory } from '@/api/category.api';
 import type { Category } from '@/types/category.types';
@@ -162,6 +163,10 @@ export default function CategoryManagementPage() {
   const deleteMutation = useDeleteCategory();
   const restoreMutation = useRestoreCategory();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightId = searchParams.get('highlightId');
+  const rowRefs = useRef<{ [key: string]: HTMLTableRowElement | null }>({});
+
   const [modalState, setModalState] = useState<ModalState>({ type: 'none' });
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -177,8 +182,28 @@ export default function CategoryManagementPage() {
 
   // Reset page when search changes
   useEffect(() => {
-    setPage(1);
+    if (!highlightId) setPage(1);
   }, [search]);
+
+  // Handle Highlight ID Scroll & Pagination
+  useEffect(() => {
+    if (highlightId && categories.length > 0) {
+      const index = filtered.findIndex(c => c.id.toString() === highlightId);
+      if (index !== -1) {
+        const targetPage = Math.floor(index / ITEMS_PER_PAGE) + 1;
+        setPage(targetPage);
+        
+        setTimeout(() => {
+          rowRefs.current[highlightId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          searchParams.delete('highlightId');
+          setSearchParams(searchParams, { replace: true });
+        }, 300);
+      } else {
+        searchParams.delete('highlightId');
+        setSearchParams(searchParams, { replace: true });
+      }
+    }
+  }, [highlightId, categories.length, filtered.length]);
 
   const activeCount = categories.filter(c => !c.isDeleted).length;
   const deletedCount = categories.filter(c => c.isDeleted).length;
@@ -289,7 +314,8 @@ export default function CategoryManagementPage() {
                 paginatedCategories.map(cat => (
                   <tr
                     key={cat.id}
-                    className={`border-b border-mint-hairline-soft last:border-0 transition-colors ${cat.isDeleted ? 'opacity-60 bg-red-50/30' : 'hover:bg-mint-surface'}`}
+                    ref={(el) => (rowRefs.current[cat.id.toString()] = el)}
+                    className={`border-b border-mint-hairline-soft last:border-0 transition-colors duration-500 ${highlightId === cat.id.toString() ? 'bg-yellow-100' : cat.isDeleted ? 'opacity-60 bg-red-50/30' : 'hover:bg-mint-surface'}`}
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">

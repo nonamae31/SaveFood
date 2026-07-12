@@ -1,34 +1,26 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Command } from 'cmdk';
 import { useNavigate } from 'react-router-dom';
-import { adminApi } from '@/api/admin.api';
-import type { AdminUserListDTO, AdminStoreListDTO } from '@/api/admin.api';
-import { Search, Store, User, X } from 'lucide-react';
-import { ROUTES } from '@/lib/constants';
+import { useQuery } from '@tanstack/react-query';
+import { Search, User, Store, ShoppingBag, Package, Loader2, X } from 'lucide-react';
+import { apiClient } from '@/lib/apiClient';
+import { API_ENDPOINTS, QUERY_KEYS, ROUTES } from '@/lib/constants';
 
-// A simple debounce hook
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-    return () => clearTimeout(handler);
-  }, [value, delay]);
-  return debouncedValue;
+interface SearchResults {
+  users: Array<{ id: string; fullName: string; email: string; status: number }>;
+  stores: Array<{ id: string; name: string; addressLine: string; status: number }>;
+  orders: Array<{ id: string; orderCode: number | null; storeName: string; totalAmount: number; status: number }>;
+  finance: Array<{ id: string; type: string; entityName: string; amount: number; status: number }>;
+  categories: Array<{ id: string; name: string; status: number }>;
 }
 
 export function GlobalCommandPalette() {
   const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebounce(search, 300);
-  
-  const [users, setUsers] = useState<AdminUserListDTO[]>([]);
-  const [stores, setStores] = useState<AdminStoreListDTO[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [inputValue, setInputValue] = useState('');
+  const [debouncedValue, setDebouncedValue] = useState('');
   const navigate = useNavigate();
 
-  // Toggle the menu when ⌘K is pressed
+  // Handle Ctrl+K
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
@@ -41,48 +33,30 @@ export function GlobalCommandPalette() {
     return () => document.removeEventListener('keydown', down);
   }, []);
 
-  // Fetch data when debounced search changes
-  const fetchSearchResults = useCallback(async (query: string) => {
-    if (!query) {
-      setUsers([]);
-      setStores([]);
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const [usersRes, storesRes] = await Promise.all([
-        adminApi.getUsers({ search: query, pageSize: 5 }),
-        adminApi.getStores({ search: query, pageSize: 5 })
-      ]);
-      
-      setUsers(usersRes.items || []);
-      setStores(storesRes.items || []);
-    } catch (error) {
-      console.error('Failed to fetch search results:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
+  // Debounce input
   useEffect(() => {
-    fetchSearchResults(debouncedSearch);
-  }, [debouncedSearch, fetchSearchResults]);
+    const timer = setTimeout(() => {
+      setDebouncedValue(inputValue);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [inputValue]);
 
-  // Navigate and close
-  const onSelectUser = (user: AdminUserListDTO) => {
-    setOpen(false);
-    setSearch('');
-    // Chuyển hướng tới trang Quản lý User với query search là email
-    navigate(`${ROUTES.ADMIN_ACCOUNTS}?search=${encodeURIComponent(user.email)}`);
-  };
+  const { data, isLoading } = useQuery<SearchResults>({
+    queryKey: QUERY_KEYS.admin.search(debouncedValue),
+    queryFn: async () => {
+      if (!debouncedValue.trim()) {
+        return { users: [], stores: [], orders: [], finance: [], categories: [] };
+      }
+      const res = await apiClient<SearchResults>(`${API_ENDPOINTS.ADMIN_GLOBAL_SEARCH}?keyword=${encodeURIComponent(debouncedValue)}`);
+      return res;
+    },
+    enabled: open && debouncedValue.trim().length > 0,
+  });
 
-  const onSelectStore = (store: AdminStoreListDTO) => {
+  const onSelect = useCallback((url: string) => {
     setOpen(false);
-    setSearch('');
-    // Chuyển hướng tới trang Quản lý Store với query search là tên
-    navigate(`${ROUTES.ADMIN_APPROVALS}?search=${encodeURIComponent(store.name)}`);
-  };
+    navigate(url);
+  }, [navigate]);
 
   if (!open) return null;
 
@@ -93,66 +67,205 @@ export function GlobalCommandPalette() {
         onClick={(e) => e.stopPropagation()}
       >
         <Command label="Global Command Menu" shouldFilter={false}>
-          <div className="flex items-center border-b border-gray-100 px-3">
-            <Search className="w-5 h-5 text-gray-400 shrink-0" />
+          <div className="flex items-center border-b border-gray-100 px-3 py-2">
+            <Search className="w-5 h-5 text-gray-400 shrink-0 mr-2" />
             <Command.Input 
-              value={search}
-              onValueChange={setSearch}
-              placeholder="Tìm kiếm người dùng, cửa hàng... (Gõ để tìm trên máy chủ)" 
-              className="flex-1 px-3 py-4 bg-transparent outline-none text-gray-800 placeholder:text-gray-400"
+              value={inputValue}
+              onValueChange={setInputValue}
+              placeholder="Tìm kiếm người dùng, cửa hàng, đơn hàng, tài chính, danh mục... (Ctrl+K)" 
+              className="flex-1 bg-transparent py-3 outline-none placeholder:text-gray-400 text-gray-900 border-none focus:ring-0"
+              autoFocus
             />
+            {isLoading && <Loader2 className="animate-spin text-gray-400 mr-2" size={18} />}
             <button onClick={() => setOpen(false)} className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100">
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <Command.List className="max-h-[400px] overflow-y-auto p-2">
-            {loading && <Command.Loading className="p-4 text-sm text-gray-500 text-center">Đang tìm kiếm...</Command.Loading>}
-            {!loading && search && users.length === 0 && stores.length === 0 && (
-              <Command.Empty className="p-4 text-sm text-gray-500 text-center">Không tìm thấy kết quả nào cho "{search}".</Command.Empty>
+            {!isLoading && debouncedValue && data?.users.length === 0 && data?.stores.length === 0 && data?.orders.length === 0 && data?.finance.length === 0 && data?.categories.length === 0 && (
+              <Command.Empty className="py-6 text-center text-sm text-gray-500">Không tìm thấy kết quả nào.</Command.Empty>
             )}
 
-            {!loading && users.length > 0 && (
+            {data?.users && data.users.length > 0 && (
               <Command.Group heading="Người dùng" className="px-2 py-1 text-xs font-semibold text-gray-500">
-                {users.map((user) => (
+                {data.users.map((user) => (
                   <Command.Item 
                     key={user.id} 
-                    onSelect={() => onSelectUser(user)}
-                    value={user.id}
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900"
+                    onSelect={async () => {
+                      try {
+                        const res = await apiClient<any>(`/admin/search/locate?type=user&id=${user.id}&pageSize=10`);
+                        if (res.found) {
+                          const query = new URLSearchParams({
+                            pageNumber: res.pageNumber.toString(),
+                            highlightId: res.highlightId
+                          }).toString();
+                          onSelect(`${ROUTES.ADMIN_ACCOUNTS}?${query}`);
+                        } else {
+                          onSelect(`${ROUTES.ADMIN_ACCOUNTS}?search=${encodeURIComponent(user.email)}`);
+                        }
+                      } catch (err) {
+                        onSelect(`${ROUTES.ADMIN_ACCOUNTS}?search=${encodeURIComponent(user.email)}`);
+                      }
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer data-[selected=true]:bg-brand-50 data-[selected=true]:text-brand-700 outline-none hover:bg-gray-100"
                   >
-                    <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 shrink-0">
+                      <User size={16} />
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="font-medium truncate">{user.fullName}</p>
-                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-700">{user.fullName}</span>
+                      <span className="text-xs text-gray-500">{user.email}</span>
                     </div>
                   </Command.Item>
                 ))}
               </Command.Group>
             )}
 
-            {!loading && stores.length > 0 && (
+            {data?.stores && data.stores.length > 0 && (
               <Command.Group heading="Cửa hàng" className="px-2 py-1 text-xs font-semibold text-gray-500 mt-2">
-                {stores.map((store) => (
+                {data.stores.map((store) => (
                   <Command.Item 
-                    key={store.id} 
-                    onSelect={() => onSelectStore(store)}
-                    value={store.id}
-                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-700 rounded-lg cursor-pointer hover:bg-gray-100 data-[selected=true]:bg-gray-100 data-[selected=true]:text-gray-900"
+                    key={store.id}
+                    onSelect={async () => {
+                      try {
+                        const res = await apiClient<any>(`/admin/search/locate?type=store&id=${store.id}&pageSize=10`);
+                        if (res.found) {
+                          const query = new URLSearchParams({
+                            page: res.pageNumber.toString(),
+                            highlightId: res.highlightId
+                          }).toString();
+                          onSelect(`${ROUTES.ADMIN_APPROVALS}?${query}`);
+                        } else {
+                          onSelect(`${ROUTES.ADMIN_APPROVALS}?search=${encodeURIComponent(store.name)}`);
+                        }
+                      } catch (err) {
+                        onSelect(`${ROUTES.ADMIN_APPROVALS}?search=${encodeURIComponent(store.name)}`);
+                      }
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer data-[selected=true]:bg-brand-50 data-[selected=true]:text-brand-700 outline-none hover:bg-gray-100"
                   >
-                    <div className="w-8 h-8 rounded-md bg-orange-100 text-orange-600 flex items-center justify-center shrink-0">
-                      <Store className="w-4 h-4" />
+                    <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                      <Store size={16} />
                     </div>
-                    <div className="flex-1 overflow-hidden">
-                      <p className="font-medium truncate">{store.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{store.addressLine}</p>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-700">{store.name}</span>
+                      <span className="text-xs text-gray-500 truncate">{store.addressLine}</span>
                     </div>
                   </Command.Item>
                 ))}
               </Command.Group>
             )}
+
+            {data?.orders && data.orders.length > 0 && (
+              <Command.Group heading="Đơn hàng / Kiểm toán" className="px-2 py-1 text-xs font-semibold text-gray-500 mt-2">
+                {data.orders.map((order) => (
+                  <Command.Item 
+                    key={order.id}
+                    onSelect={async () => {
+                      if (!order.orderCode) {
+                        onSelect(ROUTES.ADMIN_AUDIT);
+                        return;
+                      }
+                      try {
+                        const res = await apiClient<any>(`/admin/search/locate?type=order&id=${order.orderCode}&pageSize=50`);
+                        if (res.found) {
+                          const query = new URLSearchParams({
+                            page: res.pageNumber.toString(),
+                            highlightId: res.highlightId,
+                            expanded: res.expandedDateRange ? 'true' : 'false',
+                            from: res.effectiveFromDate ? new Date(res.effectiveFromDate).toISOString().split('T')[0] : '',
+                            to: res.effectiveToDate ? new Date(res.effectiveToDate).toISOString().split('T')[0] : ''
+                          }).toString();
+                          onSelect(`${ROUTES.ADMIN_AUDIT}?${query}`);
+                        } else {
+                          onSelect(ROUTES.ADMIN_AUDIT);
+                        }
+                      } catch (err) {
+                        onSelect(ROUTES.ADMIN_AUDIT);
+                      }
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer data-[selected=true]:bg-brand-50 data-[selected=true]:text-brand-700 outline-none hover:bg-gray-100"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center text-purple-600 shrink-0">
+                      <ShoppingBag size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-700">Đơn hàng #{order.orderCode}</span>
+                      <span className="text-xs text-gray-500">{order.storeName} - {order.totalAmount.toLocaleString()}đ</span>
+                    </div>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+            )}
+
+            {data?.finance && data.finance.length > 0 && (
+              <Command.Group heading="Tài chính" className="px-2 py-1 text-xs font-semibold text-gray-500 mt-2">
+                {data.finance.map((fin) => (
+                  <Command.Item 
+                    key={fin.id}
+                    onSelect={async () => {
+                      try {
+                        const res = await apiClient<any>(`/admin/search/locate?type=${fin.type}&id=${fin.id}&pageSize=15`);
+                        if (res.found) {
+                          const tab = fin.type === 'withdrawal' ? 'withdrawals' 
+                                    : (fin.type === 'customer_wallet_transaction' ? 'customer-wallets' : 'ledger');
+                          const query = new URLSearchParams({
+                            tab: tab,
+                            page: res.pageNumber.toString(),
+                            highlightId: res.highlightId,
+                            expanded: res.expandedDateRange ? 'true' : 'false',
+                            from: res.effectiveFromDate ? new Date(res.effectiveFromDate).toISOString().split('T')[0] : '',
+                            to: res.effectiveToDate ? new Date(res.effectiveToDate).toISOString().split('T')[0] : ''
+                          });
+                          if (res.statusFilter && res.statusFilter !== 'all') {
+                             query.set('statusFilter', res.statusFilter);
+                          }
+                          onSelect(`${ROUTES.ADMIN_FINANCE}?${query.toString()}`);
+                        } else {
+                          onSelect(ROUTES.ADMIN_FINANCE);
+                        }
+                      } catch (err) {
+                        onSelect(ROUTES.ADMIN_FINANCE);
+                      }
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer data-[selected=true]:bg-brand-50 data-[selected=true]:text-brand-700 outline-none hover:bg-gray-100"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+                      <Package size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-700">{fin.type === 'withdrawal' ? 'Yêu cầu rút tiền' : 'Giao dịch ví'}</span>
+                      <span className="text-xs text-gray-500">{fin.entityName} - {fin.amount.toLocaleString()}đ</span>
+                    </div>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+            )}
+
+            {data?.categories && data.categories.length > 0 && (
+              <Command.Group heading="Danh mục" className="px-2 py-1 text-xs font-semibold text-gray-500 mt-2">
+                {data.categories.map((cat) => (
+                  <Command.Item 
+                    key={cat.id}
+                    onSelect={() => {
+                      // Categories không phân trang nên FE chỉ việc scroll
+                      onSelect(`${ROUTES.ADMIN_CATEGORIES}?highlightId=${cat.id}`);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-900 rounded-lg cursor-pointer data-[selected=true]:bg-brand-50 data-[selected=true]:text-brand-700 outline-none hover:bg-gray-100"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-pink-100 flex items-center justify-center text-pink-600 shrink-0">
+                      <Package size={16} />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="font-semibold text-gray-700">{cat.name}</span>
+                      <span className="text-xs text-gray-500 truncate">{cat.status === 1 ? 'Hoạt động' : 'Đã xóa'}</span>
+                    </div>
+                  </Command.Item>
+                ))}
+              </Command.Group>
+            )}
+
           </Command.List>
         </Command>
       </div>

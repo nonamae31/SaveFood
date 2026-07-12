@@ -63,10 +63,10 @@ public class UserRepository : IUserRepository
 
         query = request.SortBy switch
         {
-            "fullName" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.FullName) : query.OrderBy(u => u.FullName),
-            "status" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.Status) : query.OrderBy(u => u.Status),
-            "createdAt" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.CreatedAt) : query.OrderBy(u => u.CreatedAt),
-            _ => query.OrderByDescending(u => u.CreatedAt)
+            "fullName" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.FullName).ThenBy(u => u.Id) : query.OrderBy(u => u.FullName).ThenBy(u => u.Id),
+            "status" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.Status).ThenBy(u => u.Id) : query.OrderBy(u => u.Status).ThenBy(u => u.Id),
+            "createdAt" => request.SortDirection == "desc" ? query.OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id) : query.OrderBy(u => u.CreatedAt).ThenBy(u => u.Id),
+            _ => query.OrderByDescending(u => u.CreatedAt).ThenBy(u => u.Id)
         };
 
         var totalCount = await query.CountAsync(ct);

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin.api';
 import type { WalletTransactionDTO, WithdrawalRequestDTO, CustomerWalletTransactionAdminDTO } from '../../api/admin.api';
 import { CreditCard, ArrowDownCircle, ArrowUpCircle, AlertCircle, CheckCircle, Clock, X } from 'lucide-react';
@@ -7,7 +8,8 @@ import { clsx } from "clsx";
 type TabType = 'ledger' | 'withdrawals' | 'customer-wallets';
 
 export default function AdminFinancePage() {
-  const [activeTab, setActiveTab] = useState<TabType>('ledger');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<TabType>((searchParams.get('tab') as TabType) || 'ledger');
   const [loading, setLoading] = useState(false);
 
   // Data states
@@ -17,14 +19,16 @@ export default function AdminFinancePage() {
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('statusFilter') || 'all');
   const today = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
+  const [startDate, setStartDate] = useState(searchParams.get('from') || today);
+  const [endDate, setEndDate] = useState(searchParams.get('to') || today);
 
   // Pagination states
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [totalPages, setTotalPages] = useState(1);
+  const highlightId = searchParams.get('highlightId');
+  const rowRefs = useRef<{ [key: string]: HTMLTableRowElement | null }>({});
 
   // Modal states
   const [modalOpen, setModalOpen] = useState(false);
@@ -69,11 +73,36 @@ export default function AdminFinancePage() {
   };
 
   useEffect(() => {
+    if (searchParams.toString() !== '') {
+      const tab = searchParams.get('tab') as TabType;
+      if (tab && tab !== activeTab) setActiveTab(tab);
+      const p = parseInt(searchParams.get('page') || '1');
+      if (p !== page) setPage(p);
+      const from = searchParams.get('from');
+      if (from && from !== startDate) setStartDate(from);
+      const to = searchParams.get('to');
+      if (to && to !== endDate) setEndDate(to);
+      const sf = searchParams.get('statusFilter');
+      if (sf && sf !== statusFilter) setStatusFilter(sf);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
     const timeoutId = setTimeout(() => {
       fetchData();
     }, 300);
     return () => clearTimeout(timeoutId);
   }, [activeTab, page, statusFilter, searchQuery, startDate, endDate]);
+
+  useEffect(() => {
+    if (!loading && highlightId && rowRefs.current[highlightId]) {
+      setTimeout(() => {
+        rowRefs.current[highlightId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        searchParams.delete('highlightId');
+        setSearchParams(searchParams, { replace: true });
+      }, 300);
+    }
+  }, [loading, highlightId]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -277,7 +306,14 @@ export default function AdminFinancePage() {
                   <tr><td colSpan={5} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy giao dịch nào</td></tr>
                 )}
                 {activeTab === 'ledger' && transactions.filter(t => t.type !== 2).map(t => (
-                  <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
+                  <tr 
+                    key={t.id} 
+                    ref={(el) => (rowRefs.current[t.id] = el)}
+                    className={clsx(
+                      "transition-colors duration-500",
+                      highlightId === t.id ? "bg-yellow-100" : "hover:bg-mint-canvas/30"
+                    )}
+                  >
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(t.createdAt)}</td>
                     <td className="px-6 py-4 text-[14px] font-medium text-mint-ink">{t.storeName}</td>
                     <td className="px-6 py-4 text-[14px] text-mint-stone">{t.description || '-'}</td>
@@ -307,7 +343,14 @@ export default function AdminFinancePage() {
                   <tr><td colSpan={6} className="px-6 py-8 text-center text-mint-stone">Không tìm thấy yêu cầu rút tiền nào</td></tr>
                 )}
                 {activeTab === 'withdrawals' && withdrawals.map(w => (
-                  <tr key={w.id} className="hover:bg-mint-canvas/30 transition-colors">
+                  <tr 
+                    key={w.id} 
+                    ref={(el) => (rowRefs.current[w.id] = el)}
+                    className={clsx(
+                      "transition-colors duration-500",
+                      highlightId === w.id ? "bg-yellow-100" : "hover:bg-mint-canvas/30"
+                    )}
+                  >
                     <td className="px-6 py-4 text-[14px] text-mint-ink">{formatDate(w.createdAt)}</td>
                     <td className="px-6 py-4">
                       <div className="text-[14px] font-medium text-mint-ink">{w.requesterName}</div>
@@ -356,7 +399,14 @@ export default function AdminFinancePage() {
                   const typeInfo = typeMap[t.type] ?? { label: `Loại ${t.type}`, className: 'text-mint-stone bg-mint-canvas' };
                   const isCredit = t.type === 0 || t.type === 3; // Deposit or Refund = money in
                   return (
-                    <tr key={t.id} className="hover:bg-mint-canvas/30 transition-colors">
+                    <tr 
+                      key={t.id} 
+                      ref={(el) => (rowRefs.current[t.id] = el)}
+                      className={clsx(
+                        "transition-colors duration-500",
+                        highlightId === t.id ? "bg-yellow-100" : "hover:bg-mint-canvas/30"
+                      )}
+                    >
                       <td className="px-6 py-4 text-[14px] text-mint-stone whitespace-nowrap">{formatDate(t.createdAt)}</td>
                       <td className="px-6 py-4">
                         <div className="text-[14px] font-medium text-mint-ink">{t.customerName}</div>

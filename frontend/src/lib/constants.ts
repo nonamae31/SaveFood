@@ -39,6 +39,9 @@ export const QUERY_KEYS = {
     all:         (): readonly string[] => ['categories'],
     adminAll:    (): readonly string[] => ['categories', 'admin'],
   },
+  admin: {
+    search: (keyword: string): readonly string[] => ['admin', 'search', keyword],
+  },
   storeFinance: {
     wallet: (): readonly string[] => ['storeFinance', 'wallet'],
     transactions: (page: number, size: number): readonly unknown[] => ['storeFinance', 'transactions', page, size],
@@ -149,6 +152,9 @@ export const API_ENDPOINTS = {
   CATEGORIES_ADMIN_ALL: '/categories/all',
   CATEGORY:             (id: string) => `/categories/${id}`,
   CATEGORY_RESTORE:     (id: string) => `/categories/${id}/restore`,
+
+  // Admin
+  ADMIN_GLOBAL_SEARCH:  '/admin/search',
 } as const
 
 // ── Pagination Defaults ───────────────────────────────────────────────────────

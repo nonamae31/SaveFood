@@ -20,5 +20,6 @@ namespace SaveFoodBackend.Interfaces
         Task<PaginatedList<AdminStoreListDTO>> GetStoresAsync(string? search, byte? status, int pageNumber, int pageSize);
         Task<AdminStoreDetailsDTO> GetStoreDetailsAsync(Guid storeId);
         Task UpdateStoreStatusAsync(Guid storeId, byte newStatus);
+        Task<GlobalSearchResponseDTO> GlobalSearchAsync(string keyword);
     }
 }

@@ -439,26 +439,24 @@ export default function AccountManagementPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState<PaginatedList<AdminUserListDTO> | null>(null);
   const [loading, setLoading] = useState(true);
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
   
   // Extract from URL
-  const search = searchParams.get('search') || '';
+  const highlightId = searchParams.get('highlightId');
+  const search = highlightId ? '' : (searchParams.get('search') || '');
   const [localSearch, setLocalSearch] = useState(search);
-  const roleFilter = searchParams.get('roleFilter') || 'All';
-  const staffRoleFilter = searchParams.get('staffRoleFilter') || 'All';
-  const statusFilter = searchParams.get('statusFilter') || 'All';
-  const sortBy = searchParams.get('sortBy') || '';
-  const sortDirection = searchParams.get('sortDirection') || 'desc';
+  const roleFilter = highlightId ? 'All' : (searchParams.get('roleFilter') || 'All');
+  const staffRoleFilter = highlightId ? 'All' : (searchParams.get('staffRoleFilter') || 'All');
+  const statusFilter = highlightId ? 'All' : (searchParams.get('statusFilter') || 'All');
+  const sortBy = highlightId ? '' : (searchParams.get('sortBy') || '');
+  const sortDirection = highlightId ? 'desc' : (searchParams.get('sortDirection') || 'desc');
   const currentPage = parseInt(searchParams.get('pageNumber') || '1', 10);
   const pageSize = parseInt(searchParams.get('pageSize') || '10', 10);
 
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  const fetchUsersRef = useRef<() => void>(() => {});
-
   useEffect(() => {
-    let ignore = false;
-    
     const fetchUsers = async () => {
       setLoading(true);
       try {
@@ -474,31 +472,33 @@ export default function AccountManagementPage() {
         };
 
         const result = await adminApi.getUsers(request);
-        if (!ignore) {
-          setData(result);
-        }
+        setData(result);
       } catch (err) {
-        if (!ignore) console.error(err);
+        console.error(err);
       } finally {
-        if (!ignore) setLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchUsersRef.current = fetchUsers;
     fetchUsers();
-
-    return () => {
-      ignore = true;
-    };
   }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage, pageSize]);
 
-  const updateFilter = (key: string, value: string) => {
+  useEffect(() => {
+    if (data && highlightId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [data, highlightId]);
+
+  const updateParam = (key: string, value: string) => {
     const newParams = new URLSearchParams(searchParams);
     if (value && value !== 'All' && value !== '') {
       newParams.set(key, value);
     } else {
       newParams.delete(key);
     }
+    newParams.delete('highlightId');
     newParams.set('pageNumber', '1');
     setSearchParams(newParams);
   };
@@ -520,6 +520,7 @@ export default function AccountManagementPage() {
   const handlePageChange = (page: number) => {
     const newParams = new URLSearchParams(searchParams);
     newParams.set('pageNumber', page.toString());
+    newParams.delete('highlightId');
     setSearchParams(newParams);
   };
 
@@ -533,6 +534,7 @@ export default function AccountManagementPage() {
     newParams.set('sortBy', key);
     newParams.set('sortDirection', direction);
     newParams.set('pageNumber', '1');
+    newParams.delete('highlightId');
     setSearchParams(newParams);
   };
 
@@ -651,7 +653,14 @@ export default function AccountManagementPage() {
                 </tr>
               ) : (
                 data.items.map(user => (
-                  <tr key={user.id} className="hover:bg-mint-surface transition-colors group border-b border-mint-hairline-soft last:border-0">
+                  <tr 
+                    key={user.id} 
+                    ref={user.id.toLowerCase() === highlightId?.toLowerCase() ? highlightRef : null}
+                    className={cn(
+                      "transition-colors group border-b border-mint-hairline-soft last:border-0",
+                      user.id.toLowerCase() === highlightId?.toLowerCase() ? "bg-yellow-100 hover:bg-yellow-200" : "hover:bg-mint-surface"
+                    )}
+                  >
                     <td className="px-6 py-4">
                       <div className="font-medium text-mint-ink text-[14px]">{user.fullName}</div>
                       <div className="text-mint-steel text-[13px] mt-0.5">{user.email}</div>

@@ -19,12 +19,14 @@ namespace SaveFoodBackend.Services
         private readonly IUserRepository _userRepo;
         private readonly IStoreRepository _storeRepo;
         private readonly IRedisService _redisService;
+        private readonly Microsoft.Extensions.DependencyInjection.IServiceScopeFactory _scopeFactory;
 
-        public AdminService(IUserRepository userRepo, IStoreRepository storeRepo, IRedisService redisService)
+        public AdminService(IUserRepository userRepo, IStoreRepository storeRepo, IRedisService redisService, Microsoft.Extensions.DependencyInjection.IServiceScopeFactory scopeFactory)
         {
             _userRepo = userRepo;
             _storeRepo = storeRepo;
             _redisService = redisService;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<PaginatedList<AdminUserListDTO>> GetUsersAsync(GetUsersRequestDTO request)
@@ -214,6 +216,199 @@ namespace SaveFoodBackend.Services
             
             store.Status = newStatus;
             await _storeRepo.SaveChangesAsync();
+        }
+
+        public async Task<GlobalSearchResponseDTO> GlobalSearchAsync(string keyword)
+        {
+            var response = new GlobalSearchResponseDTO();
+            if (string.IsNullOrWhiteSpace(keyword)) return response;
+
+            var searchTerm = $"%{keyword}%";
+
+            var usersTask = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                return await db.Users
+                    .Where(u => EF.Functions.Collate(u.FullName, "Vietnamese_CI_AI").Contains(keyword) || 
+                                u.Email.Contains(keyword))
+                    .Take(5)
+                    .Select(u => new GlobalSearchUserDTO
+                    {
+                        Id = u.Id,
+                        FullName = u.FullName,
+                        Email = u.Email,
+                        Status = u.Status
+                    })
+                    .ToListAsync();
+            });
+
+            var storesTask = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                return await db.Stores
+                    .Where(s => EF.Functions.Collate(s.Name, "Vietnamese_CI_AI").Contains(keyword) || 
+                                EF.Functions.Collate(s.DetailedAddress, "Vietnamese_CI_AI").Contains(keyword))
+                    .Take(5)
+                    .Select(s => new GlobalSearchStoreDTO
+                    {
+                        Id = s.Id,
+                        Name = s.Name,
+                        AddressLine = s.DetailedAddress,
+                        Status = s.Status
+                    })
+                    .ToListAsync();
+            });
+
+            var ordersTask = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                var searchKeyword = keyword.ToLower();
+                var parsedCode = long.TryParse(keyword, out var code) ? code : (long?)null;
+
+                var orders = await db.Orders
+                    .Where(o => 
+                        (parsedCode.HasValue && o.OrderCode == parsedCode.Value) ||
+                        EF.Functions.Collate(o.Store.Name, "Vietnamese_CI_AI").Contains(keyword) ||
+                        (o.User != null && EF.Functions.Collate(o.User.FullName, "Vietnamese_CI_AI").Contains(keyword)) ||
+                        db.Payments.Any(p => p.OrderId == o.Id && (
+                            (p.PayerName != null && p.PayerName.ToLower().Contains(searchKeyword)) ||
+                            (p.PayerAccountNumber != null && p.PayerAccountNumber.ToLower().Contains(searchKeyword)) ||
+                            (p.PayerBankId != null && p.PayerBankId.ToLower().Contains(searchKeyword)) ||
+                            (p.PayOsReference != null && p.PayOsReference.ToLower().Contains(searchKeyword))
+                        ))
+                    )
+                    .Take(5)
+                    .Select(o => new GlobalSearchOrderDTO
+                    {
+                        Id = o.Id,
+                        OrderCode = o.OrderCode,
+                        StoreName = o.Store.Name,
+                        TotalAmount = o.TotalAmount,
+                        Status = (byte)o.OrderStatus
+                    })
+                    .ToListAsync();
+
+                var subs = await db.StoreSubscriptions
+                    .Where(s => 
+                        (parsedCode.HasValue && s.OrderCode == parsedCode.Value) ||
+                        (s.PayerName != null && s.PayerName.ToLower().Contains(searchKeyword)) ||
+                        (s.PayerAccountNumber != null && s.PayerAccountNumber.ToLower().Contains(searchKeyword)) ||
+                        (s.PayerBankId != null && s.PayerBankId.ToLower().Contains(searchKeyword)) ||
+                        (s.PayOsTransactionId != null && s.PayOsTransactionId.ToLower().Contains(searchKeyword))
+                    )
+                    .Take(5)
+                    .Select(s => new GlobalSearchOrderDTO
+                    {
+                        Id = s.Id,
+                        OrderCode = s.OrderCode,
+                        StoreName = s.Store.Name,
+                        TotalAmount = s.Plan.MonthlyPrice,
+                        Status = s.Status
+                    })
+                    .ToListAsync();
+
+                return orders.Concat(subs).OrderByDescending(x => x.OrderCode).Take(5).ToList();
+            });
+
+            var financeTask = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                var searchKeyword = keyword.ToLower();
+                var parsedCode = long.TryParse(keyword, out var code) ? code : (long?)null;
+
+                var walletTx = await db.WalletTransactions
+                    .Include(w => w.StoreWallet)
+                        .ThenInclude(sw => sw.Store)
+                    .Where(w => 
+                        (parsedCode.HasValue && w.Order != null && w.Order.OrderCode == parsedCode.Value) ||
+                        EF.Functions.Collate(w.StoreWallet.Store.Name, "Vietnamese_CI_AI").Contains(keyword) ||
+                        (w.Description != null && w.Description.ToLower().Contains(searchKeyword))
+                    )
+                    .Take(3)
+                    .Select(w => new GlobalSearchFinanceDTO
+                    {
+                        Id = w.Id,
+                        Type = "store_wallet_transaction",
+                        EntityName = w.StoreWallet.Store.Name,
+                        Amount = w.Amount,
+                        Status = 1
+                    })
+                    .ToListAsync();
+                    
+                var customerTx = await db.CustomerWalletTransactions
+                    .Include(w => w.CustomerWallet)
+                        .ThenInclude(cw => cw.User)
+                    .Where(w => 
+                        (parsedCode.HasValue && w.Order != null && w.Order.OrderCode == parsedCode.Value) ||
+                        (parsedCode.HasValue && w.PayOsOrderCode == parsedCode.Value) ||
+                        EF.Functions.Collate(w.CustomerWallet.User.FullName, "Vietnamese_CI_AI").Contains(keyword) ||
+                        (w.Description != null && w.Description.ToLower().Contains(searchKeyword))
+                    )
+                    .Take(3)
+                    .Select(w => new GlobalSearchFinanceDTO
+                    {
+                        Id = w.Id,
+                        Type = "customer_wallet_transaction",
+                        EntityName = w.CustomerWallet.User.FullName,
+                        Amount = w.Amount,
+                        Status = 1
+                    })
+                    .ToListAsync();
+
+                var withdrawals = await db.WithdrawalRequests
+                    .Include(w => w.Store)
+                    .Include(w => w.User)
+                    .Where(w => 
+                        (w.Store != null && EF.Functions.Collate(w.Store.Name, "Vietnamese_CI_AI").Contains(keyword)) ||
+                        (w.User != null && EF.Functions.Collate(w.User.FullName, "Vietnamese_CI_AI").Contains(keyword)) ||
+                        EF.Functions.Collate(w.BankName, "Vietnamese_CI_AI").Contains(keyword) ||
+                        (w.BankAccountNumber != null && w.BankAccountNumber.ToLower().Contains(searchKeyword)) ||
+                        EF.Functions.Collate(w.BankAccountName, "Vietnamese_CI_AI").Contains(keyword)
+                    )
+                    .Take(3)
+                    .Select(w => new GlobalSearchFinanceDTO
+                    {
+                        Id = w.Id,
+                        Type = "withdrawal",
+                        EntityName = w.Store != null ? w.Store.Name : (w.User != null ? w.User.FullName : "Unknown"),
+                        Amount = w.Amount,
+                        Status = w.Status
+                    })
+                    .ToListAsync();
+
+                return walletTx.Concat(customerTx).Concat(withdrawals).Take(5).ToList();
+            });
+
+            var categoriesTask = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SaveFoodBackend.Data.SaveFoodDbContext>();
+                
+                return await db.Categories
+                    .Where(c => EF.Functions.Collate(c.Name, "Vietnamese_CI_AI").Contains(keyword))
+                    .Take(5)
+                    .Select(c => new GlobalSearchCategoryDTO
+                    {
+                        Id = c.Id,
+                        Name = c.Name,
+                        Status = c.IsDeleted ? (byte)0 : (byte)1
+                    })
+                    .ToListAsync();
+            });
+
+            await Task.WhenAll(usersTask, storesTask, ordersTask, financeTask, categoriesTask);
+
+            response.Users = await usersTask;
+            response.Stores = await storesTask;
+            response.Orders = await ordersTask;
+            response.Finance = await financeTask;
+            response.Categories = await categoriesTask;
+
+            return response;
         }
     }
 }

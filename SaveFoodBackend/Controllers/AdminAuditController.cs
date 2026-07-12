@@ -27,6 +27,7 @@ public class AdminAuditController : ControllerBase
     public async Task<IActionResult> GetAuditReport(
         [FromQuery] DateTime? from = null,
         [FromQuery] DateTime? to = null,
+        [FromQuery] string? search = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
@@ -39,17 +40,32 @@ public class AdminAuditController : ControllerBase
             : DateTime.UtcNow.AddHours(7);
 
         // Luồng 1: Đơn hàng khách mua (Payment qua PayOS hoặc Wallet)
-        var orderPayments = await _ctx.Payments
+        var paymentsQuery = _ctx.Payments
             .Include(p => p.Order)
                 .ThenInclude(o => o.User)
             .Include(p => p.Order)
                 .ThenInclude(o => o.Store)
-            .Where(p => p.Status == 1 && p.PaidAt >= fromDate && p.PaidAt <= toDate && p.Order != null && p.Order.OrderStatus != SaveFoodBackend.Models.Enums.OrderStatusEnum.Cancelled)
+            .Where(p => p.Status == 1 && p.PaidAt >= fromDate && p.PaidAt <= toDate && p.Order != null && p.Order.OrderStatus != SaveFoodBackend.Models.Enums.OrderStatusEnum.Cancelled);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchTerm = search.ToLower();
+            paymentsQuery = paymentsQuery.Where(p =>
+                (p.PayerName != null && p.PayerName.ToLower().Contains(searchTerm)) ||
+                (p.PayerAccountNumber != null && p.PayerAccountNumber.ToLower().Contains(searchTerm)) ||
+                (p.PayerBankId != null && p.PayerBankId.ToLower().Contains(searchTerm)) ||
+                (p.Order != null && p.Order.OrderCode.ToString().Contains(searchTerm)) ||
+                (p.PayOsReference != null && p.PayOsReference.ToLower().Contains(searchTerm))
+            );
+        }
+
+        var orderPayments = await paymentsQuery
             .OrderByDescending(p => p.PaidAt)
             .ToListAsync();
 
         var orderItems = orderPayments.Select(p => new AuditReportItemDTO
         {
+            Id = p.Id.ToString(),
             Date = DateTime.SpecifyKind(p.PaidAt ?? p.CreatedAt, DateTimeKind.Utc),
             Type = "Đơn hàng",
             CustomerName = p.Order?.User?.FullName ?? "Không rõ",
@@ -67,12 +83,26 @@ public class AdminAuditController : ControllerBase
         }).ToList();
 
         // Luồng 2: Shop mua gói subscription
-        var subscriptions = await _ctx.StoreSubscriptions
+        var subsQuery = _ctx.StoreSubscriptions
             .Include(s => s.Store)
                 .ThenInclude(st => st.StoreStaffs)
                     .ThenInclude(ss => ss.User)
             .Include(s => s.Plan)
-            .Where(s => s.Status == 1 && s.CreatedAt >= fromDate && s.CreatedAt <= toDate && s.OrderCode != null)
+            .Where(s => s.Status == 1 && s.CreatedAt >= fromDate && s.CreatedAt <= toDate && s.OrderCode != null);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchTerm = search.ToLower();
+            subsQuery = subsQuery.Where(sub =>
+                (sub.PayerName != null && sub.PayerName.ToLower().Contains(searchTerm)) ||
+                (sub.PayerAccountNumber != null && sub.PayerAccountNumber.ToLower().Contains(searchTerm)) ||
+                (sub.PayerBankId != null && sub.PayerBankId.ToLower().Contains(searchTerm)) ||
+                (sub.OrderCode.ToString().Contains(searchTerm)) ||
+                (sub.PayOsTransactionId != null && sub.PayOsTransactionId.ToLower().Contains(searchTerm))
+            );
+        }
+
+        var subscriptions = await subsQuery
             .OrderByDescending(s => s.CreatedAt)
             .ToListAsync();
 
@@ -82,6 +112,7 @@ public class AdminAuditController : ControllerBase
                      ?? s.Store?.StoreStaffs?.FirstOrDefault()?.User;
             return new AuditReportItemDTO
             {
+                Id = s.Id.ToString(),
                 Date = DateTime.SpecifyKind(s.CreatedAt, DateTimeKind.Utc),
                 Type = "Subscription",
                 CustomerName = owner?.FullName ?? s.Store?.Name ?? "Không rõ",
@@ -101,6 +132,7 @@ public class AdminAuditController : ControllerBase
 
         var allItems = orderItems.Concat(subscriptionItems)
             .OrderByDescending(x => x.Date)
+            .ThenByDescending(x => x.Id)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToList();
@@ -121,6 +153,8 @@ public class AdminAuditController : ControllerBase
             }
         });
     }
+
+
 
     // GET: api/admin/audit/export-csv?from=2026-01-01&to=2026-12-31
     [HttpGet("export-csv")]
@@ -217,6 +251,7 @@ public class AdminAuditController : ControllerBase
 
 public class AuditReportItemDTO
 {
+    public string Id { get; set; } = "";
     public DateTime Date { get; set; }
     public string Type { get; set; } = "";
     public string CustomerName { get; set; } = "";

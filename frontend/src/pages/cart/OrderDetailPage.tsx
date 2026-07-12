@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useOrder, useExtendPickup, useCancelOrder, useBatchPay } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink } from 'lucide-react'
@@ -263,7 +263,7 @@ export function OrderDetailPage() {
             {order.items.map(item => (
               <div key={item.id} className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <p className="font-medium">{item.title}</p>
+                  <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="font-medium hover:text-brand-500 transition-colors inline-block">{item.title}</Link>
                   <p className="text-sm text-gray-500">x{item.quantity}</p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useCart } from "@/hooks/useCart";
 import { apiClient } from "@/lib/apiClient";
@@ -232,13 +232,17 @@ export function CheckoutPage() {
                                     <div className="space-y-4">
                                         {group.items.map((item) => (
                                             <div key={item.id} className="flex gap-4 border-b pb-4 last:border-0 last:pb-0">
-                                                <img
-                                                    src={item.imageUrl}
-                                                    alt={item.title}
-                                                    className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
-                                                />
+                                                <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="block shrink-0 hover:opacity-80 transition-opacity">
+                                                    <img
+                                                        src={item.imageUrl}
+                                                        alt={item.title}
+                                                        className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
+                                                    />
+                                                </Link>
                                                 <div className="flex-1 min-w-0">
-                                                    <h4 className="font-medium text-gray-900 truncate">{item.title}</h4>
+                                                    <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="font-medium text-gray-900 truncate hover:text-brand-500 transition-colors inline-block">
+                                                        {item.title}
+                                                    </Link>
                                                     <p className="text-sm text-gray-500 mt-1">Số lượng: {item.quantity}</p>
                                                     <p className="text-brand-600 font-semibold mt-2">
                                                         {(item.salePrice * item.quantity).toLocaleString("vi-VN")} đ

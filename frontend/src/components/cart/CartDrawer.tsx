@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight, X } from 'lucide-react'
 import { useCart, useUpdateCartItem, useRemoveFromCart } from '@/hooks/useCart'
 import { ROUTES } from '@/lib/constants'
@@ -167,18 +167,20 @@ export function CartDrawer() {
                               className="w-4 h-4 mt-1.5 rounded border-gray-300 text-brand-500 focus:ring-brand-500 disabled:opacity-50 cursor-pointer"
                             />
 
-                            <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200">
+                            <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 shrink-0 border border-gray-200 block hover:opacity-80 transition-opacity">
                               {item.imageUrl ? (
                                 <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
                               )}
-                            </div>
+                            </Link>
 
                             <div className="flex-1 min-w-0 flex flex-col justify-between">
                               <div>
                                 <div className="flex justify-between items-start gap-2">
-                                  <h4 className="font-semibold text-gray-900 text-sm line-clamp-2">{item.title}</h4>
+                                  <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="font-semibold text-gray-900 text-sm line-clamp-2 hover:text-brand-500 transition-colors">
+                                    {item.title}
+                                  </Link>
                                   <button 
                                     onClick={() => handleRemove(item.id)}
                                     className="text-gray-400 hover:text-red-500 p-1 -mr-1 shrink-0 cursor-pointer"
