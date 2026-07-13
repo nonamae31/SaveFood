@@ -13,6 +13,8 @@ public class ComplaintDto
     public Guid StoreId { get; set; }
     public string StoreName { get; set; }
     public Guid? OrderId { get; set; }
+    public Guid? ProductId { get; set; }
+    public Guid? ListingId { get; set; }
     
     public string Title { get; set; } = null!;
     public string Description { get; set; } = null!;

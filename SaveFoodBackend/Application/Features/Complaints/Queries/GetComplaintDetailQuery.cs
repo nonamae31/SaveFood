@@ -36,6 +36,8 @@ public class GetComplaintDetailQueryHandler : IRequestHandler<GetComplaintDetail
             StoreId = c.StoreId,
             StoreName = c.Store.Name,
             OrderId = c.OrderId,
+            ProductId = c.Order != null ? c.Order.OrderItems.FirstOrDefault()?.Listing?.ProductId : null,
+            ListingId = c.Order != null ? c.Order.OrderItems.FirstOrDefault()?.ListingId : null,
             Title = c.Title,
             Description = c.Description,
             Status = c.Status.ToString(),

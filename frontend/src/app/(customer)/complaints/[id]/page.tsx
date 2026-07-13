@@ -34,12 +34,19 @@ export type ComplaintDetail = {
   isStopRequested?: boolean;
   stopRequestedByRole?: string;
   evidences?: EvidenceItem[];
+  storeId?: string;
+  StoreId?: string;
+  productId?: string;
+  ProductId?: string;
+  listingId?: string;
+  ListingId?: string;
 };
 
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 export default function ComplaintChatPage() {
   const params = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [complaint, setComplaint] = useState<ComplaintDetail | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -86,7 +93,13 @@ export default function ComplaintChatPage() {
             createdAt: response.createdAt,
             isStopRequested: Boolean(response.isStopRequested),
             stopRequestedByRole: response.stopRequestedByRole || undefined,
-            evidences: normalizedEvidences
+            evidences: normalizedEvidences,
+            storeId: response.storeId,
+            StoreId: response.StoreId,
+            productId: response.productId,
+            ProductId: response.ProductId,
+            listingId: response.listingId,
+            ListingId: response.ListingId
           });
 
           if (response.messages && Array.isArray(response.messages)) {
@@ -114,7 +127,7 @@ export default function ComplaintChatPage() {
     fetchComplaintData(false);
 
     const connection = new HubConnectionBuilder()
-      .withUrl(`${(import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')}/hubs/complaint`)
+      .withUrl(`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/hubs/complaint`)
       .configureLogging(LogLevel.Information)
       .build();
 
@@ -215,14 +228,18 @@ export default function ComplaintChatPage() {
   };
 
   const handleStopComplaint = async () => {
+    if (!window.confirm('Bạn có chắc chắn muốn đóng khiếu nại này? Hành động này không thể hoàn tác.')) {
+      return;
+    }
+
     try {
       setIsActionLoading(true);
       await apiClient(`/v1/complaints/${params.id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'Resolved' })
+        body: JSON.stringify({ status: 4, note: "Khách hàng chủ động đóng khiếu nại" })
       });
       toast.success('Đã dừng khiếu nại thành công');
-      setComplaint((prev) => (prev ? { ...prev, status: 'RESOLVED', isStopRequested: false } : prev));
+      setComplaint((prev) => (prev ? { ...prev, status: 'CLOSED', isStopRequested: false } : prev));
     } catch (err) {
       toast.error(getDisplayError(err));
     } finally {
@@ -284,6 +301,7 @@ export default function ComplaintChatPage() {
     );
   }
 
+  console.log("RENDER COMPLAINT: ", complaint);
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 flex flex-col h-[80vh]">
       {/* Header Info */}
@@ -297,8 +315,36 @@ export default function ComplaintChatPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' && (
-              <></>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50 transition-colors"
+            >
+              Quay lại
+            </button>
+            {(complaint?.storeId || complaint?.StoreId) && (
+              <button
+                onClick={() => window.open(`/stores/${complaint.storeId || complaint.StoreId}`, '_blank')}
+                className="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 text-sm hover:bg-blue-100 transition-colors"
+              >
+                Mở Cửa hàng
+              </button>
+            )}
+            {(complaint?.listingId || complaint?.ListingId || complaint?.productId || complaint?.ProductId) && (
+              <button
+                onClick={() => window.open(`/products/${complaint.listingId || complaint.ListingId || complaint.productId || complaint.ProductId}`, '_blank')}
+                className="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 text-sm hover:bg-blue-100 transition-colors"
+              >
+                Mở Sản phẩm
+              </button>
+            )}
+            {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' && complaint?.status !== 'Cancelled' && complaint?.status !== 'CANCELLED' && (
+              <button
+                onClick={handleStopComplaint}
+                disabled={isActionLoading}
+                className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 disabled:opacity-50 transition-colors"
+              >
+                Đóng khiếu nại
+              </button>
             )}
             <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
               {complaint?.status === 'IN_PROGRESS' ? 'Đang xử lý' : complaint?.status}
@@ -308,7 +354,7 @@ export default function ComplaintChatPage() {
       </div>
 
       {/* Amber Alert Banner when isStopRequested === true */}
-      {complaint?.isStopRequested && (
+      {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' && complaint?.isStopRequested && (
         <div className="bg-amber-50 border-x border-b border-amber-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-amber-900">
             <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600" />

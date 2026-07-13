@@ -37,6 +37,9 @@ public class ComplaintRepository : IComplaintRepository
             .Include(c => c.ComplaintEvidences)
             .Include(c => c.ComplaintHistories).ThenInclude(h => h.ActionBy)
             .Include(c => c.ComplaintMessages).ThenInclude(m => m.Sender)
+            .Include(c => c.Order)
+                .ThenInclude(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Listing)
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 

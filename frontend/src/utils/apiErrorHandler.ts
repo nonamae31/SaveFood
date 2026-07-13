@@ -1,6 +1,23 @@
-export function getDisplayError(error: unknown): string {
+export function getDisplayError(error: any): string {
   // Log đầy đủ cho hệ thống monitoring (không hiển thị cho user)
   console.error('[API Error]', error);
+
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+  
+  if (error?.response?.data?.detail) {
+    return error.response.data.detail;
+  }
+  
+  if (error?.response?.data?.title) {
+    return error.response.data.title;
+  }
+  
+  // Custom ApiError object if thrown manually
+  if (error?.message && error.status) {
+    return error.message;
+  }
 
   if (error instanceof Response) {
     const status = error.status;

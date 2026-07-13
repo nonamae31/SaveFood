@@ -14,6 +14,7 @@ export interface ComplaintResponse {
 const DEFAULT_STORE_ID = "21000000-0000-0000-0000-000000000001";
 const COMPLAINT_TYPE_FOOD_ERROR = 5;
 import { apiClient } from '@/lib/apiClient';
+import { getDisplayError } from '@/utils/apiErrorHandler';
 import StepDetailView from './StepDetailView';
 import StepUploadView from './StepUploadView';
 
@@ -145,8 +146,7 @@ export default function ComplaintFormContainer() {
       }
     } catch (error: any) {
       // API Error handling as per Defensive Programming Directive 4
-      console.error('[API Error]', error);
-      const errorMsg = error?.message || 'Lỗi hệ thống. Chúng tôi đang khắc phục.';
+      const errorMsg = getDisplayError(error);
       toast.error(errorMsg);
     } finally {
       setIsSubmitting(false);

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin.api';
 import type { AdminStoreListDTO, AdminStoreDetailsDTO } from '../../api/admin.api';
 import { Building, MapPin, Phone, User, Check, X, Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, Store, CreditCard, Calendar } from 'lucide-react';
@@ -94,6 +95,8 @@ export default function StoreManagementPage() {
     message: string;
   } | null>(null);
 
+  const [searchParams] = useSearchParams();
+
   const fetchStores = () => {
     setLoading(true);
     adminApi.getStores({
@@ -112,6 +115,13 @@ export default function StoreManagementPage() {
   useEffect(() => {
     fetchStores();
   }, [search, statusFilter, page]);
+
+  useEffect(() => {
+    const openStoreId = searchParams.get('openStoreId');
+    if (openStoreId) {
+      viewDetails(openStoreId);
+    }
+  }, [searchParams]);
 
   const viewDetails = async (id: string) => {
     setDetailsLoading(true);

@@ -85,7 +85,7 @@ export function ComplaintListContainer({ role }: { role: 'shop' | 'admin' }) {
 
     // Setup SignalR connection
     const connection = new HubConnectionBuilder()
-      .withUrl(`${(import.meta.env.VITE_API_BASE_URL || '').replace('/api', '')}/hubs/complaint`)
+      .withUrl(`${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/hubs/complaint`)
       .configureLogging(LogLevel.Information)
       .build();
 
@@ -228,6 +228,32 @@ export function ComplaintListContainer({ role }: { role: 'shop' | 'admin' }) {
               <div>
                 <h2 className="text-2xl font-extrabold text-gray-900 mb-1">Khiếu Nại #{selectedComplaintDetail.code || selectedComplaintDetail.id}</h2>
                 <p className="text-sm text-gray-500">Bởi: {selectedComplaintDetail.customerName} - {selectedComplaintDetail.createdAt}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {role === 'admin' && selectedComplaintDetail.storeId && (
+                    <>
+                      <button 
+                        onClick={() => window.open(`/admin/approvals?openStoreId=${selectedComplaintDetail.storeId}`, '_blank')}
+                        className="px-3 py-1.5 rounded-lg border border-blue-200 text-blue-700 bg-blue-50 text-xs font-semibold hover:bg-blue-100 transition-colors"
+                      >
+                        Quản lý Cửa Hàng
+                      </button>
+                      <button 
+                        onClick={() => window.open(`/stores/${selectedComplaintDetail.storeId}`, '_blank')}
+                        className="px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 bg-indigo-50 text-xs font-semibold hover:bg-indigo-100 transition-colors"
+                      >
+                        Xem Cửa Hàng (Customer View)
+                      </button>
+                    </>
+                  )}
+                  {role === 'shop' && (selectedComplaintDetail.listingId || selectedComplaintDetail.productId) && (
+                    <button 
+                      onClick={() => window.open(`/products/${selectedComplaintDetail.listingId || selectedComplaintDetail.productId}`, '_blank')}
+                      className="px-3 py-1.5 rounded-lg border border-purple-200 text-purple-700 bg-purple-50 text-xs font-semibold hover:bg-purple-100 transition-colors"
+                    >
+                      Mở Sản Phẩm
+                    </button>
+                  )}
+                </div>
               </div>
               <span className={`px-3 py-1 inline-flex text-sm font-semibold rounded-full ${
                   selectedComplaintDetail.status === 'New' || selectedComplaintDetail.status === 0 ? 'bg-red-100 text-red-800' : 
