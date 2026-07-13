@@ -46,4 +46,6 @@ public partial class Order
     public virtual ICollection<WalletTransaction> WalletTransactions { get; set; } = new List<WalletTransaction>();
 
     public virtual ICollection<CustomerWalletTransaction> CustomerWalletTransactions { get; set; } = new List<CustomerWalletTransaction>();
+
+    public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 }

@@ -102,6 +102,7 @@ export default function StoreManagementPage() {
     message: string;
   } | null>(null);
 
+
   const fetchStores = () => {
     setLoading(true);
     adminApi.getStores({
@@ -128,6 +129,13 @@ export default function StoreManagementPage() {
       }, 300);
     }
   }, [stores, highlightId]);
+
+  useEffect(() => {
+    const openStoreId = searchParams.get('openStoreId');
+    if (openStoreId) {
+      viewDetails(openStoreId);
+    }
+  }, [searchParams]);
 
   const updateParam = (key: string, value: string | undefined) => {
     const newParams = new URLSearchParams(searchParams);

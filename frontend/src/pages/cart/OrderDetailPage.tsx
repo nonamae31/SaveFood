@@ -333,8 +333,17 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {order.orderStatus === 0 ? (
+          {order.orderStatus !== 4 ? (
             <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
+              {order.orderStatus === 3 && (
+                <button 
+                  onClick={() => navigate(`/complaints/new?orderId=${pathId}`)}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl border-2 border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+                >
+                  <AlertCircle className="w-5 h-5" /> Gửi khiếu nại
+                </button>
+              )}
+
               {order.orderStatus === 0 && (
                 <button 
                   onClick={() => setIsCancelModalOpen(true)}

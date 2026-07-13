@@ -1,0 +1,40 @@
+export function getDisplayError(error: any): string {
+  // Log đầy đủ cho hệ thống monitoring (không hiển thị cho user)
+  console.error('[API Error]', error);
+
+  if (error?.response?.data?.message) {
+    return error.response.data.message;
+  }
+  
+  if (error?.response?.data?.detail) {
+    return error.response.data.detail;
+  }
+  
+  if (error?.response?.data?.title) {
+    return error.response.data.title;
+  }
+  
+  // Custom ApiError object if thrown manually
+  if (error?.message && error.status) {
+    return error.message;
+  }
+
+  if (error instanceof Response) {
+    const status = error.status;
+    const errorMap: Record<number, string> = {
+      400: 'Yêu cầu không hợp lệ. Vui lòng kiểm tra lại thông tin.',
+      401: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+      403: 'Bạn không có quyền thực hiện thao tác này.',
+      404: 'Không tìm thấy dữ liệu yêu cầu.',
+      429: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
+      500: 'Lỗi hệ thống. Chúng tôi đang khắc phục.',
+    };
+    return errorMap[status] ?? 'Đã xảy ra lỗi. Vui lòng thử lại.';
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return 'Không thể kết nối. Vui lòng kiểm tra mạng.';
+}

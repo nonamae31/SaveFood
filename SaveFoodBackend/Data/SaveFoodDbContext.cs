@@ -78,6 +78,11 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<CustomerVoucherTransaction> CustomerVoucherTransactions { get; set; }
 
+    public virtual DbSet<Complaint> Complaints { get; set; }
+    public virtual DbSet<ComplaintEvidence> ComplaintEvidences { get; set; }
+    public virtual DbSet<ComplaintHistory> ComplaintHistories { get; set; }
+    public virtual DbSet<ComplaintMessage> ComplaintMessages { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
@@ -635,6 +640,78 @@ public partial class SaveFoodDbContext : DbContext
             .HasIndex(r => r.IdempotencyKey)
             .IsUnique()
             .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+        // ─── Complaint ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Complaint>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Status).IsRequired().HasConversion<int>();
+            entity.Property(e => e.Type).IsRequired().HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Customer).WithMany(u => u.Complaints)
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Store).WithMany(s => s.Complaints)
+                  .HasForeignKey(e => e.StoreId)
+                  .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Order).WithMany(o => o.Complaints)
+                  .HasForeignKey(e => e.OrderId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ComplaintEvidence>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.FileUrl).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.FileType).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintEvidences)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ComplaintHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.OldStatus).HasConversion<int>();
+            entity.Property(e => e.NewStatus).HasConversion<int>();
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintHistories)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ActionBy).WithMany()
+                  .HasForeignKey(e => e.ActionById)
+                  .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ComplaintMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.SenderRole).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintMessages)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Sender).WithMany()
+                  .HasForeignKey(e => e.SenderId)
+                  .OnDelete(DeleteBehavior.NoAction);
+        });
 
         OnModelCreatingPartial(modelBuilder);
 

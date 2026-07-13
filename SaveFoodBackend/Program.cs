@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Extensions;
 using SaveFoodBackend.Middleware;
-
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,17 @@ var builder = WebApplication.CreateBuilder(args);
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
+builder.Services.AddProblemDetails();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("FixedWindow", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+});
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -114,6 +127,7 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFood
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IComplaintRepository, SaveFoodBackend.Repositories.ComplaintRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUnitOfWork, SaveFoodBackend.Data.UnitOfWork>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
@@ -131,6 +145,10 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, Save
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NoShowOrderCompletionService>();
+
+// Notification Queue
+builder.Services.AddSingleton<SaveFoodBackend.Interfaces.INotificationQueue, SaveFoodBackend.Services.BackgroundTasks.NotificationQueue>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NotificationBackgroundService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -143,6 +161,8 @@ app.UseSwaggerWithUI();
 
 // ─── 9. HTTPS Redirect ────────────────────────────────────────────────────────
 app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 // ─── 10. CORS & Routing (phải đứng TRƯỚC Authentication) ───────────────────
 app.UseRouting();
@@ -159,6 +179,7 @@ app.MapControllers();
 // ─────────────────────────────────────────────────────────────────────────────
 // SignalR Hubs
 app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHub<SaveFoodBackend.Hubs.ComplaintHub>("/hubs/complaint");
 // ─────────────────────────────────────────────────────────────────────────────
 
 using (var scope = app.Services.CreateScope())

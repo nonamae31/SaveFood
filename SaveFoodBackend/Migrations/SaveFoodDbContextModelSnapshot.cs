@@ -37,7 +37,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "UserId" }, "UQ_Carts_UserId")
                         .IsUnique();
 
-                    b.ToTable("Carts", (string)null);
+                    b.ToTable("Carts");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.CartItem", b =>
@@ -62,7 +62,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("CartItems", (string)null);
+                    b.ToTable("CartItems");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Category", b =>
@@ -89,7 +89,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ClearanceListing", b =>
@@ -131,7 +131,167 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ClearanceListings", (string)null);
+                    b.ToTable("ClearanceListings");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<Guid>("CustomerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsStopRequested")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StopRequestedByRole")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("StoreId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("Complaints");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintEvidence", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.ToTable("ComplaintEvidences");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ActionById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<int>("NewStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("OldStatus")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionById");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.ToTable("ComplaintHistories");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintMessage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<Guid>("ComplaintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SenderRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ComplaintId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("ComplaintMessages");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerVoucherFund", b =>
@@ -236,7 +396,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "UserId" }, "UQ_CustomerWallets_UserId")
                         .IsUnique();
 
-                    b.ToTable("CustomerWallets", (string)null);
+                    b.ToTable("CustomerWallets");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerWalletTransaction", b =>
@@ -286,7 +446,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex(new[] { "CustomerWalletId" }, "IX_CustomerWalletTransactions_WalletId");
 
-                    b.ToTable("CustomerWalletTransactions", (string)null);
+                    b.ToTable("CustomerWalletTransactions");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.EmailVerification", b =>
@@ -319,7 +479,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("EmailVerifications", (string)null);
+                    b.ToTable("EmailVerifications");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ListingDiscountRule", b =>
@@ -361,7 +521,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("ListingDiscountRules", (string)null);
+                    b.ToTable("ListingDiscountRules");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ListingImage", b =>
@@ -390,7 +550,54 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ListingId");
 
-                    b.ToTable("ListingImages", (string)null);
+                    b.ToTable("ListingImages");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("(getutcdate())");
+
+                    b.Property<bool>("IsRead")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid?>("ReferenceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IsRead");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>
@@ -450,7 +657,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.OrderItem", b =>
@@ -483,7 +690,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("OrderId");
 
-                    b.ToTable("OrderItems", (string)null);
+                    b.ToTable("OrderItems");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.PasswordResetToken", b =>
@@ -516,7 +723,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PasswordResetTokens", (string)null);
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Payment", b =>
@@ -563,7 +770,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "OrderId" }, "UQ_Payments_OrderId")
                         .IsUnique();
 
-                    b.ToTable("Payments", (string)null);
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Product", b =>
@@ -605,7 +812,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("StoreId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ProductImage", b =>
@@ -634,7 +841,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("ProductImages", (string)null);
+                    b.ToTable("ProductImages");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Review", b =>
@@ -683,7 +890,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "OrderItemId" }, "UQ_Reviews_OrderItemId")
                         .IsUnique();
 
-                    b.ToTable("Reviews", (string)null);
+                    b.ToTable("Reviews");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ReviewImage", b =>
@@ -714,7 +921,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("ReviewId");
 
-                    b.ToTable("ReviewImages", (string)null);
+                    b.ToTable("ReviewImages");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Role", b =>
@@ -739,7 +946,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "Code" }, "UQ_Roles_Code")
                         .IsUnique();
 
-                    b.ToTable("Roles", (string)null);
+                    b.ToTable("Roles");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Store", b =>
@@ -824,7 +1031,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Stores", (string)null);
+                    b.ToTable("Stores");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.StoreStaff", b =>
@@ -860,7 +1067,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "StoreId", "UserId" }, "UQ_StoreStaffs_Store_User")
                         .IsUnique();
 
-                    b.ToTable("StoreStaffs", (string)null);
+                    b.ToTable("StoreStaffs");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.StoreSubscription", b =>
@@ -916,7 +1123,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("StoreSubscriptions", (string)null);
+                    b.ToTable("StoreSubscriptions");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.StoreWallet", b =>
@@ -953,7 +1160,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "StoreId" }, "UQ__StoreWal__3B82F100E99E60F3")
                         .IsUnique();
 
-                    b.ToTable("StoreWallets", (string)null);
+                    b.ToTable("StoreWallets");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.SubscriptionPlan", b =>
@@ -1005,7 +1212,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("SubscriptionPlans", (string)null);
+                    b.ToTable("SubscriptionPlans");
 
                     b.HasData(
                         new
@@ -1115,7 +1322,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "Email" }, "UQ_Users_Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.UserRole", b =>
@@ -1138,7 +1345,7 @@ namespace SaveFoodBackend.Migrations
                     b.HasIndex(new[] { "UserId", "RoleId" }, "UQ_UserRoles_User_Role")
                         .IsUnique();
 
-                    b.ToTable("UserRoles", (string)null);
+                    b.ToTable("UserRoles");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.WalletTransaction", b =>
@@ -1182,7 +1389,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex(new[] { "StoreWalletId" }, "IX_WalletTransactions_StoreWalletId");
 
-                    b.ToTable("WalletTransactions", (string)null);
+                    b.ToTable("WalletTransactions");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.WithdrawalRequest", b =>
@@ -1245,7 +1452,7 @@ namespace SaveFoodBackend.Migrations
 
                     b.HasIndex(new[] { "StoreId" }, "IX_WithdrawalRequests_StoreId");
 
-                    b.ToTable("WithdrawalRequests", (string)null);
+                    b.ToTable("WithdrawalRequests");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Cart", b =>
@@ -1287,6 +1494,81 @@ namespace SaveFoodBackend.Migrations
                         .HasConstraintName("FK_ClearanceListings_Products");
 
                     b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "Customer")
+                        .WithMany("Complaints")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.Order", "Order")
+                        .WithMany("Complaints")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("SaveFoodBackend.Models.Store", "Store")
+                        .WithMany("Complaints")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Order");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintEvidence", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintEvidences")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintHistory", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "ActionBy")
+                        .WithMany()
+                        .HasForeignKey("ActionById")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintHistories")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ActionBy");
+
+                    b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.ComplaintMessage", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.Complaint", "Complaint")
+                        .WithMany("ComplaintMessages")
+                        .HasForeignKey("ComplaintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SaveFoodBackend.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Complaint");
+
+                    b.Navigation("Sender");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerVoucherFund", b =>
@@ -1385,6 +1667,17 @@ namespace SaveFoodBackend.Migrations
                         .HasConstraintName("FK_ListingImages_Listings");
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.Notification", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>
@@ -1637,6 +1930,15 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("OrderItems");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.Complaint", b =>
+                {
+                    b.Navigation("ComplaintEvidences");
+
+                    b.Navigation("ComplaintHistories");
+
+                    b.Navigation("ComplaintMessages");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.CustomerVoucherFund", b =>
                 {
                     b.Navigation("Transactions");
@@ -1649,6 +1951,8 @@ namespace SaveFoodBackend.Migrations
 
             modelBuilder.Entity("SaveFoodBackend.Models.Order", b =>
                 {
+                    b.Navigation("Complaints");
+
                     b.Navigation("CustomerWalletTransactions");
 
                     b.Navigation("OrderItems");
@@ -1682,6 +1986,8 @@ namespace SaveFoodBackend.Migrations
 
             modelBuilder.Entity("SaveFoodBackend.Models.Store", b =>
                 {
+                    b.Navigation("Complaints");
+
                     b.Navigation("Orders");
 
                     b.Navigation("Products");
@@ -1708,6 +2014,8 @@ namespace SaveFoodBackend.Migrations
             modelBuilder.Entity("SaveFoodBackend.Models.User", b =>
                 {
                     b.Navigation("Cart");
+
+                    b.Navigation("Complaints");
 
                     b.Navigation("CustomerWallet");
 

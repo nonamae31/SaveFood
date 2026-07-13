@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useLogout } from '@/hooks/useAuth';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Wallet, ClipboardList, User, Shield, Store, LogOut, Gift } from 'lucide-react';
+import { ArrowLeft, Wallet, ClipboardList, User, Shield, Store, LogOut, Gift, AlertCircle } from 'lucide-react';
 import { ROUTES } from '@/lib/constants';
 
 import { ProfileInfoTab } from './components/ProfileInfoTab';
@@ -10,8 +10,9 @@ import { ProfileStoresTab } from './components/ProfileStoresTab';
 import { ProfileSecurityTab } from './components/ProfileSecurityTab';
 import { ProfileOrdersTab } from './components/ProfileOrdersTab';
 import { ProfileVoucherTab } from './components/ProfileVoucherTab';
+import { ProfileComplaintsTab } from './components/ProfileComplaintsTab';
 
-type TabId = 'info' | 'stores' | 'security' | 'orders' | 'voucher';
+type TabId = 'info' | 'stores' | 'security' | 'orders' | 'voucher' | 'complaints';
 
 export function ProfilePage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export function ProfilePage() {
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['info', 'stores', 'security', 'orders', 'voucher'].includes(tabParam)) {
+    if (tabParam && ['info', 'stores', 'security', 'orders', 'voucher', 'complaints'].includes(tabParam)) {
       setActiveTab(tabParam as TabId);
     }
   }, [window.location.search]);
@@ -42,6 +43,7 @@ export function ProfilePage() {
     { id: 'security', label: 'Bảo mật', icon: <Shield size={18} /> },
     { id: 'orders', label: 'Đơn mua', icon: <ClipboardList size={18} /> },
     { id: 'voucher', label: 'Voucher', icon: <Gift size={18} /> },
+    { id: 'complaints', label: 'Khiếu nại của tôi', icon: <AlertCircle size={18} /> },
   ] as const;
 
   return (
@@ -152,6 +154,7 @@ export function ProfilePage() {
             {activeTab === 'security' && <ProfileSecurityTab />}
             {activeTab === 'orders' && <ProfileOrdersTab />}
             {activeTab === 'voucher' && <ProfileVoucherTab />}
+            {activeTab === 'complaints' && <ProfileComplaintsTab />}
           </div>
         </div>
       </div>
