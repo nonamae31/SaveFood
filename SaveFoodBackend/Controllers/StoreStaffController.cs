@@ -25,15 +25,15 @@ public class StoreStaffController : ApiControllerBase
     [HttpGet]
     public async Task<IActionResult> GetStoreStaff(Guid storeId, CancellationToken ct)
     {
+        var userId = GetRequiredUserId();
         try
         {
-            var userId = GetRequiredUserId();
             var staff = await _staffService.GetStoreStaffAsync(storeId, userId, ct);
             return OkResponse(staff);
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (Exception ex)
         {
@@ -47,15 +47,63 @@ public class StoreStaffController : ApiControllerBase
     public async Task<IActionResult> AddStoreStaff(Guid storeId, [FromBody] AddStoreStaffRequest request, CancellationToken ct)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
+        var userId = GetRequiredUserId();
         try
         {
-            var userId = GetRequiredUserId();
             var newStaff = await _staffService.AddStaffAsync(storeId, userId, request, ct);
             return OkResponse(newStaff, "Thêm nhân viên thành công!");
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+        }
+    }
+
+    // PATCH: api/stores/{storeId}/staff/batch-role
+    [HttpPatch("batch-role")]
+    public async Task<IActionResult> BatchUpdateRole(Guid storeId, [FromBody] BatchUpdateRoleRequest request, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        try
+        {
+            await _staffService.BatchUpdateRoleAsync(storeId, userId, request, ct);
+            return OkResponse(new { message = "Cập nhật vai trò thành công!" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequestResponse(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Lỗi hệ thống.", details = ex.Message });
+        }
+    }
+
+    // DELETE: api/stores/{storeId}/staff/batch
+    [HttpDelete("batch")]
+    public async Task<IActionResult> BatchRemoveStaff(Guid storeId, [FromBody] BatchRemoveStaffRequest request, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        try
+        {
+            await _staffService.BatchRemoveStaffAsync(storeId, userId, request, ct);
+            return OkResponse(new { message = "Xóa nhân viên thành công!" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {
@@ -72,15 +120,15 @@ public class StoreStaffController : ApiControllerBase
     [HttpDelete("{targetUserId}")]
     public async Task<IActionResult> RemoveStoreStaff(Guid storeId, Guid targetUserId, CancellationToken ct)
     {
+        var userId = GetRequiredUserId();
         try
         {
-            var userId = GetRequiredUserId();
             await _staffService.RemoveStaffAsync(storeId, userId, targetUserId, ct);
             return NoContentResponse();
         }
         catch (UnauthorizedAccessException ex)
         {
-            return Forbid(ex.Message);
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message });
         }
         catch (InvalidOperationException ex)
         {

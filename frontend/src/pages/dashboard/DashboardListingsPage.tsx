@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Plus, Edit2, Trash2, Tag } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { 
@@ -7,7 +8,8 @@ import {
   useUpdateStoreListing, 
   useDeleteStoreListing,
   useUploadStoreListingImages,
-  useDeleteStoreListingImage
+  useDeleteStoreListingImage,
+  useToggleStoreListingVisibility
 } from '@/hooks/useStoreListings'
 import { useStoreProducts } from '@/hooks/useStoreProducts'
 import { ListingModal } from '@/components/dashboard/ListingModal'
@@ -16,6 +18,7 @@ import type { ListingResponseDTO, CreateListingDTO, UpdateListingDTO } from '@/t
 export default function DashboardListingsPage() {
   const { user } = useAuthContext()
   const storeId = user?.storeId ?? undefined
+  const queryClient = useQueryClient()
 
   const { data: listings, isLoading: isLoadingListings } = useStoreListings(storeId)
   const { data: products, isLoading: isLoadingProducts } = useStoreProducts(storeId)
@@ -25,6 +28,7 @@ export default function DashboardListingsPage() {
   const deleteMutation = useDeleteStoreListing()
   const uploadImageMutation = useUploadStoreListingImages()
   const deleteImageMutation = useDeleteStoreListingImage()
+  const toggleVisibilityMutation = useToggleStoreListingVisibility()
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingListing, setEditingListing] = useState<ListingResponseDTO | null>(null)
@@ -67,8 +71,8 @@ export default function DashboardListingsPage() {
       setConfirmModal({ isOpen: false, listingId: null, message: '', isLoading: false })
     } catch (error: any) {
       // Handle 409 Conflict with active orders
-      if (error.response?.status === 409 && error.response?.data?.blockingOrderCodes) {
-        const orderCodes = error.response.data.blockingOrderCodes.join(', ')
+      if (error?.status === 409 && error?.details?.blockingOrderCodes) {
+        const orderCodes = error.details.blockingOrderCodes.join(', ')
         setConfirmModal({
           isOpen: true,
           listingId: null, // Reset so they can only close the modal
@@ -82,9 +86,18 @@ export default function DashboardListingsPage() {
           isLoading: false
         })
       } else {
-        alert(error.response?.data?.Message || 'Có lỗi xảy ra khi xóa tin đăng')
+        alert(error?.details?.message || error?.message || 'Có lỗi xảy ra khi xóa tin đăng')
         setConfirmModal({ isOpen: false, listingId: null, message: '', isLoading: false })
       }
+    }
+  }
+
+  const handleToggleVisibility = async (listingId: string) => {
+    if (!storeId) return
+    try {
+      await toggleVisibilityMutation.mutateAsync({ storeId, listingId })
+    } catch (error) {
+      alert('Không thể thay đổi trạng thái tin đăng.')
     }
   }
 
@@ -176,6 +189,7 @@ export default function DashboardListingsPage() {
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600">Giá bán</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Số lượng</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-center">Đang bán</th>
                   <th className="px-6 py-4 text-sm font-semibold text-gray-600 text-right">Thao tác</th>
                 </tr>
               </thead>
@@ -210,6 +224,18 @@ export default function DashboardListingsPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {getStatusBadge(listing.status)}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <label className="relative inline-flex items-center cursor-pointer justify-center" title="Bật/Tắt (Draft <-> Published)">
+                          <input 
+                            type="checkbox" 
+                            className="sr-only peer" 
+                            checked={listing.status === 1} // 1 = Published
+                            onChange={() => handleToggleVisibility(listing.id)}
+                            disabled={listing.status === 2 || listing.status === 3}
+                          />
+                          <div className={`w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-500 ${(listing.status === 2 || listing.status === 3) ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                        </label>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">

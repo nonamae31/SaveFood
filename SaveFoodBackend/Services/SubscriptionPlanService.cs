@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.DTOs.Admin;
@@ -14,17 +15,28 @@ namespace SaveFoodBackend.Services
     public class SubscriptionPlanService : ISubscriptionPlanService
     {
         private readonly ISubscriptionRepository _subscriptionRepo;
+        private readonly IRedisService _redisService;
 
-        public SubscriptionPlanService(ISubscriptionRepository subscriptionRepo)
+        public SubscriptionPlanService(ISubscriptionRepository subscriptionRepo, IRedisService redisService)
         {
             _subscriptionRepo = subscriptionRepo;
+            _redisService = redisService;
         }
 
         public async Task<IEnumerable<SubscriptionPlanDTO>> GetAllPlansAsync()
         {
+            var cacheKey = "subscription-plans:all";
+            var cached = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cached))
+            {
+                Console.WriteLine($"[CACHE HIT] {cacheKey}");
+                return JsonSerializer.Deserialize<List<SubscriptionPlanDTO>>(cached);
+            }
+            Console.WriteLine($"[CACHE MISS] {cacheKey}");
+
             var plans = await _subscriptionRepo.GetAllActivePlansAsync();
             
-            return plans.Select(p => new SubscriptionPlanDTO
+            var result = plans.Select(p => new SubscriptionPlanDTO
             {
                 Id = p.Id,
                 Name = p.Name,
@@ -37,15 +49,26 @@ namespace SaveFoodBackend.Services
                 PriorityLevel = p.PriorityLevel,
                 AnalyticsLevel = p.AnalyticsLevel
             }).ToList();
+
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(result), TimeSpan.FromHours(12));
+            return result;
         }
 
         public async Task<SubscriptionPlanDTO?> GetPlanByIdAsync(Guid id)
         {
-            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
+            var cacheKey = $"subscription-plans:{id}";
+            var cached = await _redisService.GetAsync(cacheKey);
+            if (!string.IsNullOrEmpty(cached))
+            {
+                Console.WriteLine($"[CACHE HIT] {cacheKey}");
+                return JsonSerializer.Deserialize<SubscriptionPlanDTO>(cached);
+            }
+            Console.WriteLine($"[CACHE MISS] {cacheKey}");
 
+            var plan = await _subscriptionRepo.GetPlanByIdAsync(id);
             if (plan == null) return null;
 
-            return new SubscriptionPlanDTO
+            var dto = new SubscriptionPlanDTO
             {
                 Id = plan.Id,
                 Name = plan.Name,
@@ -58,6 +81,9 @@ namespace SaveFoodBackend.Services
                 PriorityLevel = plan.PriorityLevel,
                 AnalyticsLevel = plan.AnalyticsLevel
             };
+
+            await _redisService.SetAsync(cacheKey, JsonSerializer.Serialize(dto), TimeSpan.FromHours(12));
+            return dto;
         }
 
         public async Task<SubscriptionPlanDTO> CreatePlanAsync(CreateSubscriptionPlanRequest request)
@@ -78,6 +104,9 @@ namespace SaveFoodBackend.Services
 
             _subscriptionRepo.AddPlan(newPlan);
             await _subscriptionRepo.SaveChangesAsync();
+
+            await _redisService.DeleteAsync("subscription-plans:all");
+            Console.WriteLine($"[CACHE INVALIDATE] subscription-plans:all (Create)");
 
             return new SubscriptionPlanDTO
             {
@@ -114,6 +143,10 @@ namespace SaveFoodBackend.Services
 
             await _subscriptionRepo.SaveChangesAsync();
 
+            await _redisService.DeleteAsync("subscription-plans:all");
+            await _redisService.DeleteAsync($"subscription-plans:{id}");
+            Console.WriteLine($"[CACHE INVALIDATE] subscription-plans:all & subscription-plans:{id} (Update)");
+
             return new SubscriptionPlanDTO
             {
                 Id = plan.Id,
@@ -141,6 +174,10 @@ namespace SaveFoodBackend.Services
             // Đánh dấu là đã xóa và gỡ cờ Active (nếu có)
             plan.PlanFlags = (byte)((plan.PlanFlags & ~(byte)PlanFlagsEnum.IsActive) | (byte)PlanFlagsEnum.IsDeleted);
             await _subscriptionRepo.SaveChangesAsync();
+
+            await _redisService.DeleteAsync("subscription-plans:all");
+            await _redisService.DeleteAsync($"subscription-plans:{id}");
+            Console.WriteLine($"[CACHE INVALIDATE] subscription-plans:all & subscription-plans:{id} (Delete)");
         }
     }
 }

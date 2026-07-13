@@ -4,21 +4,25 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Sparkles, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Sparkles, RefreshCw, Map as MapIcon, List as ListIcon, Loader2 } from 'lucide-react'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ErrorState } from '@/components/ui/ErrorState'
 import { ListingCard } from '@/components/listings/ListingCard'
-import { ListingFilters } from '@/components/listings/ListingFilters'
-import { useListings, useRecommendations } from '@/hooks/useListings'
+import { FilterBottomSheet } from '@/components/listings/FilterBottomSheet'
+import { ListingMapView } from '@/components/listings/ListingMapView'
+import { useListingsInfinite, useRecommendations } from '@/hooks/useListings'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { useLocationContext } from '@/contexts/LocationContext'
-import type { ListingFilter } from '@/types/listing.types'
+import type { ListingFilter, CustomerListingDTO } from '@/types/listing.types'
 
 export function ProductListPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { isAuthenticated } = useAuthContext()
   const { location: userLocation } = useLocationContext()
+
+  // View Toggle: 'list' or 'map'
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
 
   const filter: ListingFilter = useMemo(() => {
     return {
@@ -31,6 +35,7 @@ export function ProductListPage() {
       radiusKm: searchParams.has('radiusKm') ? Number(searchParams.get('radiusKm')) : undefined,
       userLat: userLocation?.lat,
       userLng: userLocation?.lng,
+      pageSize: 20 // Số lượng tải mỗi lần cuộn
     }
   }, [searchParams, userLocation])
 
@@ -47,12 +52,15 @@ export function ProductListPage() {
   }
 
   const {
-    data: listings,
+    data,
     isLoading,
     isError,
     error,
     refetch,
-  } = useListings(filter)
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage
+  } = useListingsInfinite(filter)
 
   const {
     data: recommendations,
@@ -60,20 +68,16 @@ export function ProductListPage() {
   } = useRecommendations(userLocation?.lat, userLocation?.lng)
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
-  // -- Pagination Logic --
-  const [currentPage, setCurrentPage] = useState(1)
-  const ITEMS_PER_PAGE = 20
 
-  useEffect(() => {
-    setCurrentPage(1)
-  }, [searchParams])
+  // Gộp tất cả items từ các pages
+  const allListings = useMemo(() => {
+    if (!data) return []
+    return data.pages.reduce((acc: CustomerListingDTO[], page) => {
+      return [...acc, ...page.items]
+    }, [])
+  }, [data])
 
-  const paginatedListings = useMemo(() => {
-    if (!listings) return []
-    return listings.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
-  }, [listings, currentPage])
-
-  const totalPages = listings ? Math.ceil(listings.length / ITEMS_PER_PAGE) : 0
+  const totalCount = data?.pages[0]?.totalCount
 
   return (
     <>
@@ -83,7 +87,6 @@ export function ProductListPage() {
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, #8ced7f 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
 
         <div className="relative max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-14 sm:pt-36 sm:pb-16">
-
           <h1 className="text-4xl sm:text-5xl font-bold font-[--font-display] leading-tight mb-3">
             {filter.searchQuery ? (
               <>Kết quả tìm kiếm cho: <span className="text-[#8ced7f]">"{filter.searchQuery}"</span></>
@@ -117,43 +120,68 @@ export function ProductListPage() {
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {recommendations.slice(0, 4).map(listing => (
-                <ListingCard key={listing.id} listing={listing} />
+                <ListingCard key={`rec-${listing.id}`} listing={listing} />
               ))}
             </div>
           </section>
         )}
 
-        {/* ── Filter Bar ── */}
-        <ListingFilters
-          filter={filter}
-          onChange={setFilter}
-          totalCount={listings?.length}
-        />
+        {/* ── Filter & View Toggle Bar ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-1">
+            <FilterBottomSheet
+              filter={filter}
+              onChange={setFilter}
+              totalCount={totalCount}
+            />
+          </div>
+          
+          {/* View Toggle */}
+          <div className="hidden sm:flex items-center bg-gray-100 p-1 rounded-xl shrink-0 self-end">
+            <button
+              onClick={() => setViewMode('list')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                viewMode === 'list' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <ListIcon size={16} /> Danh sách
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                viewMode === 'map' ? 'bg-white text-brand-600 shadow-sm' : 'text-gray-500 hover:text-gray-900'
+              }`}
+            >
+              <MapIcon size={16} /> Bản đồ
+            </button>
+          </div>
+        </div>
 
-        {/* ── Lưới sản phẩm ── */}
+        {/* ── Main Content Area ── */}
         <section aria-labelledby="listings-heading">
           <div className="flex items-center justify-between mb-4">
             <h2
               id="listings-heading"
               className="text-[--text-heading-sm] font-bold text-[--color-ink-primary]"
             >
-              Tất cả sản phẩm
+              {viewMode === 'map' ? 'Khám phá trên bản đồ' : 'Tất cả sản phẩm'}
+              {totalCount !== undefined && <span className="text-gray-500 text-sm ml-2 font-normal">({totalCount} kết quả)</span>}
             </h2>
             {!isLoading && !isError && (
               <button
                 onClick={() => refetch()}
                 className="flex items-center gap-1.5 text-[--text-body-sm] text-[--color-ink-secondary]
                            hover:text-[--color-ink-primary] transition-colors"
-                aria-label="Làm mới danh sách"
+                aria-label="Làm mới"
               >
                 <RefreshCw size={14} strokeWidth={2} aria-hidden="true" />
-                Làm mới
+                <span className="hidden sm:inline">Làm mới</span>
               </button>
             )}
           </div>
 
           {/* Loading */}
-          {isLoading && (
+          {isLoading && viewMode === 'list' && (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
               <SkeletonCard count={10} />
             </div>
@@ -169,7 +197,7 @@ export function ProductListPage() {
           )}
 
           {/* Empty */}
-          {!isLoading && !isError && listings && listings.length === 0 && (
+          {!isLoading && !isError && allListings.length === 0 && (
             <EmptyState
               title="Không tìm thấy sản phẩm"
               description="Không có sản phẩm nào phù hợp với bộ lọc hiện tại. Hãy thử điều chỉnh tiêu chí lọc."
@@ -186,50 +214,52 @@ export function ProductListPage() {
           )}
 
           {/* Data */}
-          {!isLoading && !isError && listings && listings.length > 0 && (
+          {!isLoading && !isError && allListings.length > 0 && (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
-                {paginatedListings.map(listing => (
-                  <ListingCard key={listing.id} listing={listing} />
-                ))}
-              </div>
-
-              {/* Pagination Controls */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-10">
-                  <button
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="p-2 rounded-full border border-[--color-surface-border] hover:bg-green-50 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Trang trước"
-                  >
-                    <ChevronLeft size={20} />
-                  </button>
-
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 rounded-full text-sm font-bold flex items-center justify-center transition-all ${
-                          currentPage === page 
-                            ? 'bg-green-600 text-white shadow-md' 
-                            : 'text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {page}
-                      </button>
+              {viewMode === 'list' ? (
+                <>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-5">
+                    {allListings.map(listing => (
+                      <ListingCard key={listing.id} listing={listing} />
                     ))}
                   </div>
 
-                  <button
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2 rounded-full border border-[--color-surface-border] hover:bg-green-50 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Trang sau"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
+                  {/* Infinite Scroll Load More Button */}
+                  {hasNextPage && (
+                    <div className="flex justify-center mt-10">
+                      <button
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                        className="px-8 py-3 rounded-full border-2 border-brand-500 text-brand-600 font-bold hover:bg-brand-50 transition-colors flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {isFetchingNextPage ? (
+                          <>
+                            <Loader2 size={18} className="animate-spin" />
+                            Đang tải...
+                          </>
+                        ) : (
+                          'Xem thêm sản phẩm'
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="h-[60vh] min-h-[500px]">
+                  <ListingMapView listings={allListings} />
+                  
+                  {/* Option to load more on map if there are more pages */}
+                  {hasNextPage && (
+                    <div className="flex justify-center mt-4">
+                      <button
+                        onClick={() => fetchNextPage()}
+                        disabled={isFetchingNextPage}
+                        className="px-6 py-2 rounded-full bg-white border border-gray-300 shadow-sm text-sm font-bold hover:bg-gray-50 flex items-center gap-2"
+                      >
+                        {isFetchingNextPage ? <Loader2 size={16} className="animate-spin" /> : 'Tải thêm vị trí'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </>

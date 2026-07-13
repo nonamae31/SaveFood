@@ -11,6 +11,17 @@ namespace SaveFoodBackend.DTOs.Store
         public string Email { get; set; } = null!;
     }
 
+    public class BatchUpdateRoleRequest
+    {
+        public List<Guid> UserIds { get; set; } = new();
+        public byte NewRole { get; set; }
+    }
+
+    public class BatchRemoveStaffRequest
+    {
+        public List<Guid> UserIds { get; set; } = new();
+    }
+
     /// <summary>Thông tin một thành viên trong danh sách nhân viên cửa hàng.</summary>
     public class StoreStaffDTO
     {
