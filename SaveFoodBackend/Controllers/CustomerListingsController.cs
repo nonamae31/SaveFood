@@ -8,7 +8,7 @@ using SaveFoodBackend.Interfaces;
 namespace SaveFoodBackend.Controllers;
 
 [ApiController]
-[Route("api/listings")]
+[Route("api/customerlistings")]
 public class CustomerListingsController : ApiControllerBase
 {
     private readonly ICustomerListingService _listingService;
