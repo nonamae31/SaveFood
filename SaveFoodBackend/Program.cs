@@ -50,10 +50,10 @@ builder.Services.AddSwaggerWithJwt();
 
 // ─── 3. Database Context (SQL Server) ─────────────────────────────────────────
 builder.Services.AddDbContext<SaveFoodDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
-);
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseSqlServer(connectionString);
+});
 
 // ─── 4. Authentication (JWT) & Authorization ──────────────────────────────────
 builder.Services.AddJwtAuthentication(builder.Configuration);

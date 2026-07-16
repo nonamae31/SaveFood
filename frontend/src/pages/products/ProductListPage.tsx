@@ -70,8 +70,6 @@ export function ProductListPage() {
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
 
   useEffect(() => {
-    setCurrentPage(1)
-    
     // Auto-scroll to listings if a search query exists
     if (searchParams.has('q')) {
       const el = document.getElementById('listings-heading');
@@ -83,6 +81,7 @@ export function ProductListPage() {
   }, [searchParams])
 
   const totalCount = data?.pages[0]?.totalCount
+  const allListings = data?.pages.flatMap(page => page.items) || []
 
   return (
     <>
