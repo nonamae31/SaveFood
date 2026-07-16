@@ -69,13 +69,18 @@ export function ProductListPage() {
 
   const showRecs = isAuthenticated && !isRecsLoading && recommendations && recommendations.length > 0
 
-  // Gộp tất cả items từ các pages
-  const allListings = useMemo(() => {
-    if (!data) return []
-    return data.pages.reduce((acc: CustomerListingDTO[], page) => {
-      return [...acc, ...page.items]
-    }, [])
-  }, [data])
+  useEffect(() => {
+    setCurrentPage(1)
+    
+    // Auto-scroll to listings if a search query exists
+    if (searchParams.has('q')) {
+      const el = document.getElementById('listings-heading');
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 100; // Offset for header
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    }
+  }, [searchParams])
 
   const totalCount = data?.pages[0]?.totalCount
 
