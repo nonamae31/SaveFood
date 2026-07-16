@@ -182,9 +182,11 @@ app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
 app.MapHub<SaveFoodBackend.Hubs.ComplaintHub>("/hubs/complaint");
 // ─────────────────────────────────────────────────────────────────────────────
 
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
-    var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
     // Auto-migrate schema for new columns Username and NormalizedEmail
     var sql = @"
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Username')
@@ -253,6 +255,7 @@ using (var scope = app.Services.CreateScope())
     if (anyChanges)
     {
         db.SaveChanges();
+    }
     }
 }
 
