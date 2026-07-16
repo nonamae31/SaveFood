@@ -6,6 +6,7 @@ import { ListingCard } from '@/components/listings/ListingCard';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useAuthContext } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { GlobalSearchBar } from '@/components/ui/search/GlobalSearchBar';
 
 export function HomePage() {
   const { data: listings, isLoading, isError } = useListings();
@@ -62,6 +63,8 @@ export function HomePage() {
             <p className="text-base sm:text-lg text-white/70 mt-6 leading-relaxed max-w-sm text-left">
               Hàng ngàn món ăn chất lượng đang chờ được thưởng thức thay vì bị bỏ phí.
             </p>
+
+            <GlobalSearchBar variant="hero" />
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mt-8 md:mt-10 w-full sm:w-auto self-start">

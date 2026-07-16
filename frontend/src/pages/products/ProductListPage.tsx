@@ -66,6 +66,15 @@ export function ProductListPage() {
 
   useEffect(() => {
     setCurrentPage(1)
+    
+    // Auto-scroll to listings if a search query exists
+    if (searchParams.has('q')) {
+      const el = document.getElementById('listings-heading');
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 100; // Offset for header
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    }
   }, [searchParams])
 
   const paginatedListings = useMemo(() => {
