@@ -44,6 +44,12 @@ export type ComplaintDetail = {
 
 import { useParams, useNavigate } from 'react-router-dom';
 
+const isComplaintClosed = (status: any) => {
+  return status === 2 || status === 'Resolved' || status === 'RESOLVED' || 
+         status === 4 || status === 'Cancelled' || status === 'CANCELLED' || 
+         status === 'CLOSED';
+};
+
 export default function ComplaintChatPage() {
   const params = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -198,7 +204,7 @@ export default function ComplaintChatPage() {
         }
       }
       toast.success('Đã đồng ý dừng khiếu nại');
-      setComplaint((prev) => (prev ? { ...prev, isStopRequested: false, status: 'RESOLVED' } : prev));
+      setComplaint((prev) => (prev ? { ...prev, isStopRequested: false, status: 2 } : prev));
     } catch (err) {
       toast.error(getDisplayError(err));
     } finally {
@@ -236,10 +242,10 @@ export default function ComplaintChatPage() {
       setIsActionLoading(true);
       await apiClient(`/v1/complaints/${params.id}/status`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 4, note: "Khách hàng chủ động đóng khiếu nại" })
+        body: JSON.stringify({ status: 2, note: "Khách hàng chủ động đóng khiếu nại" })
       });
       toast.success('Đã dừng khiếu nại thành công');
-      setComplaint((prev) => (prev ? { ...prev, status: 'CLOSED', isStopRequested: false } : prev));
+      setComplaint((prev) => (prev ? { ...prev, status: 2, isStopRequested: false } : prev));
     } catch (err) {
       toast.error(getDisplayError(err));
     } finally {
@@ -337,7 +343,7 @@ export default function ComplaintChatPage() {
                 Mở Sản phẩm
               </button>
             )}
-            {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' && complaint?.status !== 'Cancelled' && complaint?.status !== 'CANCELLED' && (
+            {!isComplaintClosed(complaint?.status) && (
               <button
                 onClick={handleStopComplaint}
                 disabled={isActionLoading}
@@ -354,7 +360,7 @@ export default function ComplaintChatPage() {
       </div>
 
       {/* Amber Alert Banner when isStopRequested === true */}
-      {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' && complaint?.isStopRequested && (
+      {!isComplaintClosed(complaint?.status) && complaint?.isStopRequested && (
         <div className="bg-amber-50 border-x border-b border-amber-200 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-amber-900">
             <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-600" />
@@ -450,7 +456,7 @@ export default function ComplaintChatPage() {
 
       {/* Message Input Form */}
       <div className="bg-white p-4 border border-gray-200 rounded-b-xl shadow-sm">
-        {complaint?.status !== 'RESOLVED' && complaint?.status !== 'CLOSED' ? (
+        {!isComplaintClosed(complaint?.status) ? (
           <form ref={formRef} action={handleSendMessage} className="flex gap-2">
             <input
               type="text"

@@ -6,6 +6,12 @@ import { ComplaintSkeleton } from './ComplaintSkeleton';
 import { NotificationBadge } from './NotificationBadge';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 
+const isComplaintClosed = (status: any) => {
+  return status === 2 || status === 'Resolved' || status === 'RESOLVED' || 
+         status === 4 || status === 'Cancelled' || status === 'CANCELLED' || 
+         status === 'CLOSED';
+};
+
 export function ComplaintListContainer({ role }: { role: 'shop' | 'admin' }) {
   const [loading, setLoading] = useState(true);
   const [complaints, setComplaints] = useState<any[]>([]);
@@ -324,7 +330,7 @@ export function ComplaintListContainer({ role }: { role: 'shop' | 'admin' }) {
             <div className="border-t border-gray-100 pt-6">
               <h3 className="text-sm font-bold text-gray-700 mb-4 uppercase tracking-wide">Phản hồi</h3>
               
-              {selectedComplaintDetail.status !== 'Resolved' && selectedComplaintDetail.status !== 2 ? (
+              {!isComplaintClosed(selectedComplaintDetail.status) ? (
                 <>
                   <textarea 
                     className="w-full p-4 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none transition-all"
