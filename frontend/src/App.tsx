@@ -98,7 +98,7 @@ function App() {
           <CartProvider>
             <BrowserRouter>
             <ScrollToTop />
-            <Toaster position="top-right" containerStyle={{ zIndex: 99999 }} />
+            <Toaster position="bottom-right" containerStyle={{ zIndex: 99999 }} />
             <GlobalNotificationListener />
             <Routes>
               {/* ── Public Pages ── */}
