@@ -49,6 +49,17 @@ export function ProductDetailPage() {
     if (Array.isArray(data)) {
       const found = data.find(l => l.id.toLowerCase() === id?.toLowerCase())
       if (found) { cachedListing = found; break }
+    } else if (data && typeof data === 'object' && 'pages' in data) {
+      // Dữ liệu từ useListingsInfinite
+      for (const page of (data as any).pages) {
+        const found = page.items?.find((l: CustomerListingDTO) => l.id.toLowerCase() === id?.toLowerCase())
+        if (found) { cachedListing = found; break }
+      }
+      if (cachedListing) break;
+    } else if (data && typeof data === 'object' && 'items' in data) {
+      // Dữ liệu từ raw query getListings
+      const found = (data as any).items?.find((l: CustomerListingDTO) => l.id.toLowerCase() === id?.toLowerCase())
+      if (found) { cachedListing = found; break }
     }
   }
 
@@ -64,7 +75,7 @@ export function ProductDetailPage() {
     staleTime: 5 * 60 * 1000
   })
 
-  const relatedListings = storeListings
+  const relatedListings = storeListings?.items
     ?.filter(l => l.id.toLowerCase() !== listing?.id.toLowerCase())
     .slice(0, 4) ?? []
 
