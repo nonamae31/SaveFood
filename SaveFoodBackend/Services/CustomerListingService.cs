@@ -166,7 +166,9 @@ public class CustomerListingService : ICustomerListingService
                     dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
                 }
                 return dto;
-            });
+            }).ToList();
+            
+            await _redis.SetAsync(cacheKey, JsonSerializer.Serialize(recentDtos), RecommendationsCacheTtl);
             return recentDtos;
         }
 
@@ -180,7 +182,7 @@ public class CustomerListingService : ICustomerListingService
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingDiscountRules)
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.QuantityAvailable > 0 && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
             .Where(l => favoriteCategoryIds.Contains(l.Product.CategoryId))
             .OrderByDescending(l => l.Product.Store.StoreSubscriptions.Select(s => s.Plan.PriorityLevel).FirstOrDefault())
             .ThenBy(l => l.ExpiryDate)
@@ -196,8 +198,9 @@ public class CustomerListingService : ICustomerListingService
                 dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)l.Product.Store.Latitude.Value, (double)l.Product.Store.Longitude.Value), 1);
             }
             return dto;
-        });
+        }).ToList();
 
+        await _redis.SetAsync(cacheKey, JsonSerializer.Serialize(dtos), RecommendationsCacheTtl);
         return dtos;
     }
 

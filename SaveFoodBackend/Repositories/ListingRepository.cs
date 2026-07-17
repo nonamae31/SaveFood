@@ -92,7 +92,7 @@ public class ListingRepository : IListingRepository
                 .ThenInclude(p => p.ProductImages)
             .Include(l => l.ListingImages)
             .Include(l => l.ListingDiscountRules) // ✅ cần cho Sale Milestone
-            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)ListingStatus.Published && l.QuantityAvailable > 0 && l.ExpiryDate > DateTime.UtcNow && l.Product.Store.Status == (byte)StoreStatus.Active);
 
         if (!string.IsNullOrWhiteSpace(searchQuery))
         {
