@@ -293,7 +293,14 @@ export function CartPage() {
 
                   navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })
                 } catch (err: any) {
-                  toast.error(err?.message || 'Không thể kiểm tra hàng. Vui lòng thử lại.')
+                  let errorMsg = err?.response?.data?.message || err?.message || 'Không thể kiểm tra hàng. Vui lòng thử lại.';
+                  if (errorMsg.includes('ưu tiên')) {
+                     errorMsg = errorMsg.replace(/đang được giữ chỗ bởi khách hàng ưu tiên cao hơn\.?/gi, "không đủ số lượng trong kho hoặc đã hết hàng ()");
+                     if (errorMsg.includes("ưu tiên")) {
+                         errorMsg = "Không thể thanh toán do sản phẩm đã hết hàng ()";
+                     }
+                  }
+                  toast.error(errorMsg)
                 } finally {
                   setIsCheckingAvailability(false)
                 }

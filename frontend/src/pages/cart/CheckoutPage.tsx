@@ -112,7 +112,13 @@ export function CheckoutPage() {
             }
         },
         onError: (error: any) => {
-            const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
+            let errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
+            if (errorMsg.includes("ưu tiên")) {
+                errorMsg = errorMsg.replace(/đang được giữ chỗ bởi khách hàng ưu tiên cao hơn\.?/gi, "không đủ số lượng trong kho hoặc đã hết hàng ()");
+                if (errorMsg.includes("ưu tiên")) {
+                    errorMsg = "Không thể thanh toán do sản phẩm đã hết hàng ()";
+                }
+            }
             toast.error(<CountdownMessage text={errorMsg} />, { duration: 6000 });
             
             // If it's the voucher changed error, refresh the fund and toggle off
