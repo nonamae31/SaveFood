@@ -87,19 +87,37 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
 
                 decimal totalCheckoutAmount = cartItems.Sum(ci => ci.Listing.SalePrice * ci.Quantity);
                 
-                // Priority Checkout Queue Logic
-                var totalSpent = await _ctx.Orders.Where(o => o.UserId == userId && o.OrderStatus == OrderStatusEnum.Completed).SumAsync(o => o.TotalAmount, cancellationToken);
-                double priorityScore = (double)totalCheckoutAmount * 100000000 + (double)totalSpent;
-                
+                // ── Priority Checkout Queue Logic ─────────────────────────────────────────
+                // Bậc 1: Lịch sử chi tiêu (tổng đơn hoàn thành trước đây) — khách cũ được ưu tiên
+                var totalSpent = await _ctx.Orders
+                    .Where(o => o.UserId == userId && o.OrderStatus == OrderStatusEnum.Completed)
+                    .SumAsync(o => o.TotalAmount, cancellationToken);
+
+                // Bậc 3: Số dư ví hiện tại
+                var walletBalance = await _ctx.CustomerWallets
+                    .Where(w => w.UserId == userId)
+                    .Select(w => w.Balance)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // Bậc 4: Timestamp vào hàng — ai EnqueuePriorityAsync trước thì có timestamp nhỏ hơn → trừ đi để ưu tiên
+                long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                // Công thức: score lớn hơn = ưu tiên cao hơn
+                //   Bậc 1 (lịch sử) chiếm dải lớn nhất → nhân 1e12
+                //   Bậc 2 (tổng đơn hiện tại)            → nhân 1e8
+                //   Bậc 3 (số dư ví)                     → nhân 1e4
+                //   Bậc 4 (timestamp, càng nhỏ càng tốt) → trừ (chia nhỏ để không át bậc trên)
+                double priorityScore = (double)totalSpent * 1_000_000_000_000.0
+                                     + (double)totalCheckoutAmount * 100_000_000.0
+                                     + (double)walletBalance * 10_000.0
+                                     - (double)(nowMs % 1_000_000); // chỉ lấy 6 chữ số cuối để đủ nhỏ
+
                 await _queueService.EnqueuePriorityAsync(queueKey, qUserId, priorityScore);
-                
-                // Wait up to 1 second for our turn
-                int waitRetries = 10;
-                while (waitRetries > 0)
+
+                // Nếu không phải lượt mình → fail ngay (không đợi). Người ưu tiên thấp hơn nhường chỗ.
+                if (!await _queueService.IsMyTurnAsync(queueKey, qUserId))
                 {
-                    if (await _queueService.IsMyTurnAsync(queueKey, qUserId)) break;
-                    await Task.Delay(100, cancellationToken);
-                    waitRetries--;
+                    throw new BusinessException("Sản phẩm đã có người khác đang trong quá trình mua. Vui lòng thử lại sau.");
                 }
                 
                 CustomerWallet? customerWallet = null;
