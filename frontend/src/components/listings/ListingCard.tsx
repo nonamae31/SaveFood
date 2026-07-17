@@ -84,7 +84,7 @@ export function ListingCard({ listing }: ListingCardProps) {
         toast.success('Đã thêm vào giỏ hàng')
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+        toast.error(err?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
       }
     })
   }

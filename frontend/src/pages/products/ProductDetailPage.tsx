@@ -83,7 +83,7 @@ export function ProductDetailPage() {
         toast.success('Đã thêm vào giỏ hàng')
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+        toast.error(err?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
       }
     })
   }
@@ -94,7 +94,7 @@ export function ProductDetailPage() {
         navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: [cartItem.id] } })
       },
       onError: (err: any) => {
-        toast.error(err?.response?.data?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
+        toast.error(err?.message || 'Có lỗi xảy ra khi thêm vào giỏ hàng')
       }
     })
   }

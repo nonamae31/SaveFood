@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuthContext } from '@/contexts/AuthContext';
 import {
-  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, UserX, Search, CheckCheck
+  Users, UserPlus, Trash2, Loader2, Mail, Crown, Shield, Search, CheckCheck
 } from 'lucide-react';
 import { storeStaffApi, type StoreStaffDTO } from '@/api/store.staff.api';
 import toast from 'react-hot-toast';

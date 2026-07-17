@@ -251,26 +251,33 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
             }
         });
 
-        // Notifications
-        if (req.PaymentMethod == 0) // Only notify immediately if Wallet (since PayOS needs webhook)
+        // Notifications (fire-and-forget, không throw ra ngoài để tránh crash response)
+        if (req.PaymentMethod == 0)
         {
-            foreach (var order in createdOrders)
+            try
             {
-                var staffIds = await _ctx.StoreStaffs
-                    .Where(s => s.StoreId == order.StoreId)
-                    .Select(s => s.UserId)
-                    .ToListAsync(cancellationToken);
-
-                foreach (var uid in staffIds.Distinct())
+                foreach (var order in createdOrders)
                 {
-                    await _notificationService.SendAsync(
-                        userId: uid,
-                        title: "Đơn hàng mới",
-                        body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán qua ví. Vui lòng kiểm tra và chuẩn bị món!",
-                        type: "NEW_ORDER",
-                        referenceId: order.Id
-                    );
+                    var staffIds = await _ctx.StoreStaffs
+                        .Where(s => s.StoreId == order.StoreId)
+                        .Select(s => s.UserId)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var uid in staffIds.Distinct())
+                    {
+                        await _notificationService.SendAsync(
+                            userId: uid,
+                            title: "Đơn hàng mới",
+                            body: $"Có đơn hàng mới ({order.OrderCode}) vừa được thanh toán qua ví. Vui lòng kiểm tra và chuẩn bị món!",
+                            type: "NEW_ORDER",
+                            referenceId: order.Id
+                        );
+                    }
                 }
+            }
+            catch
+            {
+                // Silent catch — không để lỗi notification ảnh hưởng response
             }
         }
 

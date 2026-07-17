@@ -24,38 +24,45 @@ public class NotificationService : INotificationService
     public async Task SendAsync(Guid userId, string title, string body, string type, Guid? referenceId = null)
     {
         // 1. Lưu vào DB
-        var notification = new Notification
-        {
-            UserId      = userId,
-            Title       = title,
-            Body        = body,
-            Type        = type,
-            ReferenceId = referenceId,
-            IsRead      = false,
-            CreatedAt   = DateTime.UtcNow
-        };
-        _ctx.Notifications.Add(notification);
-        await _ctx.SaveChangesAsync();
-
-        // 2. Push real-time qua SignalR (không throw nếu user offline)
         try
         {
-            await _hub.Clients
-                .Group($"User_{userId}")
-                .SendAsync("ReceiveNotification", new
-                {
-                    id          = notification.Id,
-                    title       = notification.Title,
-                    body        = notification.Body,
-                    type        = notification.Type,
-                    referenceId = notification.ReferenceId,
-                    isRead      = notification.IsRead,
-                    createdAt   = notification.CreatedAt
-                });
+            var notification = new Notification
+            {
+                UserId      = userId,
+                Title       = title,
+                Body        = body,
+                Type        = type,
+                ReferenceId = referenceId,
+                IsRead      = false,
+                CreatedAt   = DateTime.UtcNow
+            };
+            _ctx.Notifications.Add(notification);
+            await _ctx.SaveChangesAsync();
+
+        // 2. Push real-time qua SignalR (không throw nếu user offline)
+            try
+            {
+                await _hub.Clients
+                    .Group($"User_{userId}")
+                    .SendAsync("ReceiveNotification", new
+                    {
+                        id          = notification.Id,
+                        title       = notification.Title,
+                        body        = notification.Body,
+                        type        = notification.Type,
+                        referenceId = notification.ReferenceId,
+                        isRead      = notification.IsRead,
+                        createdAt   = notification.CreatedAt
+                    });
+            }
+            catch
+            {
+                // User đang offline → không cần làm gì, đã lưu DB rồi
+            }
         }
         catch
         {
-            // User đang offline → không cần làm gì, đã lưu DB rồi
+            // Không throw lỗi notification ra ngoài, tránh crash request chính
         }
     }
 
