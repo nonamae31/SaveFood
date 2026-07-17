@@ -12,6 +12,7 @@ const ORDER_STATUS = [
   { id: 0, label: 'Chờ xác nhận' },
   { id: 1, label: 'Đã xác nhận' },
   { id: 2, label: 'Chờ lấy hàng' },
+  { id: 5, label: 'Chờ nhận hàng' },
   { id: 3, label: 'Đã hoàn thành' },
   { id: 4, label: 'Đã huỷ' }
 ];
@@ -92,6 +93,7 @@ export function ProfileOrdersTab() {
       case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-50' }
       case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-50' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-50' }
+      case 5: return { text: 'Chờ xác nhận nhận hàng', color: 'text-orange-600 bg-orange-50' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-50' }
     }
   }

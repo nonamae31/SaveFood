@@ -57,7 +57,7 @@ public class ExportOrdersCsvQueryHandler : IRequestHandler<ExportOrdersCsvQuery,
         foreach (var order in orders)
         {
             var date = TimeZoneInfo.ConvertTimeFromUtc(order.CreatedAt, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time")).ToString("dd/MM/yyyy HH:mm");
-            var statusStr = order.OrderStatus switch { OrderStatusEnum.Pending => "Chờ xác nhận", OrderStatusEnum.Confirmed => "Đã xác nhận", OrderStatusEnum.ReadyForPickup => "Chờ lấy", OrderStatusEnum.Completed => "Hoàn thành", OrderStatusEnum.Cancelled => "Đã hủy", _ => "Khác" };
+            var statusStr = order.OrderStatus switch { OrderStatusEnum.Pending => "Chờ xác nhận", OrderStatusEnum.Confirmed => "Đã xác nhận", OrderStatusEnum.ReadyForPickup => "Chờ lấy", OrderStatusEnum.Completed => "Hoàn thành", OrderStatusEnum.Cancelled => "Đã hủy", OrderStatusEnum.AwaitingCustomerConfirmation => "Chờ khách xác nhận", _ => "Khác" };
             var payMethod = order.Payment?.PaymentMethod == (byte)SaveFoodBackend.Models.Enums.PaymentMethodEnum.Cash ? "Tiền mặt" : "Chuyển khoản";
             var payStatus = order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Paid ? "Đã thanh toán" : (order.Payment?.Status == (byte)SaveFoodBackend.Models.Enums.PaymentStatusEnum.Pending ? "Chờ thanh toán" : "Hủy/Thất bại");
             

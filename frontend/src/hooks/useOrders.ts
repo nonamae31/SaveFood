@@ -113,3 +113,13 @@ export function useBatchPay() {
     }
   })
 }
+
+export function useConfirmReceipt() {
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/confirm-receipt`, {
+        method: 'POST'
+      })
+    }
+  })
+}
