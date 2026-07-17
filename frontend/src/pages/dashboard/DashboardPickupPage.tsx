@@ -81,8 +81,15 @@ function QrScanner({ onScan, onClose }: QrScannerProps) {
         { facingMode: 'environment' },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          const match = decodedText.match(/pickupCode=([A-Z0-9]+)/i)
-          const code = match ? match[1] : decodedText.trim().toUpperCase()
+          // Remove pickupCode= if it exists (for old QR format)
+          let code = decodedText.trim()
+          const match = code.match(/pickupCode=([A-Z0-9]+)/i)
+          if (match) {
+            code = match[1].toUpperCase()
+          } else if (code.length <= 10) {
+            // For manual short codes
+            code = code.toUpperCase()
+          }
           if (isMounted) {
             handleAction((c) => onScanRef.current(c!), code)
           }

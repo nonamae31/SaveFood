@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace SaveFoodBackend.Models;
@@ -22,6 +22,8 @@ public partial class ClearanceListing
     public byte ListingFlags { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public byte[]? RowVersion { get; set; }
 
     public virtual ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
 

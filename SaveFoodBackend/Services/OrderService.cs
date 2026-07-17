@@ -24,14 +24,16 @@ public class OrderService
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly INotificationService _notifService;
     private readonly IMediator _mediator;
+    private readonly IJwtProvider _jwtProvider;
 
-    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService, IMediator mediator)
+    public OrderService(SaveFoodDbContext ctx, IPayOSService payOSService, IHubContext<NotificationHub> hubContext, INotificationService notifService, IMediator mediator, IJwtProvider jwtProvider)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _hubContext = hubContext;
         _notifService = notifService;
         _mediator = mediator;
+        _jwtProvider = jwtProvider;
     }
 
     public async Task<CheckoutResponseDTO> CheckoutAsync(Guid userId, CheckoutRequestDTO req, CancellationToken ct = default)
@@ -439,6 +441,28 @@ public class OrderService
             }).ToList()
         };
     }
+
+    public async Task<bool> ConfirmOrderAsync(Guid storeId, Guid orderId, Guid staffUserId, CancellationToken ct = default)
+    {
+        var order = await _ctx.Orders.FirstOrDefaultAsync(o => o.Id == orderId && o.StoreId == storeId, ct);
+        if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
+
+        if (!order.CanConfirm())
+            throw new Exception("Chưa đủ 30 phút để xác nhận đơn hàng.");
+
+        if (order.OrderStatus != OrderStatusEnum.Pending)
+            throw new Exception("Trạng thái đơn hàng không hợp lệ để xác nhận.");
+
+        order.OrderStatus = OrderStatusEnum.Confirmed;
+        order.ConfirmedById = staffUserId;
+
+        await _ctx.SaveChangesAsync(ct);
+        
+        await _hubContext.Clients.Group($"User_{order.UserId}").SendAsync("OrderStatusChanged", order.Id, (int)order.OrderStatus, ct);
+
+        return true;
+    }
+
     public async Task<bool> ExtendPickupTimeAsync(Guid orderId, Guid userId, int additionalMinutes, CancellationToken ct = default)
     {
         var order = await _ctx.Orders.FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId, ct);

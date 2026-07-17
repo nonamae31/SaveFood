@@ -25,13 +25,15 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
     private readonly IPayOSService _payOSService;
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly SaveFoodBackend.Services.ICheckoutQueueService _queueService;
 
-    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork)
+    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork, SaveFoodBackend.Services.ICheckoutQueueService queueService)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
+        _queueService = queueService;
     }
 
     private string GenerateRandomCode(int length)
@@ -61,6 +63,8 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
         string firstPickupCode = "";
         string? checkoutUrl = null;
         bool isFullyPaidByVoucher = false;
+        string queueKey = "checkout_global_priority";
+        string qUserId = userId.ToString();
 
         // START TRANSACTION (Wrapped in ExecutionStrategy for Retry support)
         var strategy = _ctx.Database.CreateExecutionStrategy();
@@ -82,6 +86,22 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                 long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
 
                 decimal totalCheckoutAmount = cartItems.Sum(ci => ci.Listing.SalePrice * ci.Quantity);
+                
+                // Priority Checkout Queue Logic
+                var totalSpent = await _ctx.Orders.Where(o => o.UserId == userId && o.OrderStatus == OrderStatusEnum.Completed).SumAsync(o => o.TotalAmount, cancellationToken);
+                double priorityScore = (double)totalCheckoutAmount * 100000000 + (double)totalSpent;
+                
+                await _queueService.EnqueuePriorityAsync(queueKey, qUserId, priorityScore);
+                
+                // Wait up to 1 second for our turn
+                int waitRetries = 10;
+                while (waitRetries > 0)
+                {
+                    if (await _queueService.IsMyTurnAsync(queueKey, qUserId)) break;
+                    await Task.Delay(100, cancellationToken);
+                    waitRetries--;
+                }
+                
                 CustomerWallet? customerWallet = null;
                 
                 var fundInfo = await _ctx.CustomerVoucherFunds.Where(v => v.CustomerId == userId).Select(v => new { v.Id, v.AccumulatedBalance, v.ReservedAmount }).FirstOrDefaultAsync(cancellationToken);
@@ -275,14 +295,27 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                 }
                 else if (req.PaymentMethod == 1) // PayOS
                 {
-                    try
+                    if (grandTotalAmount == 0)
                     {
-                        var payOSResult = await _payOSService.CreatePaymentLink(orderCode, grandTotalAmount, $"DH {orderCode}", orderCode.ToString(), req.ReturnUrl, req.CancelUrl);
-                        checkoutUrl = payOSResult.CheckoutUrl;
+                        // Bỏ qua tạo link PayOS, coi như đã thanh toán
+                        foreach (var order in createdOrders)
+                        {
+                            order.OrderStatus = OrderStatusEnum.Pending;
+                            order.ReservationExpiresAt = null;
+                            if (order.Payment != null) order.Payment.Status = 1;
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        throw new BusinessException("Lỗi khi tạo link thanh toán PayOS: " + ex.Message);
+                        try
+                        {
+                            var payOSResult = await _payOSService.CreatePaymentLink(orderCode, grandTotalAmount, $"DH {orderCode}", orderCode.ToString(), req.ReturnUrl, req.CancelUrl);
+                            checkoutUrl = payOSResult.CheckoutUrl;
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new BusinessException("Lỗi khi tạo link thanh toán PayOS: " + ex.Message);
+                        }
                     }
                 }
                 else if (req.PaymentMethod == 0) // Wallet
@@ -360,6 +393,10 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
             {
                 await _unitOfWork.RollbackTransactionAsync(cancellationToken);
                 throw;
+            }
+            finally
+            {
+                await _queueService.DequeuePriorityAsync(queueKey, qUserId);
             }
         });
 
