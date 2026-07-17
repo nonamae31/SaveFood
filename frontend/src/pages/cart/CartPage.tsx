@@ -283,10 +283,8 @@ export function CartPage() {
                   if (!result.canProceed) {
                     const blockedItems = result.items.filter(i => !i.isAvailable)
                     const messages = Array.from(new Set(blockedItems.map(i => {
-                      if (i.blockedReason?.includes('ưu tiên')) {
-                        return `${i.blockedReason}`
-                      }
-                      return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`
+                      const suffix = i.blockedReason?.includes('ưu tiên') ? ' ()' : '';
+                      return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})${suffix}`
                     }))).join('\n')
                     toast.error(<CountdownMessage text={`Không thể tiến hành thanh toán:\n${messages}`} />, { duration: 6000 })
                     refetch()

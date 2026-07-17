@@ -39,6 +39,24 @@ export function CheckoutPage() {
     // Assuming we pass selected items from Cart via state
     const selectedItemIds = (location.state?.selectedCartItemIds as string[]) || [];
 
+    const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes
+
+    useEffect(() => {
+        if (timeLeft <= 0) {
+            toast.error("Đã hết thời gian giữ chỗ. Vui lòng quay lại giỏ hàng.");
+            navigate(ROUTES.CART, { replace: true });
+            return;
+        }
+        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        return () => clearInterval(timer);
+    }, [timeLeft, navigate]);
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
     const { data: cartItems, isLoading: isCartLoading } = useCart();
     
     const { data: wallet, isLoading: isWalletLoading } = useQuery({
@@ -187,11 +205,10 @@ export function CheckoutPage() {
 
             if (!availability.canProceed) {
                 const blocked = availability.items.filter(i => !i.isAvailable);
-                const messages = blocked.map(i =>
-                    i.blockedReason?.includes('ưu tiên')
-                        ? `"${i.title}" — ${i.blockedReason}`
-                        : `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`
-                ).join('\n');
+                const messages = blocked.map(i => {
+                    const suffix = i.blockedReason?.includes('ưu tiên') ? ' ()' : '';
+                    return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})${suffix}`
+                }).join('\n');
                 toast.error(`Không thể thanh toán:\n${messages}\n\nVui lòng quay lại giỏ hàng.`, { duration: 7000 });
                 return;
             }
@@ -249,7 +266,19 @@ export function CheckoutPage() {
 
     return (
         <div className="max-w-screen-2xl mx-auto px-4 xl:px-8 py-8">
-            <h1 className="text-2xl font-bold mb-8">Thanh toán</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <h1 className="text-2xl font-bold">Thanh toán</h1>
+                
+                <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-2.5 flex items-center gap-4 shadow-sm shrink-0">
+                    <div className="flex flex-col">
+                        <span className="text-orange-800 font-semibold text-sm leading-tight">Thời gian giữ chỗ</span>
+                        <span className="text-orange-600 text-xs">Vui lòng hoàn tất thanh toán</span>
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600 bg-white px-3 py-1 rounded shadow-sm border border-orange-100 tabular-nums">
+                        {formatTime(timeLeft)}
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Cột 1: Danh sách sản phẩm */}
@@ -478,7 +507,7 @@ export function CheckoutPage() {
                             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isCheckingPriority
-                                ? "Đang kiểm tra ưu tiên..."
+                                ? "Đang kiểm tra tình trạng kho..."
                                 : checkoutMutation.isPending
                                     ? "Đang xử lý..."
                                     : grandTotal === 0
