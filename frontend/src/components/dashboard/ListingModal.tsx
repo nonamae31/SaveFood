@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { X, Plus, Trash2 } from 'lucide-react'
+import { X, Plus, Trash2, History } from 'lucide-react'
 import type { CreateListingDTO, UpdateListingDTO, ListingResponseDTO, DiscountRuleDTO, ProductResponseDTO } from '@/types/store.types'
+import { RuleTemplateModal } from './RuleTemplateModal'
 
 interface ListingModalProps {
   isOpen: boolean
@@ -38,6 +39,7 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
   const [reusedProductImageIds, setReusedProductImageIds] = useState<string[]>([])
   const [newImages, setNewImages] = useState<File[]>([])
   const [deletedImageIds, setDeletedImageIds] = useState<string[]>([])
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
 
   useEffect(() => {
     if (initialData) {
@@ -118,6 +120,13 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
           ruleOrder: prev.discountRules.length
         }
       ]
+    }))
+  }
+
+  const handleSelectTemplate = (rules: DiscountRuleDTO[]) => {
+    setFormData(prev => ({
+      ...prev,
+      discountRules: rules
     }))
   }
 
@@ -352,13 +361,22 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
           <div className="border-t border-gray-200 pt-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-gray-900">Luật giảm giá tự động (Tùy chọn)</h3>
-              <button 
-                type="button" 
-                onClick={addDiscountRule}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Thêm luật
-              </button>
+              <div className="flex gap-2">
+                <button 
+                  type="button" 
+                  onClick={() => setIsTemplateModalOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 rounded-lg transition-colors"
+                >
+                  <History className="w-4 h-4" /> Nhập từ lịch sử
+                </button>
+                <button 
+                  type="button" 
+                  onClick={addDiscountRule}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 rounded-lg transition-colors"
+                >
+                  <Plus className="w-4 h-4" /> Thêm luật
+                </button>
+              </div>
             </div>
 
             {formData.discountRules.length === 0 ? (
@@ -478,6 +496,12 @@ export function ListingModal({ isOpen, onClose, onSubmit, initialData, products,
           </button>
         </div>
       </div>
+      
+      <RuleTemplateModal 
+        isOpen={isTemplateModalOpen}
+        onClose={() => setIsTemplateModalOpen(false)}
+        onSelectTemplate={handleSelectTemplate}
+      />
     </div>
   )
 }

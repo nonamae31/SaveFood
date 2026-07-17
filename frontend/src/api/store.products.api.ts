@@ -2,7 +2,8 @@ import { apiClient } from './client'
 import type { 
   ProductResponseDTO, 
   CreateProductDTO, 
-  UpdateProductDTO 
+  UpdateProductDTO,
+  BulkToggleVisibilityDTO
 } from '@/types/store.types'
 
 export function getStoreProducts(storeId: string): Promise<ProductResponseDTO[]> {
@@ -45,5 +46,19 @@ export async function uploadStoreProductImages(storeId: string, productId: strin
 export async function deleteStoreProductImage(storeId: string, productId: string, imageId: string): Promise<ProductResponseDTO> {
   return apiClient<ProductResponseDTO>(`/stores/${storeId}/products/${productId}/images/${imageId}`, {
     method: 'DELETE',
+  })
+}
+
+export async function toggleStoreProductVisibility(storeId: string, productId: string): Promise<ProductResponseDTO> {
+  return apiClient<ProductResponseDTO>(`/stores/${storeId}/products/${productId}/toggle-visibility`, {
+    method: 'PATCH',
+  })
+}
+
+export async function bulkToggleStoreProductVisibility(storeId: string, payload: BulkToggleVisibilityDTO): Promise<{ success: boolean }> {
+  return apiClient<{ success: boolean }>(`/stores/${storeId}/products/bulk-toggle-visibility`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+    headers: { 'Content-Type': 'application/json' }
   })
 }

@@ -8,9 +8,9 @@ namespace SaveFoodBackend.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropColumn(
-                name: "PayOsPaymentLinkId",
-                table: "Payments");
+            // migrationBuilder.DropColumn(
+            //     name: "PayOsPaymentLinkId",
+            //     table: "Payments");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)

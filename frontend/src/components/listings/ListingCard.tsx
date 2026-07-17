@@ -2,23 +2,32 @@
 // Hiển thị 1 Clearance Listing dưới dạng thẻ sản phẩm.
 // Dùng trong ProductListPage (lưới) và trang gợi ý.
 
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { ShoppingBag, Package, Store, ShoppingCart, ArrowRight } from 'lucide-react'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
+import { ListingCountdownBadge } from './ListingCountdownBadge'
 import type { CustomerListingDTO } from '@/types/listing.types'
 import { useAddToCart } from '@/hooks/useCart'
 import { toast } from 'react-hot-toast'
 import { useAuthContext } from '@/contexts/AuthContext'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface ListingCardProps {
   listing: CustomerListingDTO
 }
 
 export function ListingCard({ listing }: ListingCardProps) {
-  const discount = calcDiscountPercent(listing.originalPrice, listing.salePrice)
+  const [currentPrice, setCurrentPrice] = useState(listing.salePrice)
+  
+  useEffect(() => {
+    setCurrentPrice(listing.salePrice)
+  }, [listing.salePrice])
+
+  const discount = calcDiscountPercent(listing.originalPrice, currentPrice)
   const isLowStock = listing.quantityAvailable <= 3 && listing.quantityAvailable > 0
   const isSoldOut  = listing.quantityAvailable === 0
   
@@ -26,7 +35,38 @@ export function ListingCard({ listing }: ListingCardProps) {
   const isMyStore = user?.storeId === listing.storeId
   const isStoreClosed = listing.storeStatus !== 0
   
+  const queryClient = useQueryClient()
   const addToCartMutation = useAddToCart()
+
+  const handleExpire = () => {
+    // Optimistically update price on UI instantly
+    if (listing.nextMilestonePrice != null) {
+      setCurrentPrice(listing.nextMilestonePrice)
+    }
+    // Invalidate main feed when timer hits 0 to refresh prices and next milestones
+    queryClient.invalidateQueries({ queryKey: ['listings'] })
+    queryClient.invalidateQueries({ queryKey: ['store-listings'] })
+  }
+
+  // Also auto-refresh when the listing completely expires
+  useEffect(() => {
+    if (!listing.expiryDate) return
+    
+    const rawExpiry = listing.expiryDate
+    const normalized = rawExpiry.endsWith('Z') || rawExpiry.includes('+') ? rawExpiry : rawExpiry + 'Z'
+    const target = new Date(normalized).getTime()
+    const diff = target - Date.now()
+    
+    if (diff <= 0) return
+    if (diff > 2147483647) return // Max 32-bit int
+
+    const timer = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['listings'] })
+      queryClient.invalidateQueries({ queryKey: ['store-listings'] })
+    }, diff)
+
+    return () => clearTimeout(timer)
+  }, [listing.expiryDate, queryClient])
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -149,13 +189,22 @@ export function ListingCard({ listing }: ListingCardProps) {
           )}
         </div>
 
-        {/* Expiry label */}
-        <ExpiryLabel expiresAt={listing.expiryDate} size="sm" className="w-full flex justify-center" />
+        {/* Expiry label & Countdown */}
+        <div className="flex flex-col gap-1.5 w-full">
+          <ExpiryLabel expiresAt={listing.expiryDate} size="sm" className="w-full flex justify-center" />
+          <div className="flex justify-center w-full">
+            <ListingCountdownBadge 
+              targetTime={listing.nextMilestoneTime} 
+              targetPrice={listing.nextMilestonePrice} 
+              onExpire={handleExpire}
+            />
+          </div>
+        </div>
 
         {/* Giá */}
         <div className="flex items-baseline gap-1.5 sm:gap-2 mt-1 sm:mt-2">
           <span className="text-lg sm:text-xl font-extrabold text-[--color-brand-700]">
-            {formatVND(listing.salePrice)}
+            {formatVND(currentPrice)}
           </span>
           {discount > 0 && (
             <span className="text-xs sm:text-sm font-medium text-[--color-ink-tertiary] line-through">
