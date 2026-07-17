@@ -19,9 +19,9 @@ public class CheckoutQueueService : ICheckoutQueueService
     private readonly IConnectionMultiplexer? _redis;
     private readonly ILogger<CheckoutQueueService> _logger;
 
-    public CheckoutQueueService(IConnectionMultiplexer? redis, ILogger<CheckoutQueueService> logger)
+    public CheckoutQueueService(IServiceProvider serviceProvider, ILogger<CheckoutQueueService> logger)
     {
-        _redis = redis;
+        _redis = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions.GetService<IConnectionMultiplexer>(serviceProvider);
         _logger = logger;
     }
 
