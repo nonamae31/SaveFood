@@ -47,15 +47,6 @@ public class StoreOrdersController : ApiControllerBase
         return NoContent();
     }
 
-    // PUT: api/stores/{storeId}/orders/{orderId}/complete
-    [HttpPut("{orderId}/complete")]
-    public async Task<IActionResult> Complete(Guid storeId, Guid orderId, CancellationToken ct)
-    {
-        var userId = GetRequiredUserId();
-        await _mediator.Send(new Application.StoreOrders.Commands.CompleteOrderCommand(orderId, storeId, userId), ct);
-        return NoContent();
-    }
-
     // PUT: api/stores/{storeId}/orders/{orderId}/cancel
     [HttpPut("{orderId}/cancel")]
     public async Task<IActionResult> Cancel(Guid storeId, Guid orderId, CancellationToken ct)

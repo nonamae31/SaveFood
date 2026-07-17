@@ -36,9 +36,6 @@ export const storeOrdersApi = {
   markReady: (storeId: string, orderId: string): Promise<void> =>
     apiClient<void>(`/stores/${storeId}/orders/${orderId}/ready`, { method: 'PUT' }),
 
-  complete: (storeId: string, orderId: string): Promise<void> =>
-    apiClient<void>(`/stores/${storeId}/orders/${orderId}/complete`, { method: 'PUT' }),
-
   cancel: (storeId: string, orderId: string): Promise<void> =>
     apiClient<void>(`/stores/${storeId}/orders/${orderId}/cancel`, { method: 'PUT' }),
 };
