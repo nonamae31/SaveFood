@@ -166,6 +166,23 @@ function QrScanner({ onScan, onClose }: QrScannerProps) {
 
 // ─── Order Card ───────────────────────────────────────────────────────────────
 
+function ActionButton({
+  icon, label, colorClass, loading, onClick,
+}: {
+  icon: React.ReactNode; label: string; colorClass: string; loading: boolean; onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${colorClass} w-full`}
+    >
+      {loading ? <Loader2 size={16} className="animate-spin" /> : icon}
+      {label}
+    </button>
+  );
+}
+
 interface OrderCardProps {
   order: StoreOrderDTO
   storeId: string
@@ -175,6 +192,21 @@ interface OrderCardProps {
 }
 
 function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError }: OrderCardProps) {
+  const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+  const act = async (action: () => Promise<void>, label: string) => {
+    setLoadingAction(label);
+    try {
+      await action();
+      import('react-hot-toast').then(m => m.default.success(`${label} thành công!`));
+      onActionComplete();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Có lỗi xảy ra.';
+      import('react-hot-toast').then(m => m.default.error(msg));
+    } finally {
+      setLoadingAction(null);
+    }
+  };
 
   const statusInfo = ORDER_STATUS[order.orderStatus] ?? {
     label: 'Không rõ', color: 'text-gray-600 bg-gray-50 border-gray-200'
@@ -271,8 +303,8 @@ function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError
           </div>
         )}
 
-        {/* Status messages — no manual action buttons */}
-        <div className="pt-1">
+        {/* Status messages & manual action buttons */}
+        <div className="pt-2">
           {isCancelled && (
             <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium">
               <XCircle className="w-4 h-4" />
@@ -295,13 +327,54 @@ function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError
           )}
 
           {canBeVerified && !isBlocked && (
-            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium border border-dashed border-gray-300">
-              <Camera className="w-4 h-4" />
-              {scanInProgress ? (
-                <>Đang xác nhận... <Loader2 className="w-4 h-4 animate-spin" /></>
-              ) : (
-                <>Quét mã QR từ khách hàng để xác nhận giao hàng</>
-              )}
+            <div className="space-y-3">
+              {/* Scan prompt as a subtle hint now, rather than the only option */}
+              <div className="flex items-center justify-center gap-2 py-2 rounded-xl bg-gray-50 text-gray-500 text-xs font-medium border border-dashed border-gray-300">
+                <Camera className="w-4 h-4" />
+                {scanInProgress ? (
+                  <>Đang xác nhận... <Loader2 className="w-4 h-4 animate-spin" /></>
+                ) : (
+                  <>Hoặc quét mã QR từ khách hàng để xác nhận nhanh</>
+                )}
+              </div>
+
+              {/* Manual Action Buttons */}
+              <div className="flex gap-2">
+                {order.orderStatus === 0 && (
+                  <>
+                    <ActionButton
+                      icon={<CheckCircle2 size={16} />}
+                      label="Xác nhận đơn"
+                      colorClass="bg-blue-600 hover:bg-blue-700"
+                      loading={loadingAction === 'Xác nhận đơn'}
+                      onClick={() => act(() => storeOrdersApi.confirm(storeId, order.id), 'Xác nhận đơn')}
+                    />
+                  </>
+                )}
+                {order.orderStatus === 1 && (
+                  <ActionButton
+                    icon={<CheckCircle2 size={16} />}
+                    label="Đã chuẩn bị xong"
+                    colorClass="bg-purple-600 hover:bg-purple-700"
+                    loading={loadingAction === 'Đã chuẩn bị xong'}
+                    onClick={() => act(() => storeOrdersApi.markReady(storeId, order.id), 'Đã chuẩn bị xong')}
+                  />
+                )}
+                {order.orderStatus === 2 && (
+                  <ActionButton
+                    icon={<ScanLine size={16} />}
+                    label="Xác nhận giao hàng"
+                    colorClass="bg-brand-600 hover:bg-brand-700"
+                    loading={loadingAction === 'Xác nhận giao hàng'}
+                    onClick={() => act(async () => {
+                      await apiClient(`/orders/${order.id}/verify-pickup`, {
+                        method: 'POST',
+                        body: JSON.stringify({ pickupCode: order.pickupCode ?? '' }),
+                      })
+                    }, 'Xác nhận giao hàng')}
+                  />
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -509,7 +582,7 @@ export default function DashboardPickupPage() {
           <OrderCard
             order={order}
             storeId={storeId}
-            onActionComplete={() => {}}
+            onActionComplete={() => handleSearch(searchCode)}
             scanInProgress={isScanVerifying}
             scanError={scanVerifyError}
           />
