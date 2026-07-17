@@ -92,6 +92,39 @@ namespace SaveFoodBackend.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("SaveFoodBackend.Models.CheckoutReservation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("(newid())");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ListingId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("PriorityScore")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ListingId");
+
+                    b.HasIndex(new[] { "ExpiresAt" }, "IX_CheckoutReservations_ExpiresAt");
+
+                    b.HasIndex(new[] { "UserId" }, "IX_CheckoutReservations_UserId");
+
+                    b.ToTable("CheckoutReservations");
+                });
+
             modelBuilder.Entity("SaveFoodBackend.Models.ClearanceListing", b =>
                 {
                     b.Property<Guid>("Id")
@@ -115,6 +148,11 @@ namespace SaveFoodBackend.Migrations
 
                     b.Property<int>("QuantityAvailable")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<decimal>("SalePrice")
                         .HasColumnType("decimal(18, 2)");
@@ -1483,6 +1521,25 @@ namespace SaveFoodBackend.Migrations
                     b.Navigation("Cart");
 
                     b.Navigation("Listing");
+                });
+
+            modelBuilder.Entity("SaveFoodBackend.Models.CheckoutReservation", b =>
+                {
+                    b.HasOne("SaveFoodBackend.Models.ClearanceListing", "Listing")
+                        .WithMany()
+                        .HasForeignKey("ListingId")
+                        .IsRequired()
+                        .HasConstraintName("FK_CheckoutReservations_Listings");
+
+                    b.HasOne("SaveFoodBackend.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .IsRequired()
+                        .HasConstraintName("FK_CheckoutReservations_Users");
+
+                    b.Navigation("Listing");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SaveFoodBackend.Models.ClearanceListing", b =>

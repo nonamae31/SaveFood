@@ -141,11 +141,18 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreStaffService, SaveFo
 builder.Services.AddHttpClient<SaveFoodBackend.Interfaces.ISentimentService, SaveFoodBackend.Services.SentimentService>();
 
 // Notification Service
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, SaveFoodBackend.Services.NotificationService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICheckoutReservationRepository, SaveFoodBackend.Repositories.CheckoutReservationRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IIdempotencyService, SaveFoodBackend.Services.RedisIdempotencyService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IReservationLockService, SaveFoodBackend.Services.LocalReservationLockService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICheckoutReservationService, SaveFoodBackend.Services.CheckoutReservationService>();
+
 
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NoShowOrderCompletionService>();
+
 // Notification Queue
 builder.Services.AddSingleton<SaveFoodBackend.Interfaces.INotificationQueue, SaveFoodBackend.Services.BackgroundTasks.NotificationQueue>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NotificationBackgroundService>();

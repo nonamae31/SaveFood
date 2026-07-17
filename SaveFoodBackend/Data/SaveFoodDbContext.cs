@@ -82,7 +82,6 @@ public partial class SaveFoodDbContext : DbContext
     public virtual DbSet<ComplaintEvidence> ComplaintEvidences { get; set; }
     public virtual DbSet<ComplaintHistory> ComplaintHistories { get; set; }
     public virtual DbSet<ComplaintMessage> ComplaintMessages { get; set; }
-
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
@@ -114,7 +113,6 @@ public partial class SaveFoodDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_CartItems_Listings");
         });
-
         modelBuilder.Entity<Category>(entity =>
         {
             entity.Property(e => e.Id).HasDefaultValueSql("(newid())");

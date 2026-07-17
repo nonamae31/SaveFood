@@ -10,7 +10,7 @@ import { toast } from 'react-hot-toast'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { calculateDistance } from '@/utils/distance'
-import { apiClient } from '@/lib/apiClient'
+import { orderApi } from '@/api/orderApi'
 
 export function CartPage() {
   const navigate = useNavigate()
@@ -272,27 +272,13 @@ export function CartPage() {
                 if (selectedIds.length === 0) return
                 setIsCheckingAvailability(true)
                 try {
-                  const result = await apiClient<{
-                    canProceed: boolean
-                    items: Array<{ cartItemId: string; title: string; requestedQuantity: number; availableQuantity: number; isAvailable: boolean }>
-                  }>('/orders/check-availability', {
-                    method: 'POST',
-                    body: JSON.stringify(selectedIds)
-                  })
-
-                  if (!result.canProceed) {
-                    const soldOut = result.items
-                      .filter(i => !i.isAvailable)
-                      .map(i => `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`)
-                      .join(', ')
-                    toast.error(`Không đủ hàng: ${soldOut}. Vui lòng cập nhật giỏ hàng.`, { duration: 5000 })
-                    refetch()
-                    return
+                  const result = await orderApi.reserve({ cartItemIds: selectedIds })
+                  if (result.success || result.expiresAt) {
+                    navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds, expiresAt: result.expiresAt } })
                   }
-
-                  navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })
                 } catch (err: any) {
-                  toast.error(err?.message || 'Không thể kiểm tra hàng. Vui lòng thử lại.')
+                  toast.error("Không đủ hàng / Hết hàng")
+                  refetch()
                 } finally {
                   setIsCheckingAvailability(false)
                 }
@@ -300,7 +286,7 @@ export function CartPage() {
               className="w-full py-4 bg-brand-500 text-white rounded-xl font-bold hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
             >
               {isCheckingAvailability ? (
-                <><Loader2 size={20} className="animate-spin" /> Đang kiểm tra...</>
+                <><Loader2 size={20} className="animate-spin" /> Đang giữ chỗ...</>
               ) : (
                 <>Mua hàng ngay <ArrowRight size={20} /></>
               )}

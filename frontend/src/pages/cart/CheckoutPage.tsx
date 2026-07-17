@@ -10,19 +10,9 @@ import { ShieldCheckIcon } from "lucide-react";
 import { calculateDistance } from "@/utils/distance";
 import { useVoucherFund } from "@/hooks/useVoucherFund";
 import { CoinsIcon } from "lucide-react";
-
-// Placeholder for API
-const checkoutApi = {
-    checkout: async (data: { cartItemIds: string[]; paymentMethod: number; expectedPickupTime: string; agreedToNoRefundPolicy: boolean; returnUrl?: string; cancelUrl?: string; applyVoucherAmount?: number; }) => {
-        return apiClient<{ orderId: string; pickupCode: string; checkoutUrl?: string; reservationExpiresAt?: string }>(
-            "/orders/checkout",
-            {
-                method: "POST",
-                body: JSON.stringify(data),
-            },
-        );
-    },
-};
+import { orderApi } from "@/api/orderApi";
+import { CountdownTimer } from "@/components/ui/CountdownTimer";
+import { toast } from "react-hot-toast";
 
 export function CheckoutPage() {
     const navigate = useNavigate();
@@ -36,6 +26,7 @@ export function CheckoutPage() {
 
     // Assuming we pass selected items from Cart via state
     const selectedItemIds = (location.state?.selectedCartItemIds as string[]) || [];
+    const expiresAt = location.state?.expiresAt as string | undefined;
 
     const { data: cartItems, isLoading: isCartLoading } = useCart();
     
@@ -76,7 +67,7 @@ export function CheckoutPage() {
     const queryClient = useQueryClient();
 
     const checkoutMutation = useMutation({
-        mutationFn: checkoutApi.checkout,
+        mutationFn: orderApi.checkout,
         onSuccess: (res) => {
             if (res.checkoutUrl) {
                 // Redirect to PayOS
@@ -93,7 +84,14 @@ export function CheckoutPage() {
         },
         onError: (error: any) => {
             const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
-            alert(errorMsg);
+            
+            if (error.status === 400 || errorMsg.toLowerCase().includes("không đủ") || errorMsg.toLowerCase().includes("hết hàng")) {
+                toast.error("Không đủ hàng / Hết hàng");
+                navigate(ROUTES.CART, { replace: true });
+                return;
+            }
+
+            toast.error(errorMsg);
             
             // If it's the voucher changed error, refresh the fund and toggle off
             if (errorMsg.includes("Số dư voucher đã thay đổi") || errorMsg.includes("voucher")) {
@@ -144,15 +142,15 @@ export function CheckoutPage() {
 
     const handleCheckout = () => {
         if (!expectedPickupTime) {
-            alert("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
+            toast.error("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
             return;
         }
         if (!agreedToPolicy) {
-            alert("Vui lòng đồng ý với chính sách không hoàn tiền.");
+            toast.error("Vui lòng đồng ý với chính sách không hoàn tiền.");
             return;
         }
         if (paymentMethod === 0 && wallet && wallet.balance < grandTotal) {
-            alert("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
+            toast.error("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
             return;
         }
 
@@ -216,9 +214,22 @@ export function CheckoutPage() {
         setExpectedPickupTime(timeOptions[0].toISOString());
     }
 
+    const handleTimeout = () => {
+        toast.error("Hết thời gian giữ chỗ");
+        navigate(ROUTES.CART, { replace: true });
+    };
+
     return (
         <div className="max-w-screen-2xl mx-auto px-4 xl:px-8 py-8">
-            <h1 className="text-2xl font-bold mb-8">Thanh toán</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <h1 className="text-2xl font-bold">Thanh toán</h1>
+                {expiresAt && (
+                    <div className="flex items-center gap-3 bg-red-50 px-4 py-2 rounded-lg border border-red-100">
+                        <span className="text-sm font-medium text-red-800">Thời gian giữ chỗ còn lại:</span>
+                        <CountdownTimer targetDate={expiresAt} onExpire={handleTimeout} />
+                    </div>
+                )}
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Cột 1: Danh sách sản phẩm */}

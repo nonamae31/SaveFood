@@ -26,14 +26,16 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly SaveFoodBackend.Services.ICheckoutQueueService _queueService;
+    private readonly ICheckoutReservationRepository _reservationRepo;
 
-    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork, SaveFoodBackend.Services.ICheckoutQueueService queueService)
+    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork, SaveFoodBackend.Services.ICheckoutQueueService queueService, ICheckoutReservationRepository reservationRepo)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _queueService = queueService;
+        _reservationRepo = reservationRepo;
     }
 
     private string GenerateRandomCode(int length)
@@ -212,12 +214,25 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
 
                     foreach (var item in storeItems)
                     {
+                        var activeReservations = await _reservationRepo.GetActiveByListingIdAsync(item.ListingId, cancellationToken);
+                            
+                        var myReservation = activeReservations.FirstOrDefault(r => r.UserId == userId && r.Quantity >= item.Quantity);
+                        
+                        var reservedByOthers = activeReservations
+                            .Where(r => r.UserId != userId)
+                            .Sum(r => r.Quantity);
+
                         var rowsAffected = await _ctx.ClearanceListings
-                            .Where(l => l.Id == item.ListingId && l.QuantityAvailable >= item.Quantity)
+                            .Where(l => l.Id == item.ListingId && (l.QuantityAvailable - reservedByOthers) >= item.Quantity)
                             .ExecuteUpdateAsync(s => s.SetProperty(l => l.QuantityAvailable, l => l.QuantityAvailable - item.Quantity), cancellationToken);
 
                         if (rowsAffected == 0)
-                            throw new BusinessException($"Sản phẩm '{item.Listing.Title}' không đủ số lượng trong kho hoặc đã có người khác đặt mua.");
+                            throw new BusinessException($"Sản phẩm '{item.Listing.Title}' không đủ số lượng trong kho hoặc đã có người khác đặt trước.");
+
+                        if (myReservation != null)
+                        {
+                            await _reservationRepo.RemoveUserReservationAsync(item.ListingId, userId, cancellationToken);
+                        }
 
                         order.OrderItems.Add(new OrderItem
                         {

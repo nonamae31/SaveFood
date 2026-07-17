@@ -30,6 +30,59 @@ public class OrdersController : ApiControllerBase
         return Ok(result);
     }
 
+    [Authorize]
+    [HttpPost("reserve")]
+    public async Task<IActionResult> Reserve(
+        [FromHeader(Name = "Idempotency-Key")] string idempotencyKey,
+        [FromBody] SaveFoodBackend.DTOs.ReserveOrderRequest req,
+        [FromServices] ICheckoutReservationService reservationService,
+        CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(idempotencyKey))
+        {
+            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = 400,
+                Title = "Missing Idempotency-Key",
+                Detail = "Idempotency-Key header is required"
+            });
+        }
+
+        var userId = GetRequiredUserId();
+        try
+        {
+            var result = await reservationService.ReserveAsync(userId, req, idempotencyKey, ct);
+            return Ok(result);
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "Duplicate request")
+        {
+            return Conflict(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = 409,
+                Title = "Conflict",
+                Detail = "Duplicate request"
+            });
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "Sản phẩm đã hết hoặc không đủ số lượng")
+        {
+            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = 400,
+                Title = "Out of stock",
+                Detail = ex.Message
+            });
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new Microsoft.AspNetCore.Mvc.ProblemDetails
+            {
+                Status = 400,
+                Title = "Invalid request",
+                Detail = ex.Message
+            });
+        }
+    }
+
     /// <summary>
     /// Kiểm tra hàng còn không trước khi chuyển sang trang thanh toán.
     /// Gọi ngay khi khách bấm "Mua hàng ngay" ở CartPage.
