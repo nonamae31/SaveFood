@@ -59,6 +59,56 @@ function ActionButton({
   );
 }
 
+function StoreConfirmButton({
+  order, storeId, loading, act
+}: {
+  order: StoreOrderDTO, storeId: string, loading: string | null, act: (fn: () => Promise<any>, actionName: string) => Promise<void>
+}) {
+  const [timeLeft, setTimeLeft] = useState(0);
+
+  useEffect(() => {
+    const calc = () => {
+      const createdTime = new Date(order.createdAt).getTime();
+      const waitTime = 30 * 60 * 1000;
+      const targetTime = createdTime + waitTime;
+      const now = new Date().getTime();
+      return Math.max(0, Math.floor((targetTime - now) / 1000));
+    };
+
+    setTimeLeft(calc());
+    const interval = setInterval(() => {
+      const t = calc();
+      setTimeLeft(t);
+      if (t === 0) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [order.createdAt]);
+
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  const timeStr = `${m}:${s.toString().padStart(2, '0')}`;
+  const isDisabled = timeLeft > 0;
+
+  return (
+    <div className="flex-1 flex flex-col items-center">
+      <button
+        onClick={() => act(() => storeOrdersApi.confirm(storeId, order.id), 'Xác nhận đơn')}
+        disabled={loading === 'Xác nhận đơn' || isDisabled}
+        className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${isDisabled ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+      >
+        {loading === 'Xác nhận đơn' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+        {isDisabled ? `Chờ xác nhận (${timeStr})` : 'Xác nhận đơn'}
+      </button>
+      {isDisabled && (
+        <span className="text-[10px] text-gray-500 mt-1.5 font-medium">
+          Có thể xác nhận sau: {timeStr}
+        </span>
+      )}
+    </div>
+  );
+}
+
 // ─── Order Detail Modal ────────────────────────────────────────────────────────
 function OrderDetailModal({
   order, storeId, onClose, onRefresh
@@ -189,12 +239,11 @@ function OrderDetailModal({
                   loading={loading === 'Từ chối'}
                   onClick={() => act(() => storeOrdersApi.cancel(storeId, order.id), 'Từ chối')}
                 />
-                <ActionButton
-                  icon={<CheckCircle size={16} />}
-                  label="Xác nhận đơn"
-                  colorClass="bg-blue-600 hover:bg-blue-700"
-                  loading={loading === 'Xác nhận đơn'}
-                  onClick={() => act(() => storeOrdersApi.confirm(storeId, order.id), 'Xác nhận đơn')}
+                <StoreConfirmButton 
+                  order={order} 
+                  storeId={storeId} 
+                  loading={loading} 
+                  act={act} 
                 />
               </>
             )}

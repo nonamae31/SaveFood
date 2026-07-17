@@ -44,4 +44,14 @@ public partial class Order
     public virtual ICollection<WalletTransaction> WalletTransactions { get; set; } = new List<WalletTransaction>();
 
     public virtual ICollection<CustomerWalletTransaction> CustomerWalletTransactions { get; set; } = new List<CustomerWalletTransaction>();
+
+    public bool CanConfirm()
+    {
+        return (DateTime.UtcNow - CreatedAt).TotalMinutes >= 30;
+    }
+
+    public bool CanCancel()
+    {
+        return OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Pending || OrderStatus == SaveFoodBackend.Models.Enums.OrderStatusEnum.Confirmed;
+    }
 }

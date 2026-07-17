@@ -89,4 +89,22 @@ public class OrdersController : ApiControllerBase
         var success = await _mediator.Send(new Application.Orders.Commands.CancelOrderCommand(id, userId, req), ct);
         return Ok(new { success = success, message = "Hủy đơn hàng và gửi yêu cầu hoàn tiền thành công." });
     }
+
+    [Authorize]
+    [HttpPost("{id}/confirm-receipt")]
+    public async Task<IActionResult> ConfirmReceipt(Guid id, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        var success = await _mediator.Send(new Application.Orders.Commands.CustomerConfirmReceiptCommand(id, userId), ct);
+        return Ok(new { success = success, message = "Xác nhận nhận hàng thành công." });
+    }
+
+    [Authorize]
+    [HttpPost("{id}/repurchase")]
+    public async Task<IActionResult> Repurchase(Guid id, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        var success = await _mediator.Send(new Application.Orders.Commands.RepurchaseCommand(id, userId), ct);
+        return Ok(new { success = success, message = "Đã thêm các sản phẩm còn bán vào giỏ hàng." });
+    }
 }

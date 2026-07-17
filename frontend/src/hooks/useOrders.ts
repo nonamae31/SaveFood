@@ -24,6 +24,7 @@ export interface OrderDetailDTO {
   orderStatus: number
   createdAt: string
   pickupCode?: string
+  qrToken?: string
   orderCode?: number
   reservationExpiresAt?: string
   expectedPickupTime?: string
@@ -107,6 +108,26 @@ export function useBatchPay() {
       return apiClient<{ orderId: string, checkoutUrl?: string, reservationExpiresAt?: string }>('/orders/pay-batch', {
         method: 'POST',
         body: JSON.stringify(data)
+      })
+    }
+  })
+}
+
+export function useConfirmReceipt(orderId: string) {
+  return useMutation({
+    mutationFn: async () => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/confirm-receipt`, {
+        method: 'POST'
+      })
+    }
+  })
+}
+
+export function useRepurchase(orderId: string) {
+  return useMutation({
+    mutationFn: async () => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/repurchase`, {
+        method: 'POST'
       })
     }
   })

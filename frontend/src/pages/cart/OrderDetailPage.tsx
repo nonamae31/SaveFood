@@ -1,5 +1,5 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder, useExtendPickup, useCancelOrder, useBatchPay } from '@/hooks/useOrders'
+import { useOrder, useExtendPickup, useCancelOrder, useBatchPay, useConfirmReceipt, useRepurchase } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -47,6 +47,32 @@ export function OrderDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
   const batchPayMutation = useBatchPay()
+  const confirmReceiptMutation = useConfirmReceipt(id)
+  const repurchaseMutation = useRepurchase(id)
+
+  const handleConfirmReceipt = () => {
+    confirmReceiptMutation.mutate(undefined, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Xác nhận nhận hàng thành công");
+        queryClient.invalidateQueries({ queryKey: ['order', id] });
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Có lỗi xảy ra.');
+      }
+    });
+  }
+
+  const handleRepurchase = () => {
+    repurchaseMutation.mutate(undefined, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Đã thêm vào giỏ hàng");
+        navigate(ROUTES.CART);
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Không thể mua lại.');
+      }
+    });
+  }
 
   const handleRetryPayment = () => {
     batchPayMutation.mutate(
@@ -180,7 +206,7 @@ export function OrderDetailPage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
                 <div 
                   className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500" 
-                  style={{ width: order.orderStatus >= 3 ? '100%' : order.orderStatus >= 2 ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
+                  style={{ width: order.orderStatus === 3 ? '100%' : (order.orderStatus >= 2 || order.orderStatus === 5) ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
                 ></div>
 
                 {/* Step 1: Đặt hàng */}
@@ -209,18 +235,18 @@ export function OrderDetailPage() {
 
                 {/* Step 4: Nhận hàng */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus === 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
                     4
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus === 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
                 </div>
               </div>
             </div>
           )}
 
-          {!isCompleted && !isCancelled && order.pickupCode && (
+          {!isCompleted && !isCancelled && (order.qrToken || order.pickupCode) && (
             <div className="bg-white p-4 rounded-xl shadow-sm mb-6 animate-[--animate-scale-in]">
-              <QRCodeSVG value={`pickupCode=${order.pickupCode}`} size={200} />
+              <QRCodeSVG value={order.qrToken || `pickupCode=${order.pickupCode}`} size={200} />
             </div>
           )}
 
@@ -323,7 +349,7 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {order.orderStatus === 0 ? (
+          {order.orderStatus === 0 || order.orderStatus === 5 || order.orderStatus === 3 || order.orderStatus === 4 ? (
             <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
               {order.orderStatus === 0 && (
                 <button 
@@ -341,6 +367,26 @@ export function OrderDetailPage() {
                   className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
+                </button>
+              )}
+              
+              {order.orderStatus === 5 && (
+                <button 
+                  onClick={handleConfirmReceipt}
+                  disabled={confirmReceiptMutation.isPending}
+                  className="w-full sm:w-auto bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" /> {confirmReceiptMutation.isPending ? 'Đang xử lý...' : 'Xác nhận đã nhận hàng'}
+                </button>
+              )}
+
+              {(order.orderStatus === 3 || order.orderStatus === 4) && (
+                <button 
+                  onClick={handleRepurchase}
+                  disabled={repurchaseMutation.isPending}
+                  className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Package className="w-5 h-5" /> {repurchaseMutation.isPending ? 'Đang xử lý...' : 'Mua lại đơn này'}
                 </button>
               )}
             </div>

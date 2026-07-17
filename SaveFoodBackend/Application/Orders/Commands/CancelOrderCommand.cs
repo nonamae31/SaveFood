@@ -36,7 +36,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         if (order == null)
             throw new NotFoundException("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != OrderStatusEnum.Pending)
+        if (!order.CanCancel())
             throw new BusinessException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái chờ xác nhận.");
 
         if (order.ConfirmedById.HasValue)

@@ -120,6 +120,7 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.SalePrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Title).HasMaxLength(250);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.HasOne(d => d.Product).WithMany(p => p.ClearanceListings)
                 .HasForeignKey(d => d.ProductId)

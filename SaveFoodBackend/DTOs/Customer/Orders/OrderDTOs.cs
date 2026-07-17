@@ -32,6 +32,7 @@ public class OrderDetailDTO
     public DateTime CreatedAt { get; set; }
     
     public string? PickupCode { get; set; }
+    public string? QrToken { get; set; }
     public long? OrderCode { get; set; }
     public DateTime? ReservationExpiresAt { get; set; }
     public DateTime? ExpectedPickupTime { get; set; }
