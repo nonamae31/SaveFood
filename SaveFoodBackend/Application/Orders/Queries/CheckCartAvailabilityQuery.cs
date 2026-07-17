@@ -93,17 +93,17 @@ public class CheckCartAvailabilityQueryHandler
                                    + (double)currentUserCheckoutAmount * 10_000.0;
 
         // ── 3. Lấy những users có Checkout Intent (đã bấm Mua hàng ngay trong 5 phút)
-        var allActiveIntents = new Dictionary<Guid, List<Guid>>();
+        var allActiveIntents = new Dictionary<Guid, Dictionary<Guid, double>>();
         foreach (var lid in listingIds)
         {
-            var activeUsers = await _queueService.GetActiveCheckoutIntentsAsync(lid);
+            var activeUsersWithExpiry = await _queueService.GetActiveCheckoutIntentsWithExpiryAsync(lid);
             // Loại bỏ chính mình ra khỏi danh sách đối thủ
-            activeUsers.RemoveAll(u => u == request.UserId);
-            activeUsers.RemoveAll(u => u == Guid.Empty); // Thêm check để an toàn
-            allActiveIntents[lid] = activeUsers;
+            activeUsersWithExpiry.Remove(request.UserId);
+            activeUsersWithExpiry.Remove(Guid.Empty); // Thêm check để an toàn
+            allActiveIntents[lid] = activeUsersWithExpiry;
         }
 
-        var allOtherUserIdsWithIntent = allActiveIntents.SelectMany(x => x.Value).Distinct().ToList();
+        var allOtherUserIdsWithIntent = allActiveIntents.SelectMany(x => x.Value.Keys).Distinct().ToList();
 
         // ── 4. Lấy giỏ hàng của các user đang có intent ──────────────────────
         var otherUserCarts = new List<OtherUserCartItem>();
@@ -160,10 +160,10 @@ public class CheckCartAvailabilityQueryHandler
             }
 
             // Chỉ lấy các đối thủ có intent cho sản phẩm này
-            var activeOpponentsForThisListing = allActiveIntents.GetValueOrDefault(ci.ListingId, new List<Guid>());
+            var activeOpponentsForThisListing = allActiveIntents.GetValueOrDefault(ci.ListingId, new Dictionary<Guid, double>());
 
             var higherPriorityCompetitors = otherUserCarts
-                .Where(c => c.ListingId == ci.ListingId && activeOpponentsForThisListing.Contains(c.UserId))
+                .Where(c => c.ListingId == ci.ListingId && activeOpponentsForThisListing.ContainsKey(c.UserId))
                 .Select(c =>
                 {
                     var spent = otherUsersSpent.GetValueOrDefault(c.UserId, 0m);
@@ -172,7 +172,7 @@ public class CheckCartAvailabilityQueryHandler
                     double priority = (double)spent * 1_000_000_000_000.0 
                                     + (double)wallet * 100_000_000.0 
                                     + (double)checkoutAmount * 10_000.0;
-                    return new { Quantity = c.Quantity, Priority = priority };
+                    return new { Quantity = c.Quantity, Priority = priority, Expiry = activeOpponentsForThisListing[c.UserId] };
                 })
                 .Where(c => c.Priority > currentUserPriority)
                 .ToList();
@@ -184,9 +184,17 @@ public class CheckCartAvailabilityQueryHandler
             string? blockedReason = null;
             if (!isAvailable)
             {
-                blockedReason = higherPriorityDemand > 0
-                    ? "Sản phẩm đang được giữ chỗ bởi khách hàng ưu tiên cao hơn."
-                    : "Sản phẩm không đủ số lượng.";
+                if (higherPriorityDemand > 0)
+                {
+                    double maxExpiry = higherPriorityCompetitors.Max(c => c.Expiry);
+                    double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    int remainingSeconds = Math.Max(1, (int)(maxExpiry - now));
+                    blockedReason = $"Sản phẩm đang được giữ chỗ bởi khách hàng ưu tiên cao hơn. Vui lòng chờ {remainingSeconds} giây để đến lượt.";
+                }
+                else
+                {
+                    blockedReason = "Sản phẩm không đủ số lượng.";
+                }
             }
 
             results.Add(new CartItemAvailabilityResult(

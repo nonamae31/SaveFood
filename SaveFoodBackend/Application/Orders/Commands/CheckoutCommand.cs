@@ -89,8 +89,8 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                 var availability = await _mediator.Send(new SaveFoodBackend.Application.Orders.Queries.CheckCartAvailabilityQuery(userId, req.CartItemIds), cancellationToken);
                 if (!availability.CanProceed)
                 {
-                    var blocked = availability.Items.Where(i => !i.IsAvailable).Select(i => i.BlockedReason ?? "Sản phẩm không đủ số lượng.").ToList();
-                    throw new BusinessException($"Không thể thanh toán: {string.Join(", ", blocked)}");
+                    var blocked = availability.Items.Where(i => !i.IsAvailable).Select(i => i.BlockedReason ?? "Sản phẩm không đủ số lượng.").Distinct().ToList();
+                    throw new BusinessException($"Không thể thanh toán:\n{string.Join("\n", blocked)}\n\nVui lòng quay lại giỏ hàng.");
                 }
 
                 long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());

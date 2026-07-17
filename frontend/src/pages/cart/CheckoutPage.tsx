@@ -95,7 +95,7 @@ export function CheckoutPage() {
         },
         onError: (error: any) => {
             const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
-            toast.error(errorMsg);
+            toast.error(<CountdownMessage text={errorMsg} />, { duration: 6000 });
             
             // If it's the voucher changed error, refresh the fund and toggle off
             if (errorMsg.includes("Số dư voucher đã thay đổi") || errorMsg.includes("voucher")) {
@@ -521,4 +521,28 @@ export function CheckoutPage() {
             )}
         </div>
     );
+}
+
+const CountdownMessage = ({ text }: { text: string }) => {
+  const [secondsPassed, setSecondsPassed] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setSecondsPassed(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderedText = text.replace(/chờ (\d+) giây/g, (match, p1) => {
+    const initial = parseInt(p1, 10);
+    const current = Math.max(0, initial - secondsPassed);
+    
+    if (current === 0) return "đã đến lượt (vui lòng tải lại trang)";
+    
+    const m = Math.floor(current / 60);
+    const s = current % 60;
+    const timeString = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+    
+    return `chờ ${timeString}`;
+  });
+
+  return <div className="whitespace-pre-wrap">{renderedText}</div>;
 }

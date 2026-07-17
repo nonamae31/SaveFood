@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight, Loader2 } from 'lucide-react'
 import { useCart, useUpdateCartItem, useRemoveFromCart } from '@/hooks/useCart'
@@ -282,13 +282,13 @@ export function CartPage() {
 
                   if (!result.canProceed) {
                     const blockedItems = result.items.filter(i => !i.isAvailable)
-                    const messages = blockedItems.map(i => {
+                    const messages = Array.from(new Set(blockedItems.map(i => {
                       if (i.blockedReason?.includes('ưu tiên')) {
-                        return `"${i.title}" — ${i.blockedReason}`
+                        return `${i.blockedReason}`
                       }
                       return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`
-                    }).join('\n')
-                    toast.error(`Không thể tiến hành thanh toán:\n${messages}`, { duration: 6000 })
+                    }))).join('\n')
+                    toast.error(<CountdownMessage text={`Không thể tiến hành thanh toán:\n${messages}`} />, { duration: 6000 })
                     refetch()
                     return
                   }
@@ -313,4 +313,28 @@ export function CartPage() {
       </div>
     </div>
   )
+}
+
+const CountdownMessage = ({ text }: { text: string }) => {
+  const [secondsPassed, setSecondsPassed] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setSecondsPassed(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderedText = text.replace(/chờ (\d+) giây/g, (match, p1) => {
+    const initial = parseInt(p1, 10);
+    const current = Math.max(0, initial - secondsPassed);
+    
+    if (current === 0) return "đã đến lượt (vui lòng tải lại trang)";
+    
+    const m = Math.floor(current / 60);
+    const s = current % 60;
+    const timeString = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+    
+    return `chờ ${timeString}`;
+  });
+
+  return <div className="whitespace-pre-wrap">{renderedText}</div>;
 }
