@@ -156,7 +156,7 @@ export function ProfileOrdersTab() {
                         : [...prev, order.id]
                     )
                   } else {
-                    window.open(`/orders/${order.id}`, '_blank')
+                    navigate(`/orders/${order.id}`)
                   }
                 }}
                 className={`bg-white rounded-2xl shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col sm:flex-row gap-4 ${selectedOrders.includes(order.id) ? 'border-brand-500 bg-brand-50/10' : 'border-gray-100'}`}

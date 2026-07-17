@@ -97,6 +97,7 @@ else
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBackend.Services.CartService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IRedisService, SaveFoodBackend.Services.RedisService>();
+builder.Services.AddScoped<SaveFoodBackend.Services.ICheckoutQueueService, SaveFoodBackend.Services.CheckoutQueueService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IJwtProvider, SaveFoodBackend.Services.JwtProvider>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
@@ -145,10 +146,10 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, Save
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NoShowOrderCompletionService>();
-
 // Notification Queue
 builder.Services.AddSingleton<SaveFoodBackend.Interfaces.INotificationQueue, SaveFoodBackend.Services.BackgroundTasks.NotificationQueue>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NotificationBackgroundService>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.AutoCancelUnconfirmedOrdersService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -225,6 +226,11 @@ if (app.Environment.IsDevelopment())
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverCloudinaryId')
         BEGIN
             ALTER TABLE Stores ADD CoverCloudinaryId nvarchar(max) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[ClearanceListings]') AND name = 'RowVersion')
+        BEGIN
+            ALTER TABLE ClearanceListings ADD RowVersion rowversion NOT NULL;
         END
     ";
     db.Database.ExecuteSqlRaw(sql);

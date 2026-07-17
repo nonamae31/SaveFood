@@ -20,12 +20,14 @@ public class ConfirmReceiptCommandHandler : IRequestHandler<ConfirmReceiptComman
     private readonly SaveFoodDbContext _ctx;
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly INotificationService _notificationService;
+    private readonly IPublisher _publisher;
 
-    public ConfirmReceiptCommandHandler(SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
+    public ConfirmReceiptCommandHandler(SaveFoodDbContext ctx, IHubContext<NotificationHub> hubContext, INotificationService notificationService, IPublisher publisher)
     {
         _ctx = ctx;
         _hubContext = hubContext;
         _notificationService = notificationService;
+        _publisher = publisher;
     }
 
     public async Task<bool> Handle(ConfirmReceiptCommand request, CancellationToken cancellationToken)
@@ -100,6 +102,8 @@ public class ConfirmReceiptCommandHandler : IRequestHandler<ConfirmReceiptComman
             type: "ORDER_STATUS_UPDATE",
             referenceId: order.Id
         );
+
+        await _publisher.Publish(new SaveFoodBackend.Application.Orders.Events.OrderCompletedEvent(order.Id, order.UserId, order.TotalAmount, SaveFoodBackend.Application.Orders.Events.OrderCompletionSource.CustomerScan), cancellationToken);
 
         return true;
     }

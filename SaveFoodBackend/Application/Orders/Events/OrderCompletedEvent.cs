@@ -13,7 +13,10 @@ public enum OrderCompletionSource
     StaffScan = 1,
 
     /// <summary>Background service auto-completed the order due to no-show past deadline.</summary>
-    AutoNoShow = 2
+    AutoNoShow = 2,
+
+    /// <summary>Customer manually confirmed receipt on the app.</summary>
+    CustomerScan = 3
 }
 
 /// <summary>
