@@ -49,9 +49,11 @@ public partial class Order
 
     public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 
+    public const int CONFIRM_WAIT_TIME_SECONDS = 10;
+
     public bool CanConfirm()
     {
-        return (DateTime.UtcNow - CreatedAt).TotalSeconds >= 10;
+        return (DateTime.UtcNow - CreatedAt).TotalSeconds >= CONFIRM_WAIT_TIME_SECONDS;
     }
 
     public bool CanCancel()
