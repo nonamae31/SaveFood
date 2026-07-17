@@ -6,9 +6,11 @@ export interface OrderHistoryDTO {
   storeId: string
   storeName: string
   totalAmount: number
+  voucherDiscount?: number
   orderStatus: number
   createdAt: string
   firstItemImageUrl?: string
+  firstItemName?: string
   totalItems: number
   paymentMethod: number
   paymentStatus?: number
@@ -21,9 +23,11 @@ export interface OrderDetailDTO {
   storeName: string
   storeAddress: string
   totalAmount: number
+  voucherDiscount?: number
   orderStatus: number
   createdAt: string
   pickupCode?: string
+  qrToken?: string
   orderCode?: number
   reservationExpiresAt?: string
   expectedPickupTime?: string
@@ -121,3 +125,14 @@ export function useConfirmReceipt() {
     }
   })
 }
+
+export function useRepurchase(orderId: string) {
+  return useMutation({
+    mutationFn: async () => {
+      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/repurchase`, {
+        method: 'POST'
+      })
+    }
+  })
+}
+

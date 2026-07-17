@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../api/admin.api';
 import type { AdminStoreListDTO, AdminStoreDetailsDTO } from '../../api/admin.api';
 import { Building, MapPin, Phone, User, Check, X, Search, ChevronLeft, ChevronRight, ChevronDown, XCircle, Store, CreditCard, Calendar } from 'lucide-react';
@@ -61,14 +62,21 @@ const STORE_STATUS_MAP: Record<number, { label: string; color: string; bg: strin
 };
 
 export default function StoreManagementPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [stores, setStores] = useState<AdminStoreListDTO[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(true);
   
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
+  const highlightId = searchParams.get('highlightId');
+
   // Filters
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<number | undefined>(undefined);
-  const [page, setPage] = useState(1);
+  const searchParamVal = highlightId ? '' : (searchParams.get('search') || '');
+  const [search, setSearch] = useState(searchParamVal);
+  const statusParamVal = highlightId ? undefined : (searchParams.get('statusFilter') ? Number(searchParams.get('statusFilter')) : undefined);
+  const [statusFilter, setStatusFilter] = useState<number | undefined>(statusParamVal);
+  const pageParamVal = parseInt(searchParams.get('page') || '1', 10);
+  const [page, setPage] = useState(pageParamVal);
   const pageSize = 10;
 
   const statusOptions = [
@@ -94,6 +102,7 @@ export default function StoreManagementPage() {
     message: string;
   } | null>(null);
 
+
   const fetchStores = () => {
     setLoading(true);
     adminApi.getStores({
@@ -112,6 +121,49 @@ export default function StoreManagementPage() {
   useEffect(() => {
     fetchStores();
   }, [search, statusFilter, page]);
+
+  useEffect(() => {
+    if (stores.length > 0 && highlightId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [stores, highlightId]);
+
+  useEffect(() => {
+    const openStoreId = searchParams.get('openStoreId');
+    if (openStoreId) {
+      viewDetails(openStoreId);
+    }
+  }, [searchParams]);
+
+  const updateParam = (key: string, value: string | undefined) => {
+    const newParams = new URLSearchParams(searchParams);
+    if (value !== undefined && value !== '') {
+      newParams.set(key, value.toString());
+    } else {
+      newParams.delete(key);
+    }
+    newParams.delete('highlightId');
+    setSearchParams(newParams);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    updateParam('search', newSearch);
+  };
+
+  const handleStatusChange = (newStatus: number | undefined) => {
+    setStatusFilter(newStatus);
+    setPage(1);
+    updateParam('statusFilter', newStatus?.toString());
+    updateParam('page', '1');
+  };
+
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    updateParam('page', newPage.toString());
+  };
 
   const viewDetails = async (id: string) => {
     setDetailsLoading(true);
@@ -228,15 +280,14 @@ export default function StoreManagementPage() {
               type="text"
               placeholder="Tìm tên, email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => handleSearchChange(e.target.value)}
               className="w-full pl-9 pr-4 py-2 border border-mint-hairline rounded-[8px] text-[14px] focus:outline-none focus:ring-2 focus:ring-mint-primary/20 bg-mint-surface"
             />
           </div>
           <CustomSelect 
             value={statusFilter !== undefined ? statusFilter.toString() : 'All'}
             onChange={(val) => {
-              setStatusFilter(val === 'All' ? undefined : Number(val));
-              setPage(1);
+              handleStatusChange(val === 'All' ? undefined : Number(val));
             }}
             options={statusOptions}
           />
@@ -270,7 +321,14 @@ export default function StoreManagementPage() {
                   </tr>
                 ) : (
                   stores.map((store) => (
-                    <tr key={store.id} className="hover:bg-mint-surface-soft transition-colors group">
+                    <tr 
+                      key={store.id} 
+                      ref={store.id.toLowerCase() === highlightId?.toLowerCase() ? highlightRef : null}
+                      className={cn(
+                        "transition-colors group",
+                        store.id.toLowerCase() === highlightId?.toLowerCase() ? "bg-yellow-100 hover:bg-yellow-200" : "hover:bg-mint-surface-soft"
+                      )}
+                    >
                       <td className="px-6 py-4">
                         <div className="font-semibold text-mint-ink">{store.name}</div>
                         <div className="text-[12px] text-mint-stone truncate max-w-[200px] mt-0.5" title={store.addressLine}>{store.addressLine}</div>
@@ -310,7 +368,7 @@ export default function StoreManagementPage() {
               </span>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  onClick={() => handlePageChange(Math.max(1, page - 1))}
                   disabled={page === 1}
                   className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
                 >
@@ -320,7 +378,7 @@ export default function StoreManagementPage() {
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
                     <button
                       key={p}
-                      onClick={() => setPage(p)}
+                      onClick={() => handlePageChange(p)}
                       className={cn(
                         "w-7 h-7 rounded-[6px] text-[13px] font-medium transition-colors flex items-center justify-center",
                         page === p ? "bg-mint-canvas border border-mint-hairline text-mint-ink shadow-sm" : "text-mint-stone hover:bg-mint-surface hover:text-mint-ink border border-transparent"
@@ -331,7 +389,7 @@ export default function StoreManagementPage() {
                   ))}
                 </div>
                 <button 
-                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                   disabled={page >= totalPages}
                   className="p-1 rounded-[6px] hover:bg-mint-canvas border border-transparent hover:border-mint-hairline text-mint-stone hover:text-mint-ink disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:border-transparent transition-all"
                 >

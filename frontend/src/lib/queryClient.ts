@@ -8,8 +8,9 @@ import { ApiError } from '@/lib/apiClient'
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Dữ liệu hết hạn sau 2 phút (listings thay đổi thường xuyên)
-      staleTime: 2 * 60 * 1000,
+      // Default staleTime là 0 để luôn gọi lại API ngầm (background refetch) khi mount component mới
+      // hoặc chuyển tab. Các query cần cache lâu (như listings, categories) nên tự override staleTime riêng.
+      staleTime: 0,
 
       // Cache giữ trong 10 phút sau khi component unmount
       gcTime: 10 * 60 * 1000,

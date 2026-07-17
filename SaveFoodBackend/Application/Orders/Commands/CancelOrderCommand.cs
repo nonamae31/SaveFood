@@ -36,7 +36,7 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
         if (order == null)
             throw new NotFoundException("Không tìm thấy đơn hàng.");
 
-        if (order.OrderStatus != OrderStatusEnum.Pending)
+        if (!order.CanCancel())
             throw new BusinessException("Chỉ có thể hủy đơn hàng khi đang ở trạng thái chờ xác nhận.");
 
         if (order.ConfirmedById.HasValue)
@@ -71,27 +71,57 @@ public class CancelOrderCommandHandler : IRequestHandler<CancelOrderCommand, boo
                 _ctx.CustomerWallets.Add(customerWallet);
             }
 
-            customerWallet.Balance += order.TotalAmount;
-            
-            var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
-            if (storeWallet != null)
+            decimal refundAmount = payment?.Amount ?? order.TotalAmount;
+            if (refundAmount > 0)
             {
-                // Refund from store pending balance since it was added when paid
-                decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
-                decimal storeIncome = order.TotalAmount - platformFee;
-                storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+                customerWallet.Balance += refundAmount;
+                
+                var storeWallet = await _ctx.StoreWallets.FirstOrDefaultAsync(w => w.StoreId == order.StoreId, cancellationToken);
+                if (storeWallet != null)
+                {
+                    // Refund from store pending balance since it was added when paid
+                    decimal platformFee = Math.Round(order.TotalAmount * 0.05m, 0, MidpointRounding.AwayFromZero);
+                    decimal storeIncome = order.TotalAmount - platformFee;
+                    storeWallet.PendingBalance = Math.Max(0, storeWallet.PendingBalance - storeIncome);
+                }
+                
+                _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+                {
+                    Id = Guid.NewGuid(),
+                    CustomerWalletId = customerWallet.Id,
+                    Amount = refundAmount,
+                    Type = 3, // Refund
+                    Status = 1, // Completed
+                    OrderId = order.Id,
+                    Description = $"Hoàn tiền đơn hàng {order.OrderCode ?? 0}"
+                });
             }
-            
-            _ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+        }
+
+        if (order.VoucherDiscount > 0)
+        {
+            var voucherFund = await _ctx.CustomerVoucherFunds.FirstOrDefaultAsync(v => v.CustomerId == order.UserId, cancellationToken);
+            if (voucherFund != null)
             {
-                Id = Guid.NewGuid(),
-                CustomerWalletId = customerWallet.Id,
-                Amount = order.TotalAmount,
-                Type = 3, // Refund
-                Status = 1, // Completed
-                OrderId = order.Id,
-                Description = $"Hoàn tiền đơn hàng {order.OrderCode ?? 0}"
-            });
+                if (isPaid)
+                {
+                    voucherFund.AccumulatedBalance += order.VoucherDiscount;
+                    _ctx.CustomerVoucherTransactions.Add(new CustomerVoucherTransaction
+                    {
+                        Id = Guid.NewGuid(),
+                        CustomerVoucherFundId = voucherFund.Id,
+                        OrderId = order.Id,
+                        Amount = order.VoucherDiscount, // Positive
+                        OrderTotal = order.TotalAmount,
+                        Type = 3, // Refunded
+                        CreatedAt = DateTime.UtcNow
+                    });
+                }
+                else
+                {
+                    voucherFund.ReservedAmount = Math.Max(0, voucherFund.ReservedAmount - order.VoucherDiscount);
+                }
+            }
         }
 
         // Return stock

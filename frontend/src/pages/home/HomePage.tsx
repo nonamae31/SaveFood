@@ -6,6 +6,7 @@ import { ListingCard } from '@/components/listings/ListingCard';
 import { SkeletonCard } from '@/components/ui/SkeletonCard';
 import { useAuthContext } from '@/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import { GlobalSearchBar } from '@/components/ui/search/GlobalSearchBar';
 
 export function HomePage() {
   const { data: listings, isLoading, isError } = useListings();
@@ -63,6 +64,8 @@ export function HomePage() {
               Hàng ngàn món ăn chất lượng đang chờ được thưởng thức thay vì bị bỏ phí.
             </p>
 
+            <GlobalSearchBar variant="hero" />
+
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4 mt-8 md:mt-10 w-full sm:w-auto self-start">
               <Link
@@ -93,7 +96,7 @@ export function HomePage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+                <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
                 <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Ưu đãi hôm nay</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-bold font-[--font-display] text-[--color-ink-primary] leading-tight">
@@ -133,9 +136,9 @@ export function HomePage() {
         <div className="relative max-w-[--spacing-container] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <div className="flex items-center justify-center gap-2 mb-3">
-              <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+              <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
               <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Quy trình</span>
-              <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
+              <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
             </div>
             <h2 className="text-3xl sm:text-4xl font-bold font-[--font-display] text-[--color-ink-primary]">
               Đơn giản như <span className="text-[--color-brand-600]">1, 2, 3</span>

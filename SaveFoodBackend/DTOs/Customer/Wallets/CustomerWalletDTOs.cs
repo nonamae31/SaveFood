@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace SaveFoodBackend.DTOs.Customer.Wallets;
 
@@ -28,3 +29,15 @@ public class CustomerWithdrawRequest
     public string AccountNumber { get; set; } = string.Empty;
     public string AccountName { get; set; } = string.Empty;
 }
+
+public class TopUpRequest
+{
+    [Range(10000, 50000000, ErrorMessage = "Số tiền nạp phải từ 10,000đ đến 50,000,000đ")]
+    public decimal Amount { get; set; }
+}
+
+public class TopUpResponse
+{
+    public string CheckoutUrl { get; set; } = string.Empty;
+}
+

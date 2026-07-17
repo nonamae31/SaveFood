@@ -39,6 +39,9 @@ export const QUERY_KEYS = {
     all:         (): readonly string[] => ['categories'],
     adminAll:    (): readonly string[] => ['categories', 'admin'],
   },
+  admin: {
+    search: (keyword: string): readonly string[] => ['admin', 'search', keyword],
+  },
   storeFinance: {
     wallet: (): readonly string[] => ['storeFinance', 'wallet'],
     transactions: (page: number, size: number): readonly unknown[] => ['storeFinance', 'transactions', page, size],
@@ -66,6 +69,8 @@ export const ROUTES = {
   ORDER_DETAIL:   (id: string) => `/orders/${id}`,
   MY_ORDERS:      '/profile?tab=orders',
   MY_WALLET:      '/my-wallet',
+  CUSTOMER_COMPLAINTS: '/complaints',
+  CUSTOMER_COMPLAINT_DETAIL: (id: string) => '/complaints/' + id,
 
   // Auth
   LOGIN:          '/login',
@@ -88,6 +93,7 @@ export const ROUTES = {
   DASHBOARD_STAFF:        '/dashboard/staff',
   DASHBOARD_WALLET:       '/dashboard/wallet',
   DASHBOARD_REVIEWS:      '/dashboard/reviews',
+  DASHBOARD_COMPLAINTS:   '/dashboard/complaints',
 
   // Admin
   ADMIN:               '/admin',
@@ -98,6 +104,7 @@ export const ROUTES = {
   ADMIN_SUBSCRIPTIONS: '/admin/subscriptions',
   ADMIN_CATEGORIES:    '/admin/categories',
   ADMIN_AUDIT:         '/admin/audit',
+  ADMIN_COMPLAINTS:    '/admin/complaints',
 } as const
 
 // ── API Endpoints ─────────────────────────────────────────────────────────────
@@ -149,6 +156,9 @@ export const API_ENDPOINTS = {
   CATEGORIES_ADMIN_ALL: '/categories/all',
   CATEGORY:             (id: string) => `/categories/${id}`,
   CATEGORY_RESTORE:     (id: string) => `/categories/${id}/restore`,
+
+  // Admin
+  ADMIN_GLOBAL_SEARCH:  '/admin/search',
 } as const
 
 // ── Pagination Defaults ───────────────────────────────────────────────────────

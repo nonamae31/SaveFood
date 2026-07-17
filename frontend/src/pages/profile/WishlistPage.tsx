@@ -33,8 +33,8 @@ export function WishlistPage() {
     <div className="max-w-[--spacing-container] mx-auto py-10 px-4 sm:px-6 lg:px-8">
       <div className="mb-10">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-8 h-[3px] rounded-full bg-[--color-brand-500]"></div>
-          <span className="text-sm font-medium text-[--color-brand-600] uppercase tracking-wider">Yêu thích</span>
+          <div className="w-12 h-1 rounded-full bg-gradient-to-r from-brand-500 to-brand-700 shadow-sm"></div>
+          <span className="text-sm font-bold text-brand-700 uppercase tracking-wider">Yêu thích</span>
         </div>
         <h1 className="text-3xl font-bold font-[--font-display] text-[--color-ink-primary]">Danh sách <span className="text-[--color-brand-600]">yêu thích</span></h1>
         <p className="text-[--color-ink-secondary] mt-2">

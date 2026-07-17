@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '@/api/client';
 import { FileText, Download, Search, ShieldCheck, TrendingUp, CreditCard, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface AuditItem {
+  id: string;
   date: string;
   type: string;
   customerName: string;
@@ -84,22 +86,72 @@ export default function AdminAuditPage() {
   oneMonthAgoDate.setMonth(oneMonthAgoDate.getMonth() - 1);
   const oneMonthAgo = getVietnamDateString(oneMonthAgoDate);
 
-  const [from, setFrom] = useState(oneMonthAgo);
-  const [to, setTo] = useState(today);
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initFrom = searchParams.get('from') || oneMonthAgo;
+  const initTo = searchParams.get('to') || today;
+  const initPage = parseInt(searchParams.get('page') || '1', 10);
+  const highlightId = searchParams.get('highlightId');
+  const expanded = searchParams.get('expanded') === 'true';
+  const initSearch = searchParams.get('search') || '';
+
+  const [from, setFrom] = useState(initFrom);
+  const [to, setTo] = useState(initTo);
+  const [page, setPage] = useState(initPage);
+  const [search, setSearch] = useState(initSearch);
+  const [localSearch, setLocalSearch] = useState(initSearch);
   const [pageSize, setPageSize] = useState(50);
   const [data, setData] = useState<AuditResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
+  
+  const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
-  const fetchReport = async (p = 1, limit = pageSize) => {
+  useEffect(() => {
+    if (searchParams.toString()) {
+      setFrom(searchParams.get('from') || oneMonthAgo);
+      setTo(searchParams.get('to') || today);
+      setSearch(searchParams.get('search') || '');
+      setLocalSearch(searchParams.get('search') || '');
+      const p = parseInt(searchParams.get('page') || '1', 10);
+      setPage(p);
+      fetchReport(p, pageSize, searchParams.get('from') || oneMonthAgo, searchParams.get('to') || today, searchParams.get('search') || '');
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (localSearch !== (searchParams.get('search') || '')) {
+        const newParams = new URLSearchParams(searchParams);
+        if (localSearch) {
+          newParams.set('search', localSearch);
+        } else {
+          newParams.delete('search');
+        }
+        newParams.set('page', '1');
+        setSearchParams(newParams);
+      }
+    }, 400);
+    return () => clearTimeout(timeoutId);
+  }, [localSearch, searchParams]);
+
+  useEffect(() => {
+    if (data && highlightId && highlightRef.current) {
+      setTimeout(() => {
+        highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 300);
+    }
+  }, [data, highlightId]);
+
+  const fetchReport = async (p = 1, limit = pageSize, f = from, t = to, s = search) => {
     setLoading(true);
     setError('');
     try {
-      const result = await apiClient<AuditResponse>(
-        `/admin/audit/report?from=${from}&to=${to}&page=${p}&pageSize=${limit}`
-      );
+      let url = `/admin/audit/report?from=${f}&to=${t}&page=${p}&pageSize=${limit}`;
+      if (s) {
+        url += `&search=${encodeURIComponent(s)}`;
+      }
+      const result = await apiClient<AuditResponse>(url);
       setData(result);
       setPage(p);
     } catch (err: any) {
@@ -110,7 +162,9 @@ export default function AdminAuditPage() {
   };
 
   useEffect(() => {
-    fetchReport(1);
+    if (!searchParams.toString()) {
+      fetchReport(1, pageSize, from, to, search);
+    }
   }, []);
 
   const handleExportCsv = async () => {
@@ -158,9 +212,42 @@ export default function AdminAuditPage() {
         </button>
       </div>
 
+      {/* Banner */}
+      {expanded && (
+        <div className="bg-blue-50 border border-blue-200 text-blue-700 text-[14px] px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
+          <span>Đã mở rộng khoảng thời gian để hiển thị đơn hàng bạn tìm.</span>
+          <button 
+            onClick={() => {
+              searchParams.delete('expanded');
+              searchParams.delete('highlightId');
+              searchParams.delete('from');
+              searchParams.delete('to');
+              searchParams.delete('page');
+              setSearchParams(searchParams);
+              setFrom(oneMonthAgo);
+              setTo(today);
+            }}
+            className="text-blue-700 font-semibold hover:underline"
+          >
+            Quay lại bộ lọc mặc định
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="bg-white border border-mint-hairline rounded-[12px] p-5 mb-6 shadow-sm">
         <div className="flex flex-wrap items-end gap-4">
+          <div className="flex-1 min-w-[200px] relative">
+            <label className="block text-[13px] font-medium text-mint-stone mb-1">Tìm kiếm</label>
+            <Search className="w-4 h-4 absolute left-3 bottom-3 text-mint-steel" />
+            <input 
+              type="text"
+              placeholder="Ngân hàng, STK, Tên, Mã ĐH..."
+              value={localSearch}
+              onChange={(e) => setLocalSearch(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-[14px] border border-mint-hairline rounded-[8px] focus:outline-none focus:ring-2 focus:ring-mint-brand-green/20 focus:border-mint-brand-green bg-white placeholder:text-mint-steel/70 transition-shadow"
+            />
+          </div>
           <div>
             <label className="block text-[13px] font-medium text-mint-stone mb-1">Từ ngày</label>
             <input
@@ -241,7 +328,14 @@ export default function AdminAuditPage() {
                   </tr>
                 )}
                 {data.items.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-mint-canvas/30 transition-colors align-top">
+                  <tr 
+                    key={item.id} 
+                    ref={item.id === highlightId ? highlightRef : null}
+                    className={clsx(
+                      "transition-colors align-top",
+                      item.id === highlightId ? "bg-yellow-100 hover:bg-yellow-200" : "hover:bg-mint-canvas/30"
+                    )}
+                  >
                     <td className="px-4 py-3">
                       <p className="text-[13px] text-mint-ink font-medium whitespace-nowrap">{formatDate(item.date)}</p>
                       <span className={clsx(

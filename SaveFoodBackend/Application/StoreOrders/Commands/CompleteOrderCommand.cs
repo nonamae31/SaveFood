@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using MediatR;
 using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Hubs;
+using SaveFoodBackend.Application.Orders.Events;
 using Microsoft.AspNetCore.SignalR;
 using SaveFoodBackend.Models;
 using SaveFoodBackend.Models.Enums;
@@ -23,14 +24,16 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
     private readonly IFinanceRepository _financeRepo;
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly INotificationService _notificationService;
+    private readonly IPublisher _publisher;
 
-    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext, INotificationService notificationService)
+    public CompleteOrderCommandHandler(IOrderRepository orderRepo, IStoreRepository storeRepo, IFinanceRepository financeRepo, IHubContext<NotificationHub> hubContext, INotificationService notificationService, IPublisher publisher)
     {
         _orderRepo = orderRepo;
         _storeRepo = storeRepo;
         _financeRepo = financeRepo;
         _hubContext = hubContext;
         _notificationService = notificationService;
+        _publisher = publisher;
     }
 
     public async Task<bool> Handle(CompleteOrderCommand request, CancellationToken cancellationToken)
@@ -106,6 +109,8 @@ public class CompleteOrderCommandHandler : IRequestHandler<CompleteOrderCommand,
             type: "ORDER_STATUS_UPDATE",
             referenceId: order.Id
         );
+
+        await _publisher.Publish(new OrderCompletedEvent(order.Id, order.UserId, order.TotalAmount, OrderCompletionSource.StaffScan), cancellationToken);
 
         return true;
     }

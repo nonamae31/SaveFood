@@ -14,7 +14,8 @@ export function GlobalNotificationListener() {
     
     const connection = new HubConnectionBuilder()
       .withUrl(`${baseUrl}/hubs/notifications`, {
-        withCredentials: true
+        withCredentials: true,
+        accessTokenFactory: () => localStorage.getItem('sf_access_token') || ''
       })
       .configureLogging(LogLevel.Information)
       .withAutomaticReconnect()
@@ -27,11 +28,13 @@ export function GlobalNotificationListener() {
       .catch(err => console.error('SignalR Connection Error: ', err));
 
     // Lắng nghe sự kiện NewOrderReceived (cho Store/Owner)
-    connection.on('NewOrderReceived', (orderId: string) => {
-        toast.success(`Có đơn hàng mới! ID: ${orderId.substring(0, 8)}...`, {
+    connection.on('ReceiveNotification', (notif: any) => {
+      if (notif.type === 'NEW_ORDER') {
+        toast.success(`Có đơn hàng mới! Vui lòng kiểm tra màn hình quản lý đơn hàng.`, {
             duration: 5000,
             position: 'top-right'
         });
+      }
     });
 
     // Lắng nghe sự kiện khách hàng: Đơn hàng cập nhật trạng thái

@@ -9,11 +9,13 @@ public class OrderHistoryDTO
     public Guid StoreId { get; set; }
     public string StoreName { get; set; } = string.Empty;
     public decimal TotalAmount { get; set; }
+    public decimal VoucherDiscount { get; set; }
     public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     
     // For the list view, we just need one thumbnail or a few items
     public string? FirstItemImageUrl { get; set; }
+    public string FirstItemName { get; set; } = string.Empty;
     public int TotalItems { get; set; }
     public byte PaymentMethod { get; set; }
     public byte? PaymentStatus { get; set; }
@@ -28,10 +30,12 @@ public class OrderDetailDTO
     public string StoreAddress { get; set; } = string.Empty;
     
     public decimal TotalAmount { get; set; }
+    public decimal VoucherDiscount { get; set; }
     public SaveFoodBackend.Models.Enums.OrderStatusEnum OrderStatus { get; set; }
     public DateTime CreatedAt { get; set; }
     
     public string? PickupCode { get; set; }
+    public string? QrToken { get; set; }
     public long? OrderCode { get; set; }
     public DateTime? ReservationExpiresAt { get; set; }
     public DateTime? ExpectedPickupTime { get; set; }

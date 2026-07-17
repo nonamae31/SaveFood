@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using SaveFoodBackend.Data;
 using SaveFoodBackend.Extensions;
 using SaveFoodBackend.Middleware;
-
+using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.IdentityModel.Tokens.Jwt;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +14,17 @@ var builder = WebApplication.CreateBuilder(args);
 JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
 // ─── 1. Controllers & API ─────────────────────────────────────────────────────
+builder.Services.AddProblemDetails();
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("FixedWindow", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 0;
+    });
+});
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -37,10 +50,10 @@ builder.Services.AddSwaggerWithJwt();
 
 // ─── 3. Database Context (SQL Server) ─────────────────────────────────────────
 builder.Services.AddDbContext<SaveFoodDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
-);
+{
+    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+    options.UseSqlServer(connectionString);
+});
 
 // ─── 4. Authentication (JWT) & Authorization ──────────────────────────────────
 builder.Services.AddJwtAuthentication(builder.Configuration);
@@ -84,11 +97,13 @@ else
 // builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICartService, SaveFoodBackend.Services.CartService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IRedisService, SaveFoodBackend.Services.RedisService>();
+builder.Services.AddScoped<SaveFoodBackend.Services.ICheckoutQueueService, SaveFoodBackend.Services.CheckoutQueueService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IJwtProvider, SaveFoodBackend.Services.JwtProvider>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUserService, SaveFoodBackend.Services.UserService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IEmailService, SaveFoodBackend.Services.EmailService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreFinanceService, SaveFoodBackend.Services.StoreFinanceService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerWalletService, SaveFoodBackend.Services.CustomerWalletService>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.IVoucherFundService, SaveFoodBackend.Services.VoucherFundService>();
 
 // Admin Repositories
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IUnitOfWork, SaveFoodBackend.Repositories.UnitOfWork>();
@@ -113,8 +128,8 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFood
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
 builder.Services.AddScoped<SaveFoodBackend.Services.IPayOSService, SaveFoodBackend.Services.PayOSService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IOrderRepository, SaveFoodBackend.Repositories.OrderRepository>();
+builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IComplaintRepository, SaveFoodBackend.Repositories.ComplaintRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IUnitOfWork, SaveFoodBackend.Data.UnitOfWork>();
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IReviewRepository, SaveFoodBackend.Repositories.ReviewRepository>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Services.IReviewService, SaveFoodBackend.Services.ReviewService>();
 
@@ -131,6 +146,10 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.INotificationService, Save
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.DynamicPricingBackgroundService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.ExpiredOrderCleanupService>();
 builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NoShowOrderCompletionService>();
+// Notification Queue
+builder.Services.AddSingleton<SaveFoodBackend.Interfaces.INotificationQueue, SaveFoodBackend.Services.BackgroundTasks.NotificationQueue>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.NotificationBackgroundService>();
+builder.Services.AddHostedService<SaveFoodBackend.Services.BackgroundTasks.AutoCancelUnconfirmedOrdersService>();
 // ─────────────────────────────────────────────────────────────────────────────
 
 var app = builder.Build();
@@ -143,6 +162,8 @@ app.UseSwaggerWithUI();
 
 // ─── 9. HTTPS Redirect ────────────────────────────────────────────────────────
 app.UseHttpsRedirection();
+
+app.UseRateLimiter();
 
 // ─── 10. CORS & Routing (phải đứng TRƯỚC Authentication) ───────────────────
 app.UseRouting();
@@ -159,11 +180,14 @@ app.MapControllers();
 // ─────────────────────────────────────────────────────────────────────────────
 // SignalR Hubs
 app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
+app.MapHub<SaveFoodBackend.Hubs.ComplaintHub>("/hubs/complaint");
 // ─────────────────────────────────────────────────────────────────────────────
 
-using (var scope = app.Services.CreateScope())
+if (app.Environment.IsDevelopment())
 {
-    var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
     // Auto-migrate schema for new columns Username and NormalizedEmail
     var sql = @"
         IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Username')
@@ -203,6 +227,11 @@ using (var scope = app.Services.CreateScope())
         BEGIN
             ALTER TABLE Stores ADD CoverCloudinaryId nvarchar(max) NULL;
         END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[ClearanceListings]') AND name = 'RowVersion')
+        BEGIN
+            ALTER TABLE ClearanceListings ADD RowVersion rowversion NOT NULL;
+        END
     ";
     db.Database.ExecuteSqlRaw(sql);
     
@@ -232,6 +261,7 @@ using (var scope = app.Services.CreateScope())
     if (anyChanges)
     {
         db.SaveChanges();
+    }
     }
 }
 

@@ -180,7 +180,10 @@ export function ProfileOrdersTab() {
                 
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-lg">{order.storeName}</h3>
+                    <h3 className="font-bold text-lg">
+                      {order.firstItemName || order.storeName}
+                      {order.totalItems > 1 && <span className="text-sm font-normal text-gray-500 ml-1">và {order.totalItems - 1} sản phẩm khác</span>}
+                    </h3>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.color}`}>
                       {status.text}
                     </span>
@@ -206,7 +209,7 @@ export function ProfileOrdersTab() {
                   
                   <div className="flex justify-between items-end mt-auto">
                     <div className="font-bold text-lg text-brand-600">
-                      {order.totalAmount.toLocaleString('vi-VN')} đ
+                      {(order.totalAmount - (order.voucherDiscount || 0)).toLocaleString('vi-VN')} đ
                     </div>
                     <div className="flex items-center text-sm text-brand-600 font-medium">
                       Xem chi tiết <ChevronRight className="w-4 h-4 ml-1" />

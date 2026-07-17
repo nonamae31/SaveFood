@@ -46,6 +46,9 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, b
         if (order.OrderStatus != OrderStatusEnum.Pending)
             throw new BusinessException($"Chỉ có thể xác nhận đơn hàng đang ở trạng thái 'Chờ xác nhận'.");
 
+        if (!order.CanConfirm())
+            throw new BusinessException("Chưa đủ 30 phút để xác nhận đơn hàng.");
+
         order.OrderStatus    = OrderStatusEnum.Confirmed;
         order.ConfirmedById  = request.UserId;
         _orderRepo.Update(order);

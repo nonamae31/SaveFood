@@ -79,18 +79,16 @@ public class GlobalExceptionMiddleware(
         context.Response.StatusCode = statusCode;
         context.Response.ContentType = "application/json";
 
-        // Xây dựng response body
-        var response = new
-        {
-            success = false,
-            message,
-            errorCode,
-            timestamp = DateTime.UtcNow,
-            // Chỉ thêm stack trace khi đang ở môi trường Development
-            detail = env.IsDevelopment() && exception is not BusinessException
-                ? exception.StackTrace
-                : null
-        };
+            // Xây dựng response body
+            var response = new
+            {
+                success = false,
+                message,
+                errorCode,
+                timestamp = DateTime.UtcNow,
+                // Tạm thời bật stack trace để xem lỗi 500 trên server
+                detail = exception.ToString()
+            };
 
         // Ghi response body vào HTTP response
         var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };

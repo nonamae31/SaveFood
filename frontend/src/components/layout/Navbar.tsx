@@ -10,6 +10,7 @@ import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { LocationPickerMap } from '@/components/map/LocationPickerMap'
 import { NotificationDropdown } from '@/components/layout/NotificationDropdown'
+import { GlobalSearchBar } from '@/components/ui/search/GlobalSearchBar'
 
 function CartBadge() {
   const { data: cartItems } = useCart()
@@ -94,8 +95,6 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const location = useLocation()
   const navigate = useNavigate()
   const { isAuthenticated, user } = useAuthContext()
@@ -113,20 +112,6 @@ export function Navbar() {
     handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
-
-  useEffect(() => {
-    setIsSearchOpen(false)
-    const qs = new URLSearchParams(location.search)
-    setSearchQuery(qs.get('q') || '')
-  }, [location.pathname, location.search])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`${ROUTES.PRODUCTS}?q=${encodeURIComponent(searchQuery.trim())}`)
-      setIsSearchOpen(false)
-    }
-  }
 
   const isActive = (href: string) =>
     href === ROUTES.HOME
@@ -155,7 +140,7 @@ export function Navbar() {
           {/* ── Logo ── */}
           <Link
             to={ROUTES.HOME}
-            className={`flex items-center gap-2 group transition-all duration-500 rounded-full px-4 py-2 ${pillStyle} ${isSearchOpen ? 'hidden md:flex' : ''}`}
+            className={`flex items-center gap-2 group transition-all duration-500 rounded-full px-4 py-2 ${pillStyle}`}
             aria-label="SaveFood — Trang chủ"
           >
             {/* Logo LUÔN giữ màu xanh trong suốt để đồng bộ như user yêu cầu */}
@@ -190,12 +175,12 @@ export function Navbar() {
           </div>
 
           {/* ── Actions (Location, Search, & Desktop only: Orders, Cart, Auth) ── */}
-          <div className={`flex items-center transition-all duration-500 rounded-full pl-3 md:pl-5 pr-1.5 py-1.5 gap-2 md:gap-4 ${pillStyle} ${isSearchOpen ? 'w-full md:w-auto' : ''}`}>
+          <div className={`flex items-center transition-all duration-500 rounded-full pl-3 md:pl-5 pr-1.5 py-1.5 gap-2 md:gap-4 ${pillStyle}`}>
             
             {/* Location Button */}
             <button
               onClick={() => setIsLocationModalOpen(true)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'} ${isSearchOpen ? 'hidden md:flex' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}`}
               title="Thay đổi vị trí giao hàng"
             >
               <MapPin width={16} height={16} className={isDark ? 'text-green-300' : 'text-green-600'} />
@@ -205,44 +190,17 @@ export function Navbar() {
             </button>
 
             {/* Search */}
-            <div className={`relative flex items-center ${isSearchOpen ? 'flex-1 md:flex-none' : ''}`}>
-              {isSearchOpen ? (
-                <form onSubmit={handleSearch} className="flex items-center w-full">
-                  <input
-                    type="text"
-                    autoFocus
-                    placeholder="Tìm món ăn..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className={`w-full sm:w-48 bg-transparent border-none outline-none text-sm px-2 ${isDark ? 'text-white placeholder:text-white/50' : 'text-gray-800 placeholder:text-gray-400'}`}
-                  />
-                  <button type="submit" className={`p-1.5 rounded-full ${isDark ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}>
-                    <Search width={16} height={16} />
-                  </button>
-                  <button type="button" onClick={() => setIsSearchOpen(false)} className={`p-1.5 rounded-full ml-1 ${isDark ? 'hover:bg-white/20' : 'hover:bg-gray-100'}`}>
-                    <X width={16} height={16} />
-                  </button>
-                </form>
-              ) : (
-                <button
-                  onClick={() => setIsSearchOpen(true)}
-                  className={`p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
-                  aria-label="Tìm kiếm"
-                >
-                  <Search width={18} height={18} />
-                </button>
-              )}
-            </div>
+            <GlobalSearchBar variant="header" isDark={isDark} />
 
             {/* Notification Bell (Mobile Only) */}
-            {!isSearchOpen && isAuthenticated && (
+            {isAuthenticated && (
               <div className="flex md:hidden relative items-center pl-1">
                 <NotificationDropdown isDark={isDark} />
               </div>
             )}
 
             {/* Orders (Desktop Only) */}
-            {!isSearchOpen && isAuthenticated && (
+            {isAuthenticated && (
               <Link
                 to={ROUTES.MY_ORDERS}
                 className={`hidden md:flex relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
@@ -253,24 +211,21 @@ export function Navbar() {
             )}
 
             {/* Cart (Desktop Only) */}
-            {!isSearchOpen && (
-              <div className="hidden md:flex relative group">
-                <Link
-                  to={ROUTES.CART}
-                  className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
-                  title="Giỏ hàng"
-                >
-                  <ShoppingCart width={18} height={18} />
-                  {isAuthenticated && <CartBadge />}
-                </Link>
-                {/* Popover Hover */}
-                {isAuthenticated && <MiniCartPopover />}
-              </div>
-            )}
+            <div className="hidden md:flex relative group">
+              <Link
+                to={ROUTES.CART}
+                className={`relative p-1.5 rounded-full transition-all duration-300 ${isDark ? 'text-white/80 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+                title="Giỏ hàng"
+              >
+                <ShoppingCart width={18} height={18} />
+                {isAuthenticated && <CartBadge />}
+              </Link>
+              {/* Popover Hover */}
+              {isAuthenticated && <MiniCartPopover />}
+            </div>
 
             {/* ── Auth buttons (Desktop Only) ── */}
-            {!isSearchOpen && (
-              isAuthenticated && user ? (
+            {isAuthenticated && user ? (
                 <div className="hidden md:flex items-center gap-3 ml-2">
                   {user.roles?.some(r => r.toUpperCase() === 'STORE') && (
                     <Link 
@@ -314,7 +269,7 @@ export function Navbar() {
                   </Link>
                 </div>
               )
-            )}
+            }
           </div>
 
         </div>

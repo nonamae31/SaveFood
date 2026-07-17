@@ -27,12 +27,21 @@ function toQueryString(filter: ListingFilter): string {
   return qs ? `?${qs}` : ''
 }
 
-/** GET /api/customerlistings — danh sách Clearance Listings có phân trang */
+/** GET /api/listings — danh sách Clearance Listings có phân trang */
 export function getListings(filter: ListingFilter = {}): Promise<PaginatedResult<CustomerListingDTO>> {
-  return apiClient<PaginatedResult<CustomerListingDTO>>(`/customerlistings${toQueryString(filter)}`)
+  return apiClient<PaginatedResult<CustomerListingDTO>>(`/listings${toQueryString(filter)}`)
 }
 
-/** GET /api/customerlistings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
+/** GET /api/listings/{id} — lấy thông tin chi tiết của 1 listing */
+export function getListingById(id: string, userLat?: number, userLng?: number): Promise<CustomerListingDTO> {
+  const params = new URLSearchParams()
+  if (userLat !== undefined) params.set('userLat', String(userLat))
+  if (userLng !== undefined) params.set('userLng', String(userLng))
+  const qs = params.toString()
+  return apiClient<CustomerListingDTO>(`/listings/${id}${qs ? `?${qs}` : ''}`)
+}
+
+/** GET /api/listings/recommendations — gợi ý cá nhân hóa theo lịch sử mua */
 export function getRecommendations(): Promise<CustomerListingDTO[]> {
-  return apiClient<CustomerListingDTO[]>('/customerlistings/recommendations')
+  return apiClient<CustomerListingDTO[]>('/listings/recommendations')
 }

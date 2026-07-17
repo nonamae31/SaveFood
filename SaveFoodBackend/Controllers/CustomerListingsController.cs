@@ -8,7 +8,7 @@ using SaveFoodBackend.Interfaces;
 namespace SaveFoodBackend.Controllers;
 
 [ApiController]
-[Route("api/customerlistings")]
+[Route("api/listings")]
 public class CustomerListingsController : ApiControllerBase
 {
     private readonly ICustomerListingService _listingService;
@@ -25,6 +25,16 @@ public class CustomerListingsController : ApiControllerBase
     {
         var result = await _listingService.GetListingsAsync(filter, ct);
         return Ok(result);
+    }
+
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetListing(Guid id, [FromQuery] double? userLat, [FromQuery] double? userLng, CancellationToken ct)
+    {
+        var listing = await _listingService.GetListingByIdAsync(id, userLat, userLng, ct);
+        if (listing == null)
+            return NotFound();
+        return Ok(listing);
     }
 
     /// <summary>Gợi ý cá nhân hóa dựa trên lịch sử mua hàng.</summary>

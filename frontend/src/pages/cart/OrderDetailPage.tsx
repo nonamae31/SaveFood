@@ -1,5 +1,5 @@
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder, useExtendPickup, useCancelOrder, useBatchPay, useConfirmReceipt } from '@/hooks/useOrders'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
+import { useOrder, useExtendPickup, useCancelOrder, useBatchPay, useConfirmReceipt, useRepurchase } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
 import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink, Handshake, Loader2 } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
@@ -47,6 +47,18 @@ export function OrderDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
   const batchPayMutation = useBatchPay()
+  const repurchaseMutation = useRepurchase(id)
+  const handleRepurchase = () => {
+    repurchaseMutation.mutate(undefined, {
+      onSuccess: (res) => {
+        toast.success(res.message || "Đã thêm vào giỏ hàng");
+        navigate(ROUTES.CART);
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Không thể mua lại.');
+      }
+    });
+  }
 
   const handleRetryPayment = () => {
     batchPayMutation.mutate(
@@ -235,9 +247,9 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {!isCompleted && !isCancelled && order.pickupCode && (
+          {!isCompleted && !isCancelled && (order.qrToken || order.pickupCode) && (
             <div className="bg-white p-4 rounded-xl shadow-sm mb-6 animate-[--animate-scale-in]">
-              <QRCodeSVG value={`pickupCode=${order.pickupCode}`} size={200} />
+              <QRCodeSVG value={order.qrToken || `pickupCode=${order.pickupCode}`} size={200} />
             </div>
           )}
 
@@ -280,7 +292,7 @@ export function OrderDetailPage() {
             {order.items.map(item => (
               <div key={item.id} className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <p className="font-medium">{item.title}</p>
+                  <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} target="_blank" rel="noopener noreferrer" className="font-medium hover:text-brand-500 transition-colors inline-block">{item.title}</Link>
                   <p className="text-sm text-gray-500">x{item.quantity}</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -300,10 +312,20 @@ export function OrderDetailPage() {
             ))}
           </div>
 
-          <div className="pt-4 border-t border-dashed border-gray-200">
-            <div className="flex justify-between items-center text-lg font-bold">
+          <div className="pt-4 border-t border-dashed border-gray-200 space-y-2">
+            <div className="flex justify-between items-center text-gray-600">
+              <span>Tổng tiền hàng</span>
+              <span className="font-medium">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
+            </div>
+            {(order.voucherDiscount ?? 0) > 0 && (
+              <div className="flex justify-between items-center text-green-600">
+                <span>Voucher SaveFood</span>
+                <span className="font-medium">-{(order.voucherDiscount!).toLocaleString('vi-VN')} đ</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center text-lg font-bold pt-2 border-t border-gray-100">
               <span>Tổng thanh toán</span>
-              <span className="text-brand-600">{order.totalAmount.toLocaleString('vi-VN')} đ</span>
+              <span className="text-brand-600">{(order.totalAmount - (order.voucherDiscount || 0)).toLocaleString('vi-VN')} đ</span>
             </div>
           </div>
         </div>
@@ -340,8 +362,17 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {order.orderStatus === 0 ? (
+          {order.orderStatus === 0 || order.orderStatus === 3 || order.orderStatus === 4 ? (
             <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
+              {order.orderStatus === 3 && (
+                <button 
+                  onClick={() => navigate(`/complaints/new?orderId=${pathId}`)}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl border-2 border-orange-500 text-orange-600 hover:bg-orange-50 hover:border-orange-600 font-bold flex items-center justify-center gap-2 transition-all shadow-sm active:scale-95"
+                >
+                  <AlertCircle className="w-5 h-5" /> Gửi khiếu nại
+                </button>
+              )}
+
               {order.orderStatus === 0 && (
                 <button 
                   onClick={() => setIsCancelModalOpen(true)}
@@ -358,6 +389,26 @@ export function OrderDetailPage() {
                   className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                 >
                   {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
+                </button>
+              )}
+              
+              {order.orderStatus === 5 && (
+                <button 
+                  onClick={handleConfirmReceipt}
+                  disabled={confirmReceiptMutation.isPending}
+                  className="w-full sm:w-auto bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <CheckCircle className="w-5 h-5" /> {confirmReceiptMutation.isPending ? 'Đang xử lý...' : 'Xác nhận đã nhận hàng'}
+                </button>
+              )}
+
+              {(order.orderStatus === 3 || order.orderStatus === 4) && (
+                <button 
+                  onClick={handleRepurchase}
+                  disabled={repurchaseMutation.isPending}
+                  className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  <Package className="w-5 h-5" /> {repurchaseMutation.isPending ? 'Đang xử lý...' : 'Mua lại đơn này'}
                 </button>
               )}
             </div>

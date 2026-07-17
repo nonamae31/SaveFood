@@ -124,6 +124,7 @@ public class StoreRepository : IStoreRepository
 
         var items = await query
             .OrderByDescending(s => s.CreatedAt)
+            .ThenByDescending(s => s.Id)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .Select(s => new AdminStoreListDTO

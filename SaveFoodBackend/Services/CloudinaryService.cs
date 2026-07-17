@@ -49,6 +49,50 @@ namespace SaveFoodBackend.Services
             return (uploadResult.SecureUrl.ToString(), uploadResult.PublicId);
         }
 
+        public async Task<(string SecureUrl, string PublicId)> UploadFileAsync(IFormFile file, string? existingPublicId = null)
+        {
+            if (file == null || file.Length == 0) return (null, null);
+
+            using var stream = file.OpenReadStream();
+            var isVideo = file.ContentType.StartsWith("video/");
+            
+            CloudinaryDotNet.Actions.UploadResult uploadResult;
+
+            if (isVideo)
+            {
+                var uploadParams = new VideoUploadParams
+                {
+                    File = new FileDescription(file.FileName, stream)
+                };
+                if (!string.IsNullOrEmpty(existingPublicId))
+                {
+                    uploadParams.PublicId = existingPublicId;
+                    uploadParams.Overwrite = true;
+                }
+                uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            }
+            else
+            {
+                var uploadParams = new ImageUploadParams
+                {
+                    File = new FileDescription(file.FileName, stream)
+                };
+                if (!string.IsNullOrEmpty(existingPublicId))
+                {
+                    uploadParams.PublicId = existingPublicId;
+                    uploadParams.Overwrite = true;
+                }
+                uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            }
+            
+            if (uploadResult.Error != null)
+            {
+                throw new Exception(uploadResult.Error.Message);
+            }
+
+            return (uploadResult.SecureUrl.ToString(), uploadResult.PublicId);
+        }
+
         public async Task<List<(string SecureUrl, string PublicId)>> UploadImagesAsync(IEnumerable<IFormFile> files)
         {
             var results = new System.Collections.Generic.List<(string SecureUrl, string PublicId)>();

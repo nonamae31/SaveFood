@@ -70,6 +70,15 @@ namespace SaveFoodBackend.Services
             var value = await GetAsync(key);
             return !string.IsNullOrEmpty(value);
         }
+
+        /// <inheritdoc/>
+        public async Task<bool> SetIfNotExistsAsync(string key, string value, TimeSpan expiry)
+        {
+            var existing = await _cache.GetStringAsync(key);
+            if (existing != null) return false; // key đã tồn tại
+            await SetAsync(key, value, expiry);
+            return true; // đã set (race window ~1ms, DB backstop cover phần còn lại)
+        }
     }
 }
 

@@ -10,29 +10,29 @@ namespace SaveFoodBackend.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "PayOsReference",
-                table: "Payments",
-                type: "nvarchar(max)",
-                nullable: true);
+            // migrationBuilder.AddColumn<string>(
+            //     name: "PayOsReference",
+            //     table: "Payments",
+            //     type: "nvarchar(max)",
+            //     nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "PayerAccountNumber",
-                table: "Payments",
-                type: "nvarchar(max)",
-                nullable: true);
+            // migrationBuilder.AddColumn<string>(
+            //     name: "PayerAccountNumber",
+            //     table: "Payments",
+            //     type: "nvarchar(max)",
+            //     nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "PayerBankId",
-                table: "Payments",
-                type: "nvarchar(max)",
-                nullable: true);
+            // migrationBuilder.AddColumn<string>(
+            //     name: "PayerBankId",
+            //     table: "Payments",
+            //     type: "nvarchar(max)",
+            //     nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "PayerName",
-                table: "Payments",
-                type: "nvarchar(max)",
-                nullable: true);
+            // migrationBuilder.AddColumn<string>(
+            //     name: "PayerName",
+            //     table: "Payments",
+            //     type: "nvarchar(max)",
+            //     nullable: true);
         }
 
         /// <inheritdoc />

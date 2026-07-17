@@ -77,34 +77,66 @@ public class ExpiredOrderCleanupService : BackgroundService
                 // Process Refund if paid
                 if (order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid)
                 {
-                    var customerWallet = await ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, cancellationToken);
-                    if (customerWallet == null)
+                    decimal refundAmount = order.Payment.Amount;
+                    if (refundAmount > 0)
                     {
-                        customerWallet = new CustomerWallet
+                        var customerWallet = await ctx.CustomerWallets.FirstOrDefaultAsync(w => w.UserId == order.UserId, cancellationToken);
+                        if (customerWallet == null)
+                        {
+                            customerWallet = new CustomerWallet
+                            {
+                                Id = Guid.NewGuid(),
+                                UserId = order.UserId,
+                                Balance = 0,
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+                            ctx.CustomerWallets.Add(customerWallet);
+                        }
+
+                        customerWallet.Balance += refundAmount;
+                        customerWallet.UpdatedAt = DateTime.UtcNow;
+
+                        ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
                         {
                             Id = Guid.NewGuid(),
-                            UserId = order.UserId,
-                            Balance = 0,
+                            CustomerWalletId = customerWallet.Id,
+                            Amount = refundAmount,
+                            Type = 0, // Refund / Deposit
+                            Status = 1, // Completed
+                            OrderId = order.Id,
                             CreatedAt = DateTime.UtcNow,
-                            UpdatedAt = DateTime.UtcNow
-                        };
-                        ctx.CustomerWallets.Add(customerWallet);
+                            Description = $"Hoàn tiền tự động cho đơn hàng hết hạn {order.OrderCode ?? 0}"
+                        });
                     }
+                }
 
-                    customerWallet.Balance += order.TotalAmount;
-                    customerWallet.UpdatedAt = DateTime.UtcNow;
-
-                    ctx.CustomerWalletTransactions.Add(new CustomerWalletTransaction
+                if (order.VoucherDiscount > 0)
+                {
+                    var voucherFund = await ctx.CustomerVoucherFunds.FirstOrDefaultAsync(v => v.CustomerId == order.UserId, cancellationToken);
+                    if (voucherFund != null)
                     {
-                        Id = Guid.NewGuid(),
-                        CustomerWalletId = customerWallet.Id,
-                        Amount = order.TotalAmount,
-                        Type = 0, // Refund / Deposit
-                        Status = 1, // Completed
-                        OrderId = order.Id,
-                        CreatedAt = DateTime.UtcNow,
-                        Description = $"Hoàn tiền tự động cho đơn hàng hết hạn {order.OrderCode ?? 0}"
-                    });
+                        bool isPaid = order.Payment != null && order.Payment.Status == (byte)PaymentStatusEnum.Paid;
+                        if (isPaid)
+                        {
+                            voucherFund.AccumulatedBalance += order.VoucherDiscount;
+                            ctx.CustomerVoucherTransactions.Add(new CustomerVoucherTransaction
+                            {
+                                Id = Guid.NewGuid(),
+                                CustomerVoucherFundId = voucherFund.Id,
+                                OrderId = order.Id,
+                                Amount = order.VoucherDiscount, // Positive
+                                OrderTotal = order.TotalAmount,
+                                Type = 3, // Refunded
+                                CreatedAt = DateTime.UtcNow
+                            });
+                        }
+                        else
+                        {
+                            // Just release the hold
+                            voucherFund.ReservedAmount = Math.Max(0, voucherFund.ReservedAmount - order.VoucherDiscount);
+                        }
+                    }
                 }
             }
 

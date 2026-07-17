@@ -64,10 +64,12 @@ public class GetMyOrdersQueryHandler : IRequestHandler<GetMyOrdersQuery, Paginat
             StoreId = o.StoreId,
             StoreName = o.Store.Name,
             TotalAmount = o.TotalAmount,
+            VoucherDiscount = o.VoucherDiscount,
             OrderStatus = o.OrderStatus,
             CreatedAt = o.CreatedAt,
             TotalItems = o.OrderItems.Sum(oi => oi.Quantity),
-            FirstItemImageUrl = o.OrderItems.FirstOrDefault()?.Listing?.ListingImages.FirstOrDefault()?.ImageUrl,
+            FirstItemImageUrl = o.OrderItems.FirstOrDefault()?.Listing?.ListingImages?.FirstOrDefault()?.ImageUrl,
+            FirstItemName = o.OrderItems.FirstOrDefault()?.Listing?.Title ?? string.Empty,
             PaymentMethod = o.Payment != null ? o.Payment.PaymentMethod : (byte)0,
             PaymentStatus = o.Payment != null ? o.Payment.Status : (byte)0,
             ReservationExpiresAt = o.ReservationExpiresAt

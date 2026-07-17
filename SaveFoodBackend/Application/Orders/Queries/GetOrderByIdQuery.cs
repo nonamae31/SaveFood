@@ -15,10 +15,12 @@ public record GetOrderByIdQuery(Guid Id, Guid UserId) : IRequest<OrderDetailDTO>
 public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, OrderDetailDTO>
 {
     private readonly SaveFoodDbContext _ctx;
+    private readonly SaveFoodBackend.Interfaces.IJwtProvider _jwtProvider;
 
-    public GetOrderByIdQueryHandler(SaveFoodDbContext ctx)
+    public GetOrderByIdQueryHandler(SaveFoodDbContext ctx, SaveFoodBackend.Interfaces.IJwtProvider jwtProvider)
     {
         _ctx = ctx;
+        _jwtProvider = jwtProvider;
     }
 
     public async Task<OrderDetailDTO> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
@@ -42,9 +44,11 @@ public class GetOrderByIdQueryHandler : IRequestHandler<GetOrderByIdQuery, Order
             StoreName = order.Store.Name,
             StoreAddress = $"{order.Store.DetailedAddress}, {order.Store.Ward}, {order.Store.City}".Replace(" ,", ",").Trim(',', ' '),
             TotalAmount = order.TotalAmount,
+            VoucherDiscount = order.VoucherDiscount,
             OrderStatus = order.OrderStatus,
             CreatedAt = order.CreatedAt,
             PickupCode = order.PickupCode,
+            QrToken = _jwtProvider.GenerateQrToken(order.Id),
             OrderCode = order.OrderCode,
             ReservationExpiresAt = order.ReservationExpiresAt,
             ConfirmedById = order.ConfirmedById,

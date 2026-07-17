@@ -13,7 +13,7 @@ export function useCart() {
     queryKey: CART_QUERY_KEY,
     queryFn: getCart,
     enabled: isAuthenticated,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 10, // 10 seconds to avoid stale cart errors during navigation
     retry: 1
   })
 }

@@ -125,4 +125,54 @@ namespace SaveFoodBackend.DTOs.Admin
     {
         public byte NewStatus { get; set; }
     }
+
+    public class GlobalSearchUserDTO
+    {
+        public Guid Id { get; set; }
+        public string FullName { get; set; } = null!;
+        public string Email { get; set; } = null!;
+        public byte Status { get; set; }
+    }
+
+    public class GlobalSearchStoreDTO
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public string AddressLine { get; set; } = null!;
+        public byte Status { get; set; }
+    }
+
+    public class GlobalSearchOrderDTO
+    {
+        public Guid Id { get; set; }
+        public long? OrderCode { get; set; }
+        public string StoreName { get; set; } = null!;
+        public decimal TotalAmount { get; set; }
+        public byte Status { get; set; }
+    }
+
+    public class GlobalSearchFinanceDTO
+    {
+        public Guid Id { get; set; }
+        public string Type { get; set; } = null!;
+        public string EntityName { get; set; } = null!;
+        public decimal Amount { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class GlobalSearchCategoryDTO
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = null!;
+        public byte Status { get; set; }
+    }
+
+    public class GlobalSearchResponseDTO
+    {
+        public List<GlobalSearchUserDTO> Users { get; set; } = new();
+        public List<GlobalSearchStoreDTO> Stores { get; set; } = new();
+        public List<GlobalSearchOrderDTO> Orders { get; set; } = new();
+        public List<GlobalSearchFinanceDTO> Finance { get; set; } = new();
+        public List<GlobalSearchCategoryDTO> Categories { get; set; } = new();
+    }
 }

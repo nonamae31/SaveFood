@@ -60,7 +60,8 @@ namespace SaveFoodBackend.Services
                 Description = description,
                 Items = items,
                 CancelUrl = cancelUrl,
-                ReturnUrl = returnUrl
+                ReturnUrl = returnUrl,
+                ExpiredAt = (int)((DateTimeOffset)DateTime.UtcNow.AddMinutes(15)).ToUnixTimeSeconds()
             };
 
             return await _payOS.PaymentRequests.CreateAsync(paymentData);

@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight } from 'lucide-react'
 import { useCart, useUpdateCartItem, useRemoveFromCart } from '@/hooks/useCart'
 import { ROUTES } from '@/lib/constants'
@@ -170,7 +170,9 @@ export function CartPage() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex justify-between items-start gap-4">
-                            <h4 className="font-bold text-[--color-ink-primary] text-base truncate pr-4">{item.title}</h4>
+                            <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} target="_blank" rel="noopener noreferrer" className="font-bold text-[--color-ink-primary] text-base truncate pr-4 hover:text-brand-500 transition-colors inline-block max-w-[80%]">
+                              {item.title}
+                            </Link>
                             <button 
                               onClick={() => handleRemove(item.id)}
                               className="text-gray-400 hover:text-red-500 transition-colors p-1"

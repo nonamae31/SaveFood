@@ -56,4 +56,6 @@ public partial class User
 
 
     public virtual CustomerWallet? CustomerWallet { get; set; }
+
+    public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 }

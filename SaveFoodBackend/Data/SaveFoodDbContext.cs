@@ -74,6 +74,15 @@ public partial class SaveFoodDbContext : DbContext
 
     public virtual DbSet<Notification> Notifications { get; set; }
 
+    public virtual DbSet<CustomerVoucherFund> CustomerVoucherFunds { get; set; }
+
+    public virtual DbSet<CustomerVoucherTransaction> CustomerVoucherTransactions { get; set; }
+
+    public virtual DbSet<Complaint> Complaints { get; set; }
+    public virtual DbSet<ComplaintEvidence> ComplaintEvidences { get; set; }
+    public virtual DbSet<ComplaintHistory> ComplaintHistories { get; set; }
+    public virtual DbSet<ComplaintMessage> ComplaintMessages { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         => optionsBuilder.UseSqlServer("Name=ConnectionStrings:DefaultConnection");
 
@@ -120,6 +129,7 @@ public partial class SaveFoodDbContext : DbContext
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.SalePrice).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.Title).HasMaxLength(250);
+            entity.Property(e => e.RowVersion).IsRowVersion();
 
             entity.HasOne(d => d.Product).WithMany(p => p.ClearanceListings)
                 .HasForeignKey(d => d.ProductId)
@@ -578,6 +588,130 @@ public partial class SaveFoodDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.UserId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ─── CustomerVoucherFund ─────────────────────────────────────────────────────
+        modelBuilder.Entity<CustomerVoucherFund>(entity =>
+        {
+            entity.HasIndex(e => e.CustomerId, "UQ_CustomerVoucherFunds_CustomerId").IsUnique();
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.AccumulatedBalance).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalEarned).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Customer).WithOne()
+                .HasForeignKey<CustomerVoucherFund>(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerVoucherFunds_Users");
+        });
+
+        modelBuilder.Entity<CustomerVoucherTransaction>(entity =>
+        {
+            // UNIQUE on OrderId — the DB-level idempotency guard
+            entity.HasIndex(e => e.OrderId, "UQ_CustomerVoucherTransactions_OrderId").IsUnique();
+            entity.HasIndex(e => e.CustomerVoucherFundId, "IX_CustomerVoucherTransactions_FundId");
+
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Amount).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.OrderTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Fund).WithMany(p => p.Transactions)
+                .HasForeignKey(d => d.CustomerVoucherFundId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_CustomerVoucherTransactions_Funds");
+
+            entity.HasOne(d => d.Order).WithMany()
+                .HasForeignKey(d => d.OrderId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("FK_CustomerVoucherTransactions_Orders");
+        });
+
+        // ─── Wallet Idempotency Indexes ──────────────────────────────────────────────
+        // PayOsOrderCode UNIQUE: webhook dùng để tìm đúng top-up transaction, tránh double-credit
+        modelBuilder.Entity<CustomerWalletTransaction>()
+            .HasIndex(t => t.PayOsOrderCode)
+            .IsUnique()
+            .HasFilter("[PayOsOrderCode] IS NOT NULL");
+
+        // WithdrawalRequest.IdempotencyKey UNIQUE: DB backstop chống double-withdraw
+        modelBuilder.Entity<WithdrawalRequest>()
+            .HasIndex(r => r.IdempotencyKey)
+            .IsUnique()
+            .HasFilter("[IdempotencyKey] IS NOT NULL");
+
+        // ─── Complaint ───────────────────────────────────────────────────────────
+        modelBuilder.Entity<Complaint>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Description).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.Status).IsRequired().HasConversion<int>();
+            entity.Property(e => e.Type).IsRequired().HasConversion<int>();
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Customer).WithMany(u => u.Complaints)
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Store).WithMany(s => s.Complaints)
+                  .HasForeignKey(e => e.StoreId)
+                  .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(e => e.Order).WithMany(o => o.Complaints)
+                  .HasForeignKey(e => e.OrderId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<ComplaintEvidence>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.FileUrl).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.FileType).IsRequired().HasMaxLength(50);
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintEvidences)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ComplaintHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.OldStatus).HasConversion<int>();
+            entity.Property(e => e.NewStatus).HasConversion<int>();
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintHistories)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.ActionBy).WithMany()
+                  .HasForeignKey(e => e.ActionById)
+                  .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        modelBuilder.Entity<ComplaintMessage>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("(newid())");
+            entity.Property(e => e.SenderRole).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Content).IsRequired().HasMaxLength(2000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(getutcdate())");
+
+            entity.HasOne(e => e.Complaint).WithMany(c => c.ComplaintMessages)
+                  .HasForeignKey(e => e.ComplaintId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Sender).WithMany()
+                  .HasForeignKey(e => e.SenderId)
+                  .OnDelete(DeleteBehavior.NoAction);
         });
 
         OnModelCreatingPartial(modelBuilder);
