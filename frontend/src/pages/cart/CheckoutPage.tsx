@@ -232,7 +232,7 @@ export function CheckoutPage() {
                                     <div className="space-y-4">
                                         {group.items.map((item) => (
                                             <div key={item.id} className="flex gap-4 border-b pb-4 last:border-0 last:pb-0">
-                                                <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="block shrink-0 hover:opacity-80 transition-opacity">
+                                                <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} target="_blank" className="block shrink-0 hover:opacity-80 transition-opacity">
                                                     <img
                                                         src={item.imageUrl}
                                                         alt={item.title}
@@ -240,7 +240,7 @@ export function CheckoutPage() {
                                                     />
                                                 </Link>
                                                 <div className="flex-1 min-w-0">
-                                                    <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="font-medium text-gray-900 truncate hover:text-brand-500 transition-colors inline-block">
+                                                    <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} target="_blank" className="font-medium text-gray-900 truncate hover:text-brand-500 transition-colors inline-block">
                                                         {item.title}
                                                     </Link>
                                                     <p className="text-sm text-gray-500 mt-1">Số lượng: {item.quantity}</p>

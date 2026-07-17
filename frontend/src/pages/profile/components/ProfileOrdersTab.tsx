@@ -156,7 +156,7 @@ export function ProfileOrdersTab() {
                         : [...prev, order.id]
                     )
                   } else {
-                    navigate(`/orders/${order.id}`)
+                    window.open(`/orders/${order.id}`, '_blank')
                   }
                 }}
                 className={`bg-white rounded-2xl shadow-sm border p-4 hover:shadow-md transition-shadow cursor-pointer flex flex-col sm:flex-row gap-4 ${selectedOrders.includes(order.id) ? 'border-brand-500 bg-brand-50/10' : 'border-gray-100'}`}
@@ -180,7 +180,10 @@ export function ProfileOrdersTab() {
                 
                 <div className="flex-1 flex flex-col justify-center">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="font-bold text-lg">{order.storeName}</h3>
+                    <h3 className="font-bold text-lg">
+                      {order.firstItemName || order.storeName}
+                      {order.totalItems > 1 && <span className="text-sm font-normal text-gray-500 ml-1">và {order.totalItems - 1} sản phẩm khác</span>}
+                    </h3>
                     <span className={`px-3 py-1 rounded-full text-xs font-bold ${status.color}`}>
                       {status.text}
                     </span>

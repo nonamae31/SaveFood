@@ -10,6 +10,7 @@ export interface OrderHistoryDTO {
   orderStatus: number
   createdAt: string
   firstItemImageUrl?: string
+  firstItemName?: string
   totalItems: number
   paymentMethod: number
   paymentStatus?: number
