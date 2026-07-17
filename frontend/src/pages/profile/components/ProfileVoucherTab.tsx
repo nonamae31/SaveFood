@@ -53,7 +53,7 @@ export function ProfileVoucherTab() {
           </span>
         </div>
         <p className="text-sm text-gray-500 mt-1">
-          Mỗi đơn hàng hoàn thành, <span className="font-semibold text-brand-600">2%</span> tổng tiền được cộng vào quỹ Voucher của bạn.
+          Quỹ Voucher sẽ tự động được tích lũy sau mỗi đơn hàng hoàn thành.
         </p>
       </div>
 
@@ -128,7 +128,7 @@ export function ProfileVoucherTab() {
             </div>
             <p className="text-sm font-medium text-gray-500">Chưa có lịch sử tích lũy</p>
             <p className="text-xs text-gray-400 text-center max-w-xs">
-              Hoàn thành đơn hàng đầu tiên của bạn để bắt đầu nhận 2% Voucher.
+              Hoàn thành đơn hàng đầu tiên của bạn để bắt đầu tích lũy Voucher.
             </p>
           </div>
         ) : (
