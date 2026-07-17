@@ -50,6 +50,7 @@ public partial class Order
     public virtual ICollection<Complaint> Complaints { get; set; } = new List<Complaint>();
 
     public const int CONFIRM_WAIT_TIME_SECONDS = 10;
+    public const int RESERVATION_TIMEOUT_MINUTES = 5;
 
     public bool CanConfirm()
     {

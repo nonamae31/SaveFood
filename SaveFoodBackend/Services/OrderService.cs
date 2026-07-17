@@ -116,7 +116,7 @@ public class OrderService
                 OrderStatus = 0, // PendingPayment
                 PickupCode = pickupCode,
                 OrderCode = orderCode, // SHARING ORDER CODE ACROSS STORES
-                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(SaveFoodBackend.Models.Order.RESERVATION_TIMEOUT_MINUTES),
                 ExpectedPickupTime = req.ExpectedPickupTime,
                 MaxPickupTime = maxPickupTime,
                 AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy

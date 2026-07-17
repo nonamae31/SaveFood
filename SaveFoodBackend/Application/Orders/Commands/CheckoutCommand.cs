@@ -198,7 +198,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                         OrderStatus = OrderStatusEnum.Pending,
                         PickupCode = pickupCode,
                         OrderCode = orderCode,
-                        ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                        ReservationExpiresAt = DateTime.UtcNow.AddMinutes(SaveFoodBackend.Models.Order.RESERVATION_TIMEOUT_MINUTES),
                         ExpectedPickupTime = req.ExpectedPickupTime,
                         MaxPickupTime = maxPickupTime,
                         AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy
