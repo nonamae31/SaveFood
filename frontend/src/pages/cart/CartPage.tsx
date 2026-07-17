@@ -194,13 +194,17 @@ export function CartPage() {
                           )}
 
                           {/* Cảnh báo */}
-                          {isDisabled ? (
+                          {isDisabled && (
                             <p className="mt-2 text-sm font-medium text-red-500">Sản phẩm đã hết hạn hoặc hết hàng.</p>
-                          ) : hasStockWarning ? (
+                          )}
+                          
+                          {!isDisabled && hasStockWarning && (
                             <p className="mt-2 text-sm font-medium text-amber-600">
                               Chỉ còn {item.availableQuantity} sản phẩm trong kho. Vui lòng giảm số lượng.
                             </p>
-                          ) : (
+                          )}
+                          
+                          {!isDisabled && (
                             <div className="mt-3 flex items-center gap-4">
                               <div className="flex items-center border border-gray-200 rounded-full bg-white overflow-hidden">
                                 <button 
