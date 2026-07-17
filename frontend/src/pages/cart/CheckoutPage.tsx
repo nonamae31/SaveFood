@@ -10,6 +10,7 @@ import { ShieldCheckIcon } from "lucide-react";
 import { calculateDistance } from "@/utils/distance";
 import { useVoucherFund } from "@/hooks/useVoucherFund";
 import { CoinsIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 // Placeholder for API
 const checkoutApi = {
@@ -32,6 +33,7 @@ export function CheckoutPage() {
     const [agreedToPolicy, setAgreedToPolicy] = useState<boolean>(false);
     const [applyVoucher, setApplyVoucher] = useState<boolean>(false);
     const [showDistanceWarning, setShowDistanceWarning] = useState<boolean>(false);
+    const [isCheckingPriority, setIsCheckingPriority] = useState(false);
     const { location: userLocation } = useLocationContext();
 
     // Assuming we pass selected items from Cart via state
@@ -93,7 +95,7 @@ export function CheckoutPage() {
         },
         onError: (error: any) => {
             const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
-            alert(errorMsg);
+            toast.error(errorMsg);
             
             // If it's the voucher changed error, refresh the fund and toggle off
             if (errorMsg.includes("Số dư voucher đã thay đổi") || errorMsg.includes("voucher")) {
@@ -142,17 +144,17 @@ export function CheckoutPage() {
         });
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (!expectedPickupTime) {
-            alert("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
+            toast.error("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
             return;
         }
         if (!agreedToPolicy) {
-            alert("Vui lòng đồng ý với chính sách không hoàn tiền.");
+            toast.error("Vui lòng đồng ý với chính sách không hoàn tiền.");
             return;
         }
         if (paymentMethod === 0 && wallet && wallet.balance < grandTotal) {
-            alert("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
+            toast.error("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
             return;
         }
 
@@ -170,6 +172,35 @@ export function CheckoutPage() {
                 return;
             }
         }
+
+        // ── Lớp 2: Re-check độ ưu tiên ngay trước khi thanh toán ─────────────
+        // Đề phòng người giàu vào giỏ hàng SAU khi người nghèo đã lên trang này
+        setIsCheckingPriority(true);
+        try {
+            const availability = await apiClient<{
+                canProceed: boolean;
+                items: Array<{ title: string; isAvailable: boolean; availableQuantity: number; requestedQuantity: number; blockedReason?: string }>;
+            }>('/orders/check-availability', {
+                method: 'POST',
+                body: JSON.stringify(checkoutItems.map(i => i.id))
+            });
+
+            if (!availability.canProceed) {
+                const blocked = availability.items.filter(i => !i.isAvailable);
+                const messages = blocked.map(i =>
+                    i.blockedReason?.includes('ưu tiên')
+                        ? `"${i.title}" — ${i.blockedReason}`
+                        : `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`
+                ).join('\n');
+                toast.error(`Không thể thanh toán:\n${messages}\n\nVui lòng quay lại giỏ hàng.`, { duration: 7000 });
+                return;
+            }
+        } catch {
+            // Nếu check thất bại (network), vẫn cho thử thanh toán — backend sẽ từ chối nếu cần
+        } finally {
+            setIsCheckingPriority(false);
+        }
+        // ─────────────────────────────────────────────────────────────────────
         
         proceedToCheckout();
     };
@@ -443,14 +474,16 @@ export function CheckoutPage() {
 
                         <button
                             onClick={handleCheckout}
-                            disabled={checkoutMutation.isPending || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < grandTotal)}
+                            disabled={checkoutMutation.isPending || isCheckingPriority || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < grandTotal)}
                             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {checkoutMutation.isPending 
-                                ? "Đang xử lý..." 
-                                : grandTotal === 0 
-                                    ? "Xác nhận đơn (Miễn phí)" 
-                                    : "Xác nhận thanh toán"}
+                            {isCheckingPriority
+                                ? "Đang kiểm tra ưu tiên..."
+                                : checkoutMutation.isPending
+                                    ? "Đang xử lý..."
+                                    : grandTotal === 0
+                                        ? "Xác nhận đơn (Miễn phí)"
+                                        : "Xác nhận thanh toán"}
                         </button>
                     </div>
                 </div>

@@ -274,18 +274,21 @@ export function CartPage() {
                 try {
                   const result = await apiClient<{
                     canProceed: boolean
-                    items: Array<{ cartItemId: string; title: string; requestedQuantity: number; availableQuantity: number; isAvailable: boolean }>
+                    items: Array<{ cartItemId: string; title: string; requestedQuantity: number; availableQuantity: number; isAvailable: boolean; blockedReason?: string }>
                   }>('/orders/check-availability', {
                     method: 'POST',
                     body: JSON.stringify(selectedIds)
                   })
 
                   if (!result.canProceed) {
-                    const soldOut = result.items
-                      .filter(i => !i.isAvailable)
-                      .map(i => `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`)
-                      .join(', ')
-                    toast.error(`Không đủ hàng: ${soldOut}. Vui lòng cập nhật giỏ hàng.`, { duration: 5000 })
+                    const blockedItems = result.items.filter(i => !i.isAvailable)
+                    const messages = blockedItems.map(i => {
+                      if (i.blockedReason?.includes('ưu tiên')) {
+                        return `"${i.title}" — ${i.blockedReason}`
+                      }
+                      return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`
+                    }).join('\n')
+                    toast.error(`Không thể tiến hành thanh toán:\n${messages}`, { duration: 6000 })
                     refetch()
                     return
                   }

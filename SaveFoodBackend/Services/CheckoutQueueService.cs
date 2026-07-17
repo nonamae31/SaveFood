@@ -12,6 +12,8 @@ public interface ICheckoutQueueService
     Task EnqueuePriorityAsync(string queueKey, string userId, double priorityScore);
     Task DequeuePriorityAsync(string queueKey, string userId);
     Task<bool> IsMyTurnAsync(string queueKey, string userId);
+    Task RecordCheckoutIntentAsync(Guid listingId, Guid userId, TimeSpan duration);
+    Task<List<Guid>> GetActiveCheckoutIntentsAsync(Guid listingId);
 }
 
 public class CheckoutQueueService : ICheckoutQueueService
@@ -89,5 +91,36 @@ public class CheckoutQueueService : ICheckoutQueueService
             return true;
         }
         return false;
+    }
+
+    public async Task RecordCheckoutIntentAsync(Guid listingId, Guid userId, TimeSpan duration)
+    {
+        if (_redis == null) return;
+        var db = _redis.GetDatabase();
+        string key = $"intent:{listingId}";
+        double expiryScore = DateTimeOffset.UtcNow.Add(duration).ToUnixTimeSeconds();
+        await db.SortedSetAddAsync(key, userId.ToString(), expiryScore);
+    }
+
+    public async Task<List<Guid>> GetActiveCheckoutIntentsAsync(Guid listingId)
+    {
+        if (_redis == null) return new List<Guid>();
+        var db = _redis.GetDatabase();
+        string key = $"intent:{listingId}";
+        double now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        
+        // Clean up expired
+        await db.SortedSetRemoveRangeByScoreAsync(key, double.NegativeInfinity, now);
+        
+        // Get active
+        var members = await db.SortedSetRangeByScoreAsync(key, now, double.PositiveInfinity);
+        
+        var result = new List<Guid>();
+        foreach (var m in members)
+        {
+            if (Guid.TryParse(m, out var uid))
+                result.Add(uid);
+        }
+        return result;
     }
 }
