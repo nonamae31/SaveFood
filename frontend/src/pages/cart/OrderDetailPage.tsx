@@ -47,21 +47,7 @@ export function OrderDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
   const batchPayMutation = useBatchPay()
-  const confirmReceiptMutation = useConfirmReceipt(id)
   const repurchaseMutation = useRepurchase(id)
-
-  const handleConfirmReceipt = () => {
-    confirmReceiptMutation.mutate(undefined, {
-      onSuccess: (res) => {
-        toast.success(res.message || "Xác nhận nhận hàng thành công");
-        queryClient.invalidateQueries({ queryKey: ['order', id] });
-      },
-      onError: (err: any) => {
-        toast.error(err.message || 'Có lỗi xảy ra.');
-      }
-    });
-  }
-
   const handleRepurchase = () => {
     repurchaseMutation.mutate(undefined, {
       onSuccess: (res) => {
@@ -306,7 +292,7 @@ export function OrderDetailPage() {
             {order.items.map(item => (
               <div key={item.id} className="flex justify-between items-start gap-4">
                 <div className="flex-1">
-                  <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} className="font-medium hover:text-brand-500 transition-colors inline-block">{item.title}</Link>
+                  <Link to={ROUTES.PRODUCT_DETAIL(item.listingId)} target="_blank" rel="noopener noreferrer" className="font-medium hover:text-brand-500 transition-colors inline-block">{item.title}</Link>
                   <p className="text-sm text-gray-500">x{item.quantity}</p>
                 </div>
                 <div className="flex items-center gap-3">
