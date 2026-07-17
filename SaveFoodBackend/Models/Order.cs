@@ -51,7 +51,7 @@ public partial class Order
 
     public bool CanConfirm()
     {
-        return (DateTime.UtcNow - CreatedAt).TotalMinutes >= 30;
+        return (DateTime.UtcNow - CreatedAt).TotalSeconds >= 10;
     }
 
     public bool CanCancel()

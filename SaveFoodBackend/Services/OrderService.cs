@@ -448,7 +448,7 @@ public class OrderService
         if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
 
         if (!order.CanConfirm())
-            throw new Exception("Chưa đủ 30 phút để xác nhận đơn hàng.");
+            throw new Exception("Chưa đủ 10 giây để xác nhận đơn hàng.");
 
         if (order.OrderStatus != OrderStatusEnum.Pending)
             throw new Exception("Trạng thái đơn hàng không hợp lệ để xác nhận.");
