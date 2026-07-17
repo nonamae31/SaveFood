@@ -236,11 +236,7 @@ public class PaymentsController : ControllerBase
                 {
                     return Ok(new { success = true, message = "Thanh toán đã được xác nhận." });
                 }
-<<<<<<< HEAD
-                
-=======
 
->>>>>>> origin/feature/hung
                 if (order.Payment.Status == 0 && order.OrderCode.HasValue)
                 {
                     try
@@ -359,16 +355,7 @@ public class PaymentsController : ControllerBase
                     
                     if (topUpTx.Status == 0 && topUpTx.PayOsOrderCode.HasValue)
                     {
-<<<<<<< HEAD
-                        return Ok(new { success = true, message = "Thanh toán gói đăng ký đã hoàn tất." });
-                    }
-
-                    if (subscription.Status == 0 && subscription.OrderCode.HasValue)
-                    {
-                        try
-=======
                         try 
->>>>>>> origin/feature/hung
                         {
                             var payOSInfo = await payOSClient.PaymentRequests.GetAsync(topUpTx.PayOsOrderCode.Value);
                             if (payOSInfo.Status.ToString().ToUpper() == "PAID")
