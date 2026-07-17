@@ -30,6 +30,20 @@ public class OrdersController : ApiControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Kiểm tra hàng còn không trước khi chuyển sang trang thanh toán.
+    /// Gọi ngay khi khách bấm "Mua hàng ngay" ở CartPage.
+    /// </summary>
+    [Authorize]
+    [HttpPost("check-availability")]
+    public async Task<IActionResult> CheckAvailability([FromBody] List<Guid> cartItemIds, CancellationToken ct)
+    {
+        var userId = GetRequiredUserId();
+        var result = await _mediator.Send(
+            new Application.Orders.Queries.CheckCartAvailabilityQuery(userId, cartItemIds), ct);
+        return Ok(result);
+    }
+
     [HttpPost("pay-batch")]
     public async Task<IActionResult> BatchPay([FromBody] BatchPayRequestDTO req, CancellationToken ct)
     {

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight } from 'lucide-react'
+import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight, Loader2 } from 'lucide-react'
 import { useCart, useUpdateCartItem, useRemoveFromCart } from '@/hooks/useCart'
 import { ROUTES } from '@/lib/constants'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { calculateDistance } from '@/utils/distance'
+import { apiClient } from '@/lib/apiClient'
 
 export function CartPage() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ export function CartPage() {
   const updateItemMutation = useUpdateCartItem()
   const removeItemMutation = useRemoveFromCart()
   const { location } = useLocationContext()
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
 
   // Manage selection (array of selected listingIds or cartItemIds)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -265,12 +267,43 @@ export function CartPage() {
             </div>
             
             <button
-              disabled={selectedIds.length === 0}
-              onClick={() => navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })}
+              disabled={selectedIds.length === 0 || isCheckingAvailability}
+              onClick={async () => {
+                if (selectedIds.length === 0) return
+                setIsCheckingAvailability(true)
+                try {
+                  const result = await apiClient<{
+                    canProceed: boolean
+                    items: Array<{ cartItemId: string; title: string; requestedQuantity: number; availableQuantity: number; isAvailable: boolean }>
+                  }>('/orders/check-availability', {
+                    method: 'POST',
+                    body: JSON.stringify(selectedIds)
+                  })
+
+                  if (!result.canProceed) {
+                    const soldOut = result.items
+                      .filter(i => !i.isAvailable)
+                      .map(i => `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})`)
+                      .join(', ')
+                    toast.error(`Không đủ hàng: ${soldOut}. Vui lòng cập nhật giỏ hàng.`, { duration: 5000 })
+                    refetch()
+                    return
+                  }
+
+                  navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })
+                } catch (err: any) {
+                  toast.error(err?.message || 'Không thể kiểm tra hàng. Vui lòng thử lại.')
+                } finally {
+                  setIsCheckingAvailability(false)
+                }
+              }}
               className="w-full py-4 bg-brand-500 text-white rounded-xl font-bold hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
             >
-              Mua hàng ngay
-              <ArrowRight size={20} />
+              {isCheckingAvailability ? (
+                <><Loader2 size={20} className="animate-spin" /> Đang kiểm tra...</>
+              ) : (
+                <>Mua hàng ngay <ArrowRight size={20} /></>
+              )}
             </button>
           </div>
         </div>
