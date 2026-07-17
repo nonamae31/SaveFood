@@ -69,6 +69,18 @@ A special type of Product (IsSurpriseBag flag) that guarantees a certain origina
 A persistent, server-side collection of `Clearance Listing`s that a Customer intends to purchase. A Cart can contain items from multiple Stores. However, upon Checkout, the Cart is split into multiple separate `Order`s (one per Store). Items in the Cart do not reserve `QuantityAvailable` until the moment of successful checkout.
 _Avoid_: Basket.
 
+**Discount Rule Template**:
+A named reuse pattern: the full set of `ListingDiscountRule`s from a previous `Clearance Listing`, offered as a quick-load option when creating a new Listing. Stored implicitly — no separate table; sourced by querying historical Listings (including soft-deleted ones) of the same Store.
+_Avoid_: Rule Preset, Discount Template (as a standalone entity).
+
+**Sale Milestone**:
+The next scheduled price-drop event for a `Clearance Listing`, computed server-side from its `ListingDiscountRule`s where `TriggerType = TimeBeforeExpiry`. Expressed as `NextMilestoneTime` (UTC datetime) and `NextMilestonePrice` (VND). Only one milestone — the nearest future one — is returned. Stock-based rules (`TriggerType = StockRemaining`) do not produce a Sale Milestone.
+_Avoid_: Countdown Event, Price Trigger, Next Discount.
+
+**Product Visibility**:
+A toggleable flag (`IsHidden`) on a `Product` that hides it from the Store's internal product catalog. Distinct from soft-deletion (`IsDeleted`). A hidden Product can still have active Clearance Listings; a deleted Product cannot be targeted by new Listings and blocks its own deletion if active Listings exist.
+_Avoid_: Product Status, Active/Inactive toggle.
+
 **Product Review**:
 An evaluation (1-5 stars, optional text and photos) left by a Customer for a specific `OrderItem` they successfully purchased. Because an `OrderItem` maps back to a `Clearance Listing` and its underlying `Product`, these reviews are displayed on future listings of the same `Product`. The `Store`'s overall rating is aggregated from all `Product Review`s left for its items.
 _Avoid_: Store Review, Shop Rating.

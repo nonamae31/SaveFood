@@ -62,6 +62,9 @@ var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
 // chỉ dùng Redis trên môi trường Development.
 if (!string.IsNullOrEmpty(redisConnectionString) && builder.Environment.IsDevelopment())
 {
+    builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp => 
+        StackExchange.Redis.ConnectionMultiplexer.Connect(redisConnectionString));
+
     builder.Services.AddStackExchangeRedisCache(options =>
     {
         options.Configuration = redisConnectionString;
@@ -102,9 +105,9 @@ builder.Services.AddScoped<SaveFoodBackend.Interfaces.IAdminStatsService, SaveFo
 
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICloudinaryService, SaveFoodBackend.Services.CloudinaryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IProductRepository, SaveFoodBackend.Repositories.ProductRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IProductService, SaveFoodBackend.Services.ProductService>();
+// IProductService đã được thay thế bằng CQRS Handlers (ProductCommands + GetProductQueries)
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.Repositories.IListingRepository, SaveFoodBackend.Repositories.ListingRepository>();
-builder.Services.AddScoped<SaveFoodBackend.Interfaces.IListingService, SaveFoodBackend.Services.ListingService>();
+// IListingService đã được thay thế bằng CQRS Handlers (ListingCommands + GetListingQueries)
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICustomerListingService, SaveFoodBackend.Services.CustomerListingService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.ICategoryService, SaveFoodBackend.Services.CategoryService>();
 builder.Services.AddScoped<SaveFoodBackend.Interfaces.IStoreService, SaveFoodBackend.Services.StoreService>();
@@ -158,5 +161,78 @@ app.MapControllers();
 app.MapHub<SaveFoodBackend.Hubs.NotificationHub>("/hubs/notifications");
 // ─────────────────────────────────────────────────────────────────────────────
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SaveFoodDbContext>();
+    // Auto-migrate schema for new columns Username and NormalizedEmail
+    var sql = @"
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Username')
+        BEGIN
+            ALTER TABLE Users ADD Username nvarchar(50) NULL;
+            ALTER TABLE Users ADD NormalizedEmail nvarchar(255) NULL;
+        END
+        
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Categories]') AND name = 'IsDeleted')
+        BEGIN
+            ALTER TABLE Categories ADD IsDeleted bit NOT NULL DEFAULT 0;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'LogoCloudinaryId')
+        BEGIN
+            ALTER TABLE Stores ADD LogoCloudinaryId nvarchar(max) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Users]') AND name = 'Latitude')
+        BEGIN
+            ALTER TABLE Users ADD Latitude decimal(18,7) NULL;
+            ALTER TABLE Users ADD Longitude decimal(18,7) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'Latitude')
+        BEGIN
+            ALTER TABLE Stores ADD Latitude decimal(18,7) NULL;
+            ALTER TABLE Stores ADD Longitude decimal(18,7) NULL;
+        END  
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverUrl')
+        BEGIN
+            ALTER TABLE Stores ADD CoverUrl nvarchar(max) NULL;
+        END
+
+        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[Stores]') AND name = 'CoverCloudinaryId')
+        BEGIN
+            ALTER TABLE Stores ADD CoverCloudinaryId nvarchar(max) NULL;
+        END
+    ";
+    db.Database.ExecuteSqlRaw(sql);
+    
+    // Update existing records properly using AuthUtils
+    var usersToUpdate = db.Users.ToList();
+    bool anyChanges = false;
+    foreach (var u in usersToUpdate)
+    {
+        var correctNormalized = SaveFoodBackend.Utils.AuthUtils.NormalizeEmail(u.Email);
+        if (u.NormalizedEmail != correctNormalized)
+        {
+            u.NormalizedEmail = correctNormalized;
+            anyChanges = true;
+        }
+        
+        if (string.IsNullOrEmpty(u.Username))
+        {
+            var username = u.Email.Split('@')[0];
+            username = new string(username.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+            if (username.Length < 3) username = username.PadRight(3, 'a');
+            if (username.Length > 20) username = username.Substring(0, 20);
+            u.Username = username;
+            anyChanges = true;
+        }
+    }
+    
+    if (anyChanges)
+    {
+        db.SaveChanges();
+    }
+}
 
 app.Run();

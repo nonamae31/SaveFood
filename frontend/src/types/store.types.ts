@@ -153,3 +153,17 @@ export interface UpdateListingDTO {
   discountRules: DiscountRuleDTO[]
   reusedProductImageIds?: string[]
 }
+
+// ─── RULE TEMPLATE ───────────────────────────────────────────────────────────
+
+export interface RuleTemplateDTO {
+  listingId: string
+  listingTitle: string
+  productName: string
+  rules: DiscountRuleResponseDTO[]
+}
+
+export interface BulkToggleVisibilityDTO {
+  productIds: string[]
+  isHidden: boolean
+}

@@ -63,7 +63,7 @@ public class OrdersController : ApiControllerBase
         return Ok(new { success = true, data = result });
     }
 
-    [Authorize(Roles = "STORE")]
+    [Authorize(Roles = "STORE,STORE_OWNER,Store,StoreStaff")]
     [HttpPost("{id}/verify-pickup")]
     public async Task<IActionResult> VerifyPickup(Guid id, [FromBody] VerifyPickupRequestDTO req, CancellationToken ct)
     {
