@@ -201,6 +201,30 @@ public class CustomerListingService : ICustomerListingService
         return dtos;
     }
 
+    public async Task<CustomerListingDTO?> GetListingByIdAsync(Guid id, double? userLat = null, double? userLng = null, CancellationToken ct = default)
+    {
+        var listing = await _ctx.ClearanceListings
+            .Include(l => l.Product)
+                .ThenInclude(p => p.Store)
+                    .ThenInclude(s => s.StoreSubscriptions.Where(sub => sub.Status == (byte)SaveFoodBackend.Models.Enums.SubscriptionStatus.Active && sub.StartDate <= DateTime.UtcNow && sub.EndDate >= DateTime.UtcNow))
+                        .ThenInclude(sub => sub.Plan)
+            .Include(l => l.Product)
+                .ThenInclude(p => p.ProductImages)
+            .Include(l => l.ListingImages)
+            .Where(l => (l.ListingFlags & 1) == 0 && l.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published && l.Product.Store.Status == (byte)SaveFoodBackend.Models.Enums.StoreStatus.Active)
+            .FirstOrDefaultAsync(l => l.Id == id, ct);
+
+        if (listing == null)
+            return null;
+
+        var dto = MapToDTO(listing);
+        if (userLat.HasValue && userLng.HasValue && listing.Product.Store.Latitude.HasValue && listing.Product.Store.Longitude.HasValue)
+        {
+            dto.Distance = Math.Round(CalculateHaversine(userLat.Value, userLng.Value, (double)listing.Product.Store.Latitude.Value, (double)listing.Product.Store.Longitude.Value), 1);
+        }
+        return dto;
+    }
+
     private static CustomerListingDTO MapToDTO(SaveFoodBackend.Models.ClearanceListing l)
     {
         var activeSub = l.Product.Store.StoreSubscriptions?.FirstOrDefault();

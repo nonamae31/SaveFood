@@ -27,6 +27,16 @@ public class CustomerListingsController : ApiControllerBase
         return Ok(result);
     }
 
+    [HttpGet("{id}")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetListing(Guid id, [FromQuery] double? userLat, [FromQuery] double? userLng, CancellationToken ct)
+    {
+        var listing = await _listingService.GetListingByIdAsync(id, userLat, userLng, ct);
+        if (listing == null)
+            return NotFound();
+        return Ok(listing);
+    }
+
     /// <summary>Gợi ý cá nhân hóa dựa trên lịch sử mua hàng.</summary>
     [HttpGet("recommendations")]
     [Authorize]

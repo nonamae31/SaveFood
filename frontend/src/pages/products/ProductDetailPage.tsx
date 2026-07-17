@@ -17,9 +17,10 @@ import {
 import { ExpiryLabel } from '@/components/ui/ExpiryLabel'
 import { DiscountTag } from '@/components/ui/DiscountTag'
 import { ListingCard } from '@/components/listings/ListingCard'
-import { useListings } from '@/hooks/useListings'
+import { useListings, useListingDetail, LISTING_QUERY_KEYS } from '@/hooks/useListings'
 import { useStoreDetail } from '@/hooks/useStores'
-import { LISTING_QUERY_KEYS } from '@/hooks/useListings'
+import { getListings } from '@/api/listings.api'
+import { useQuery } from '@tanstack/react-query'
 import { ROUTES } from '@/lib/constants'
 import { formatVND, calcDiscountPercent } from '@/lib/formatters'
 import type { CustomerListingDTO } from '@/types/listing.types'
@@ -46,18 +47,25 @@ export function ProductDetailPage() {
   let cachedListing: CustomerListingDTO | undefined
   for (const [, data] of queriesData) {
     if (Array.isArray(data)) {
-      const found = data.find(l => l.id === id)
+      const found = data.find(l => l.id.toLowerCase() === id?.toLowerCase())
       if (found) { cachedListing = found; break }
     }
   }
 
-  // ── Bước 2: Nếu không có cache → fetch toàn bộ list ──
-  const { data: allListings, isLoading } = useListings({})
-  const listing = cachedListing ?? allListings?.find(l => l.id === id)
+  // ── Bước 2: Dùng API chi tiết (nếu không có cache hoặc để cập nhật ngầm) ──
+  const { data: fetchedListing, isLoading } = useListingDetail(id)
+  const listing = cachedListing ?? fetchedListing
 
   // ── Bước 3: Related listings (cùng storeId, loại trừ chính nó) ──
-  const relatedListings = allListings
-    ?.filter(l => l.storeId === listing?.storeId && l.id !== listing?.id)
+  const { data: storeListings } = useQuery({
+    queryKey: LISTING_QUERY_KEYS.list({ storeId: listing?.storeId }),
+    queryFn: () => getListings({ storeId: listing?.storeId }),
+    enabled: !!listing?.storeId,
+    staleTime: 5 * 60 * 1000
+  })
+
+  const relatedListings = storeListings
+    ?.filter(l => l.id.toLowerCase() !== listing?.id.toLowerCase())
     .slice(0, 4) ?? []
 
   const discount = listing ? calcDiscountPercent(listing.originalPrice, listing.salePrice) : 0

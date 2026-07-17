@@ -446,3 +446,4 @@ frontend/.env.example
 /.swarm
 /.agent_workspace
 /SaveFoodBackend/.swarm
+test.jpg

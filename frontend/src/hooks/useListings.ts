@@ -1,7 +1,7 @@
 // ─── Hooks: Clearance Listings (React Query) ────────────────────────────────
 
 import { useInfiniteQuery, useQuery } from '@tanstack/react-query'
-import { getListings, getRecommendations } from '@/api/listings.api'
+import { getListings, getRecommendations, getListingById } from '@/api/listings.api'
 import type { ListingFilter, PaginatedResult, CustomerListingDTO } from '@/types/listing.types'
 
 // ── Query Keys ────────────────────────────────────────────────────────────────
@@ -9,6 +9,7 @@ import type { ListingFilter, PaginatedResult, CustomerListingDTO } from '@/types
 export const LISTING_QUERY_KEYS = {
   all:             ['listings'] as const,
   list:            (filter: ListingFilter) => ['listings', 'list', filter] as const,
+  detail:          (id: string, userLat?: number, userLng?: number) => ['listings', 'detail', id, userLat, userLng] as const,
   recommendations: (userLat?: number, userLng?: number) => ['listings', 'recommendations', userLat, userLng] as const,
 }
 
@@ -61,5 +62,16 @@ export function useRecommendations(userLat?: number, userLng?: number) {
     queryFn:  () => getRecommendations(userLat, userLng),
     retry: false, // 401 → không retry
     staleTime: 2 * 60 * 1000, // 2 phút
+  })
+}
+
+// ── useListingDetail ─────────────────────────────────────────────────────────
+
+export function useListingDetail(id: string | undefined, userLat?: number, userLng?: number) {
+  return useQuery({
+    queryKey: LISTING_QUERY_KEYS.detail(id!, userLat, userLng),
+    queryFn:  () => getListingById(id!, userLat, userLng),
+    enabled: !!id,
+    staleTime: 60 * 1000,
   })
 }
