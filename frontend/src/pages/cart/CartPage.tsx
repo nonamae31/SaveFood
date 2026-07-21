@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight } from 'lucide-react'
+import { ShoppingCart, Store as StoreIcon, Trash2, Plus, Minus, ArrowRight, Loader2 } from 'lucide-react'
 import { useCart, useUpdateCartItem, useRemoveFromCart } from '@/hooks/useCart'
 import { ROUTES } from '@/lib/constants'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast'
 import { MapPin } from 'lucide-react'
 import { useLocationContext } from '@/contexts/LocationContext'
 import { calculateDistance } from '@/utils/distance'
+import { apiClient } from '@/lib/apiClient'
 
 export function CartPage() {
   const navigate = useNavigate()
@@ -17,6 +18,7 @@ export function CartPage() {
   const updateItemMutation = useUpdateCartItem()
   const removeItemMutation = useRemoveFromCart()
   const { location } = useLocationContext()
+  const [isCheckingAvailability, setIsCheckingAvailability] = useState(false)
 
   // Manage selection (array of selected listingIds or cartItemIds)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -194,13 +196,17 @@ export function CartPage() {
                           )}
 
                           {/* Cảnh báo */}
-                          {isDisabled ? (
+                          {isDisabled && (
                             <p className="mt-2 text-sm font-medium text-red-500">Sản phẩm đã hết hạn hoặc hết hàng.</p>
-                          ) : hasStockWarning ? (
+                          )}
+                          
+                          {!isDisabled && hasStockWarning && (
                             <p className="mt-2 text-sm font-medium text-amber-600">
                               Chỉ còn {item.availableQuantity} sản phẩm trong kho. Vui lòng giảm số lượng.
                             </p>
-                          ) : (
+                          )}
+                          
+                          {!isDisabled && (
                             <div className="mt-3 flex items-center gap-4">
                               <div className="flex items-center border border-gray-200 rounded-full bg-white overflow-hidden">
                                 <button 
@@ -261,16 +267,79 @@ export function CartPage() {
             </div>
             
             <button
-              disabled={selectedIds.length === 0}
-              onClick={() => navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })}
+              disabled={selectedIds.length === 0 || isCheckingAvailability}
+              onClick={async () => {
+                if (selectedIds.length === 0) return
+                setIsCheckingAvailability(true)
+                try {
+                  const result = await apiClient<{
+                    canProceed: boolean
+                    items: Array<{ cartItemId: string; title: string; requestedQuantity: number; availableQuantity: number; isAvailable: boolean; blockedReason?: string }>
+                  }>('/orders/check-availability', {
+                    method: 'POST',
+                    body: JSON.stringify(selectedIds)
+                  })
+
+                  if (!result.canProceed) {
+                    const blockedItems = result.items.filter(i => !i.isAvailable)
+                    const messages = Array.from(new Set(blockedItems.map(i => {
+                      const suffix = i.blockedReason?.includes('ưu tiên') ? ' ()' : '';
+                      return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})${suffix}`
+                    }))).join('\n')
+                    toast.error(<CountdownMessage text={`Không thể tiến hành thanh toán:\n${messages}`} />, { duration: 6000 })
+                    refetch()
+                    return
+                  }
+
+                  navigate(ROUTES.CHECKOUT, { state: { selectedCartItemIds: selectedIds } })
+                } catch (err: any) {
+                  let errorMsg = err?.response?.data?.message || err?.message || 'Không thể kiểm tra hàng. Vui lòng thử lại.';
+                  if (errorMsg.includes('ưu tiên')) {
+                     errorMsg = errorMsg.replace(/đang được giữ chỗ bởi khách hàng ưu tiên cao hơn\.?/gi, "không đủ số lượng trong kho hoặc đã hết hàng ()");
+                     if (errorMsg.includes("ưu tiên")) {
+                         errorMsg = "Không thể thanh toán do sản phẩm đã hết hàng ()";
+                     }
+                  }
+                  toast.error(errorMsg)
+                } finally {
+                  setIsCheckingAvailability(false)
+                }
+              }}
               className="w-full py-4 bg-brand-500 text-white rounded-xl font-bold hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
             >
-              Mua hàng ngay
-              <ArrowRight size={20} />
+              {isCheckingAvailability ? (
+                <><Loader2 size={20} className="animate-spin" /> Đang kiểm tra...</>
+              ) : (
+                <>Mua hàng ngay <ArrowRight size={20} /></>
+              )}
             </button>
           </div>
         </div>
       </div>
     </div>
   )
+}
+
+const CountdownMessage = ({ text }: { text: string }) => {
+  const [secondsPassed, setSecondsPassed] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setSecondsPassed(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderedText = text.replace(/chờ (\d+) giây/g, (match, p1) => {
+    const initial = parseInt(p1, 10);
+    const current = Math.max(0, initial - secondsPassed);
+    
+    if (current === 0) return "đã đến lượt (vui lòng tải lại trang)";
+    
+    const m = Math.floor(current / 60);
+    const s = current % 60;
+    const timeString = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+    
+    return `chờ ${timeString}`;
+  });
+
+  return <div className="whitespace-pre-wrap">{renderedText}</div>;
 }

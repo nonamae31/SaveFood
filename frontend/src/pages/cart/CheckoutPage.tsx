@@ -10,6 +10,7 @@ import { ShieldCheckIcon } from "lucide-react";
 import { calculateDistance } from "@/utils/distance";
 import { useVoucherFund } from "@/hooks/useVoucherFund";
 import { CoinsIcon } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 // Placeholder for API
 const checkoutApi = {
@@ -32,10 +33,29 @@ export function CheckoutPage() {
     const [agreedToPolicy, setAgreedToPolicy] = useState<boolean>(false);
     const [applyVoucher, setApplyVoucher] = useState<boolean>(false);
     const [showDistanceWarning, setShowDistanceWarning] = useState<boolean>(false);
+    const [isCheckingPriority, setIsCheckingPriority] = useState(false);
     const { location: userLocation } = useLocationContext();
 
     // Assuming we pass selected items from Cart via state
     const selectedItemIds = (location.state?.selectedCartItemIds as string[]) || [];
+
+    const [timeLeft, setTimeLeft] = useState<number>(300); // 5 minutes
+
+    useEffect(() => {
+        if (timeLeft <= 0) {
+            toast.error("Đã hết thời gian giữ chỗ. Vui lòng quay lại giỏ hàng.");
+            navigate(ROUTES.CART, { replace: true });
+            return;
+        }
+        const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
+        return () => clearInterval(timer);
+    }, [timeLeft, navigate]);
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60);
+        const s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
 
     const { data: cartItems, isLoading: isCartLoading } = useCart();
     
@@ -92,8 +112,14 @@ export function CheckoutPage() {
             }
         },
         onError: (error: any) => {
-            const errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
-            alert(errorMsg);
+            let errorMsg = error.response?.data?.message || error.message || "Có lỗi xảy ra khi thanh toán.";
+            if (errorMsg.includes("ưu tiên")) {
+                errorMsg = errorMsg.replace(/đang được giữ chỗ bởi khách hàng ưu tiên cao hơn\.?/gi, "không đủ số lượng trong kho hoặc đã hết hàng ()");
+                if (errorMsg.includes("ưu tiên")) {
+                    errorMsg = "Không thể thanh toán do sản phẩm đã hết hàng ()";
+                }
+            }
+            toast.error(<CountdownMessage text={errorMsg} />, { duration: 6000 });
             
             // If it's the voucher changed error, refresh the fund and toggle off
             if (errorMsg.includes("Số dư voucher đã thay đổi") || errorMsg.includes("voucher")) {
@@ -142,17 +168,17 @@ export function CheckoutPage() {
         });
     };
 
-    const handleCheckout = () => {
+    const handleCheckout = async () => {
         if (!expectedPickupTime) {
-            alert("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
+            toast.error("Vui lòng chọn thời gian dự kiến đến lấy hàng.");
             return;
         }
         if (!agreedToPolicy) {
-            alert("Vui lòng đồng ý với chính sách không hoàn tiền.");
+            toast.error("Vui lòng đồng ý với chính sách không hoàn tiền.");
             return;
         }
         if (paymentMethod === 0 && wallet && wallet.balance < grandTotal) {
-            alert("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
+            toast.error("Số dư trong Ví SaveFood không đủ để thanh toán. Vui lòng chọn phương thức khác.");
             return;
         }
 
@@ -170,6 +196,34 @@ export function CheckoutPage() {
                 return;
             }
         }
+
+        // ── Lớp 2: Re-check độ ưu tiên ngay trước khi thanh toán ─────────────
+        // Đề phòng người giàu vào giỏ hàng SAU khi người nghèo đã lên trang này
+        setIsCheckingPriority(true);
+        try {
+            const availability = await apiClient<{
+                canProceed: boolean;
+                items: Array<{ title: string; isAvailable: boolean; availableQuantity: number; requestedQuantity: number; blockedReason?: string }>;
+            }>('/orders/check-availability', {
+                method: 'POST',
+                body: JSON.stringify(checkoutItems.map(i => i.id))
+            });
+
+            if (!availability.canProceed) {
+                const blocked = availability.items.filter(i => !i.isAvailable);
+                const messages = blocked.map(i => {
+                    const suffix = i.blockedReason?.includes('ưu tiên') ? ' ()' : '';
+                    return `"${i.title}" (cần ${i.requestedQuantity}, còn ${i.availableQuantity})${suffix}`
+                }).join('\n');
+                toast.error(`Không thể thanh toán:\n${messages}\n\nVui lòng quay lại giỏ hàng.`, { duration: 7000 });
+                return;
+            }
+        } catch {
+            // Nếu check thất bại (network), vẫn cho thử thanh toán — backend sẽ từ chối nếu cần
+        } finally {
+            setIsCheckingPriority(false);
+        }
+        // ─────────────────────────────────────────────────────────────────────
         
         proceedToCheckout();
     };
@@ -218,7 +272,19 @@ export function CheckoutPage() {
 
     return (
         <div className="max-w-screen-2xl mx-auto px-4 xl:px-8 py-8">
-            <h1 className="text-2xl font-bold mb-8">Thanh toán</h1>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+                <h1 className="text-2xl font-bold">Thanh toán</h1>
+                
+                <div className="bg-orange-50 border border-orange-200 rounded-lg px-4 py-2.5 flex items-center gap-4 shadow-sm shrink-0">
+                    <div className="flex flex-col">
+                        <span className="text-orange-800 font-semibold text-sm leading-tight">Thời gian giữ chỗ</span>
+                        <span className="text-orange-600 text-xs">Vui lòng hoàn tất thanh toán</span>
+                    </div>
+                    <div className="text-2xl font-bold text-orange-600 bg-white px-3 py-1 rounded shadow-sm border border-orange-100 tabular-nums">
+                        {formatTime(timeLeft)}
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                 {/* Cột 1: Danh sách sản phẩm */}
@@ -443,14 +509,16 @@ export function CheckoutPage() {
 
                         <button
                             onClick={handleCheckout}
-                            disabled={checkoutMutation.isPending || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < grandTotal)}
+                            disabled={checkoutMutation.isPending || isCheckingPriority || !agreedToPolicy || (paymentMethod === 0 && (wallet?.balance || 0) < grandTotal)}
                             className="w-full bg-brand-500 hover:bg-brand-600 text-white py-3 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {checkoutMutation.isPending 
-                                ? "Đang xử lý..." 
-                                : grandTotal === 0 
-                                    ? "Xác nhận đơn (Miễn phí)" 
-                                    : "Xác nhận thanh toán"}
+                            {isCheckingPriority
+                                ? "Đang kiểm tra tình trạng kho..."
+                                : checkoutMutation.isPending
+                                    ? "Đang xử lý..."
+                                    : grandTotal === 0
+                                        ? "Xác nhận đơn (Miễn phí)"
+                                        : "Xác nhận thanh toán"}
                         </button>
                     </div>
                 </div>
@@ -488,4 +556,28 @@ export function CheckoutPage() {
             )}
         </div>
     );
+}
+
+const CountdownMessage = ({ text }: { text: string }) => {
+  const [secondsPassed, setSecondsPassed] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => setSecondsPassed(s => s + 1), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const renderedText = text.replace(/chờ (\d+) giây/g, (match, p1) => {
+    const initial = parseInt(p1, 10);
+    const current = Math.max(0, initial - secondsPassed);
+    
+    if (current === 0) return "đã đến lượt (vui lòng tải lại trang)";
+    
+    const m = Math.floor(current / 60);
+    const s = current % 60;
+    const timeString = m > 0 ? `${m} phút ${s} giây` : `${s} giây`;
+    
+    return `chờ ${timeString}`;
+  });
+
+  return <div className="whitespace-pre-wrap">{renderedText}</div>;
 }

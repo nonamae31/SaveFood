@@ -70,7 +70,7 @@ function StoreConfirmButton({
   useEffect(() => {
     const calc = () => {
       const createdTime = new Date(order.createdAt).getTime();
-      const waitTime = 30 * 60 * 1000;
+      const waitTime = 10 * 1000; // 10 seconds
       const targetTime = createdTime + waitTime;
       const now = new Date().getTime();
       return Math.max(0, Math.floor((targetTime - now) / 1000));

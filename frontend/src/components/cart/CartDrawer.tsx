@@ -193,7 +193,7 @@ export function CartDrawer() {
                                 </div>
                               </div>
 
-                              {!isDisabled && !hasStockWarning && (
+                              {!isDisabled && (
                                 <div className="mt-2 flex items-center justify-between">
                                   <div className="flex items-center border border-gray-200 rounded-md bg-white overflow-hidden h-7">
                                     <button 

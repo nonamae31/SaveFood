@@ -116,7 +116,7 @@ public class OrderService
                 OrderStatus = 0, // PendingPayment
                 PickupCode = pickupCode,
                 OrderCode = orderCode, // SHARING ORDER CODE ACROSS STORES
-                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                ReservationExpiresAt = DateTime.UtcNow.AddMinutes(SaveFoodBackend.Models.Order.RESERVATION_TIMEOUT_MINUTES),
                 ExpectedPickupTime = req.ExpectedPickupTime,
                 MaxPickupTime = maxPickupTime,
                 AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy
@@ -448,7 +448,7 @@ public class OrderService
         if (order == null) throw new Exception("Không tìm thấy đơn hàng.");
 
         if (!order.CanConfirm())
-            throw new Exception("Chưa đủ 30 phút để xác nhận đơn hàng.");
+            throw new Exception($"Chưa đủ {SaveFoodBackend.Models.Order.CONFIRM_WAIT_TIME_SECONDS} giây để xác nhận đơn hàng.");
 
         if (order.OrderStatus != OrderStatusEnum.Pending)
             throw new Exception("Trạng thái đơn hàng không hợp lệ để xác nhận.");

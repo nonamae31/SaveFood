@@ -506,7 +506,7 @@ export default function AccountManagementPage() {
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (localSearch !== (searchParams.get('search') || '')) {
-        updateFilter('search', localSearch);
+        updateParam('search', localSearch);
       }
     }, 400);
     return () => clearTimeout(timeoutId);
@@ -611,7 +611,7 @@ export default function AccountManagementPage() {
           />
           <CustomSelect 
             value={statusFilter}
-            onChange={(val) => updateFilter('statusFilter', val)}
+            onChange={(val) => updateParam('statusFilter', val)}
             options={statusOptions}
           />
         </div>

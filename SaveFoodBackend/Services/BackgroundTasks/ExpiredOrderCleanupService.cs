@@ -71,6 +71,12 @@ public class ExpiredOrderCleanupService : BackgroundService
                     if (item.Listing != null)
                     {
                         item.Listing.QuantityAvailable += item.Quantity;
+                        
+                        // Nếu sản phẩm đang hiển thị là Hết hàng, thì mở bán lại
+                        if (item.Listing.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.SoldOut && item.Listing.QuantityAvailable > 0)
+                        {
+                            item.Listing.Status = (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published;
+                        }
                     }
                 }
 

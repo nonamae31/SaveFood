@@ -81,6 +81,11 @@ public class NoShowOrderCompletionService : BackgroundService
                         if (item.Listing != null)
                         {
                             item.Listing.QuantityAvailable += item.Quantity;
+                            
+                            if (item.Listing.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.SoldOut && item.Listing.QuantityAvailable > 0)
+                            {
+                                item.Listing.Status = (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published;
+                            }
                         }
                     }
 

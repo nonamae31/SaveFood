@@ -126,21 +126,32 @@ export function OrderDetailPage() {
     })
   }
 
-  // Lắng nghe sự kiện cập nhật trạng thái từ GlobalNotificationListener
+  // Lắng nghe sự kiện cập nhật trạng thái
   useEffect(() => {
-    if (!id) return;
+    const token = localStorage.getItem('sf_access_token') || localStorage.getItem('accessToken');
+    if (!id || !isAuthenticated || !token) return;
 
-    const handleStatusUpdate = (e: Event) => {
-      const customEvent = e as CustomEvent;
-      if (customEvent.detail?.orderId === id) {
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${(import.meta.env.VITE_API_BASE_URL || 'https://localhost:7251/api').replace('/api', '')}/hubs/notifications`, {
+        accessTokenFactory: () => token
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('OrderStatusUpdated', (orderId: string, newStatus: number) => {
+      if (orderId === id) {
+        // Invalidate and refetch
         queryClient.invalidateQueries({ queryKey: ['order', id] });
         queryClient.invalidateQueries({ queryKey: ['myOrders'] });
       }
-    };
+    });
 
-    window.addEventListener('order-status-updated', handleStatusUpdate);
-    return () => window.removeEventListener('order-status-updated', handleStatusUpdate);
-  }, [id]);
+    connection.start().catch(console.error);
+
+    return () => {
+      connection.stop();
+    };
+  }, [id, isAuthenticated]);
 
   // Verify payment if pending
   useEffect(() => {
@@ -247,9 +258,9 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {!isCompleted && !isCancelled && (order.qrToken || order.pickupCode) && (
+          {!isCompleted && !isCancelled && order.pickupCode && (
             <div className="bg-white p-4 rounded-xl shadow-sm mb-6 animate-[--animate-scale-in]">
-              <QRCodeSVG value={order.qrToken || `pickupCode=${order.pickupCode}`} size={200} />
+              <QRCodeSVG value={`pickupCode=${order.pickupCode}`} size={200} />
             </div>
           )}
 

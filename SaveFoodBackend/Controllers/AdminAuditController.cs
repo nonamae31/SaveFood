@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -154,7 +155,35 @@ public class AdminAuditController : ControllerBase
         });
     }
 
+    private static readonly Dictionary<string, string> BankBinMap = new()
+    {
+        { "970422", "MBBank" },
+        { "970436", "Vietcombank" },
+        { "970415", "VietinBank" },
+        { "01201001", "VietinBank" },
+        { "970418", "BIDV" },
+        { "01202001", "BIDV" },
+        { "970405", "Agribank" },
+        { "970407", "Techcombank" },
+        { "01310001", "Techcombank" },
+        { "970416", "ACB" },
+        { "970432", "VPBank" },
+        { "970423", "TPBank" },
+        { "970403", "Sacombank" },
+        { "970441", "VIB" },
+        { "970443", "SHB" },
+        { "970431", "Eximbank" },
+        { "970437", "HDBank" },
+        { "970440", "SeABank" },
+        { "970449", "LPBank" },
+        { "970412", "PVcomBank" }
+    };
 
+    private string GetBankName(string bin)
+    {
+        if (string.IsNullOrWhiteSpace(bin) || bin == "-") return bin;
+        return BankBinMap.TryGetValue(bin, out var name) ? $"{name} ({bin})" : bin;
+    }
 
     // GET: api/admin/audit/export-csv?from=2026-01-01&to=2026-12-31
     [HttpGet("export-csv")]
@@ -231,13 +260,15 @@ public class AdminAuditController : ControllerBase
 
         // Build CSV with UTF-8 BOM (so Excel reads Vietnamese correctly)
         var sb = new StringBuilder();
-        sb.AppendLine("Ngày,Loại,Tên khách/Shop,Email,Cửa hàng,Mã đơn,PayOS Reference,Số TK người chuyển,Tên chủ TK,Ngân hàng,Tổng tiền,Doanh thu nền tảng,Hạng mục,Phương thức TT");
+        sb.AppendLine("Ngày,Loại,Tên khách/Shop,Email,Cửa hàng,Mã đơn,PayOS Reference,Số TK người chuyển,Tên chủ TK,Ngân hàng,Tổng tiền");
 
         foreach (var row in allRows)
         {
             var date = TimeZoneInfo.ConvertTimeFromUtc(row.Date, TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time"))
                                    .ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
-            sb.AppendLine($"{date},{row.Type},\"{row.CustomerName}\",{row.CustomerEmail},{row.StoreName},{row.OrderCode},{row.PayOsRef},{row.PayerAccountNumber},\"{row.PayerName}\",{row.PayerBankId},{row.TotalAmount},{row.PlatformRevenue},{row.Category},{row.PaymentMethod}");
+            var bankNameStr = GetBankName(row.PayerBankId);
+            var bankName = !string.IsNullOrEmpty(bankNameStr) && bankNameStr != "-" ? $"=\"{bankNameStr}\"" : "-";
+            sb.AppendLine($"{date},{row.Type},\"{row.CustomerName}\",{row.CustomerEmail},{row.StoreName},=\"{row.OrderCode}\",=\"{row.PayOsRef}\",=\"{row.PayerAccountNumber}\",\"{row.PayerName}\",{bankName},{row.TotalAmount}");
         }
 
         // UTF-8 BOM

@@ -100,6 +100,11 @@ public class AutoCancelUnconfirmedOrdersService : BackgroundService
                         if (listing != null)
                         {
                             listing.QuantityAvailable += item.Quantity;
+                            
+                            if (listing.Status == (byte)SaveFoodBackend.Models.Enums.ListingStatus.SoldOut && listing.QuantityAvailable > 0)
+                            {
+                                listing.Status = (byte)SaveFoodBackend.Models.Enums.ListingStatus.Published;
+                            }
                         }
                     }
 

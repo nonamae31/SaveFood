@@ -26,14 +26,16 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
     private readonly INotificationService _notificationService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly SaveFoodBackend.Services.ICheckoutQueueService _queueService;
+    private readonly IMediator _mediator;
 
-    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork, SaveFoodBackend.Services.ICheckoutQueueService queueService)
+    public CheckoutCommandHandler(SaveFoodDbContext ctx, IPayOSService payOSService, INotificationService notificationService, IUnitOfWork unitOfWork, SaveFoodBackend.Services.ICheckoutQueueService queueService, IMediator mediator)
     {
         _ctx = ctx;
         _payOSService = payOSService;
         _notificationService = notificationService;
         _unitOfWork = unitOfWork;
         _queueService = queueService;
+        _mediator = mediator;
     }
 
     private string GenerateRandomCode(int length)
@@ -83,23 +85,49 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                 if (cartItems.Count != req.CartItemIds.Count)
                     throw new BusinessException("Một hoặc nhiều sản phẩm đã thay đổi hoặc không còn trong giỏ hàng. Vui lòng tải lại giỏ hàng và thử lại.");
 
+                // Check Priority 
+                var availability = await _mediator.Send(new SaveFoodBackend.Application.Orders.Queries.CheckCartAvailabilityQuery(userId, req.CartItemIds), cancellationToken);
+                if (!availability.CanProceed)
+                {
+                    var blocked = availability.Items.Where(i => !i.IsAvailable).Select(i => i.BlockedReason ?? "Sản phẩm không đủ số lượng.").Distinct().ToList();
+                    throw new BusinessException($"Không thể thanh toán:\n{string.Join("\n", blocked)}\n\nVui lòng quay lại giỏ hàng.");
+                }
+
                 long orderCode = long.Parse(DateTimeOffset.UtcNow.ToUnixTimeMilliseconds().ToString());
 
                 decimal totalCheckoutAmount = cartItems.Sum(ci => ci.Listing.SalePrice * ci.Quantity);
                 
-                // Priority Checkout Queue Logic
-                var totalSpent = await _ctx.Orders.Where(o => o.UserId == userId && o.OrderStatus == OrderStatusEnum.Completed).SumAsync(o => o.TotalAmount, cancellationToken);
-                double priorityScore = (double)totalCheckoutAmount * 100000000 + (double)totalSpent;
-                
+                // ── Priority Checkout Queue Logic ─────────────────────────────────────────
+                // Bậc 1: Lịch sử chi tiêu (tổng đơn hoàn thành trước đây) — khách cũ được ưu tiên
+                var totalSpent = await _ctx.Orders
+                    .Where(o => o.UserId == userId && o.OrderStatus == OrderStatusEnum.Completed)
+                    .SumAsync(o => o.TotalAmount, cancellationToken);
+
+                // Bậc 3: Số dư ví hiện tại
+                var walletBalance = await _ctx.CustomerWallets
+                    .Where(w => w.UserId == userId)
+                    .Select(w => w.Balance)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                // Bậc 4: Timestamp vào hàng — ai EnqueuePriorityAsync trước thì có timestamp nhỏ hơn → trừ đi để ưu tiên
+                long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+                // Công thức: score lớn hơn = ưu tiên cao hơn
+                //   Bậc 1 (lịch sử) chiếm dải lớn nhất → nhân 1e12
+                //   Bậc 2 (số dư ví)                     → nhân 1e8
+                //   Bậc 3 (tổng đơn hiện tại)            → nhân 1e4
+                //   Bậc 4 (timestamp, càng nhỏ càng tốt) → trừ (chia nhỏ để không át bậc trên)
+                double priorityScore = (double)totalSpent * 1_000_000_000_000.0
+                                     + (double)walletBalance * 100_000_000.0
+                                     + (double)totalCheckoutAmount * 10_000.0
+                                     - (double)(nowMs % 1_000_000); // chỉ lấy 6 chữ số cuối để đủ nhỏ
+
                 await _queueService.EnqueuePriorityAsync(queueKey, qUserId, priorityScore);
-                
-                // Wait up to 1 second for our turn
-                int waitRetries = 10;
-                while (waitRetries > 0)
+
+                // Nếu không phải lượt mình → fail ngay (không đợi). Người ưu tiên thấp hơn nhường chỗ.
+                if (!await _queueService.IsMyTurnAsync(queueKey, qUserId))
                 {
-                    if (await _queueService.IsMyTurnAsync(queueKey, qUserId)) break;
-                    await Task.Delay(100, cancellationToken);
-                    waitRetries--;
+                    throw new BusinessException("Sản phẩm đã có người khác đang trong quá trình mua. Vui lòng thử lại sau.");
                 }
                 
                 CustomerWallet? customerWallet = null;
@@ -180,7 +208,7 @@ public class CheckoutCommandHandler : IRequestHandler<CheckoutCommand, CheckoutR
                         OrderStatus = OrderStatusEnum.Pending,
                         PickupCode = pickupCode,
                         OrderCode = orderCode,
-                        ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10),
+                        ReservationExpiresAt = DateTime.UtcNow.AddMinutes(SaveFoodBackend.Models.Order.RESERVATION_TIMEOUT_MINUTES),
                         ExpectedPickupTime = req.ExpectedPickupTime,
                         MaxPickupTime = maxPickupTime,
                         AgreedToNoRefundPolicy = req.AgreedToNoRefundPolicy

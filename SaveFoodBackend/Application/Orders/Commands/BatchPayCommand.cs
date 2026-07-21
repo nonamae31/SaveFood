@@ -113,7 +113,7 @@ public class BatchPayCommandHandler : IRequestHandler<BatchPayCommand, CheckoutR
                 order.OrderCode = newOrderCode;
                 order.Payment.PaymentMethod = 1;
                 order.Payment.Status = 0;
-                order.ReservationExpiresAt = DateTime.UtcNow.AddMinutes(10);
+                order.ReservationExpiresAt = DateTime.UtcNow.AddMinutes(SaveFoodBackend.Models.Order.RESERVATION_TIMEOUT_MINUTES);
             }
             await _ctx.SaveChangesAsync(cancellationToken);
 
