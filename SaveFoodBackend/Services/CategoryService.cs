@@ -23,9 +23,9 @@ public class CategoryService : ICategoryService
     {
         var query = _context.Categories.AsQueryable();
 
-        if (!includeDeleted)
+        if (includeDeleted)
         {
-            query = query.Where(c => !c.IsDeleted);
+            query = query.IgnoreQueryFilters();
         }
 
         return await query
@@ -89,7 +89,7 @@ public class CategoryService : ICategoryService
 
     public async Task<CategoryResponseDTO> UpdateAsync(Guid id, CategoryRequestDTO request)
     {
-        var category = await _context.Categories.FindAsync(id)
+        var category = await _context.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new InvalidOperationException("Danh mục không tồn tại.");
 
         var trimmedName = request.Name.Trim();
@@ -118,7 +118,7 @@ public class CategoryService : ICategoryService
 
     public async Task DeleteAsync(Guid id)
     {
-        var category = await _context.Categories.FindAsync(id)
+        var category = await _context.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new InvalidOperationException("Danh mục không tồn tại.");
 
         if (category.IsDeleted)
@@ -131,7 +131,7 @@ public class CategoryService : ICategoryService
 
     public async Task RestoreAsync(Guid id)
     {
-        var category = await _context.Categories.FindAsync(id)
+        var category = await _context.Categories.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == id)
             ?? throw new InvalidOperationException("Danh mục không tồn tại.");
 
         if (!category.IsDeleted)

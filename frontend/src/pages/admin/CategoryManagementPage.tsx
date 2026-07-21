@@ -174,7 +174,7 @@ export default function CategoryManagementPage() {
 
   const filtered = categories.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase());
-    return matchSearch && !c.isDeleted;
+    return matchSearch;
   });
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1;
@@ -314,7 +314,7 @@ export default function CategoryManagementPage() {
                 paginatedCategories.map(cat => (
                   <tr
                     key={cat.id}
-                    ref={(el) => (rowRefs.current[cat.id.toString()] = el)}
+                    ref={(el) => { rowRefs.current[cat.id] = el; }}
                     className={`border-b border-mint-hairline-soft last:border-0 transition-colors duration-500 ${highlightId === cat.id.toString() ? 'bg-yellow-100' : cat.isDeleted ? 'opacity-60 bg-red-50/30' : 'hover:bg-mint-surface'}`}
                   >
                     <td className="px-6 py-4">

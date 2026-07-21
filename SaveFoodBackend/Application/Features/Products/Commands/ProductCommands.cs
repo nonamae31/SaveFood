@@ -180,6 +180,7 @@ public class UploadProductImagesCommandHandler : IRequestHandler<UploadProductIm
                     ImageFlags = 0
                 });
             }
+            _repo.Update(product);
             await _repo.SaveChangesAsync(ct);
         }
 
@@ -249,6 +250,11 @@ public class BulkToggleProductVisibilityCommandHandler : IRequestHandler<BulkTog
         foreach (var product in targetProducts)
         {
             product.IsHidden = request.IsHidden;
+            
+            // Prevent tracking collision on shared categories when Update attaches the graph
+            product.Category = null; 
+            product.ProductImages = null;
+            
             _repo.Update(product);
         }
 

@@ -1,7 +1,8 @@
-SaveFoodBackend.Common.Exceptions.BusinessException: Chưa đủ 30 phút để xác nhận đơn hàng.
-   at SaveFoodBackend.Application.StoreOrders.Commands.ConfirmOrderCommandHandler.Handle(ConfirmOrderCommand request, CancellationToken cancellationToken) in D:\SaveFood\SaveFoodBackend\Application\StoreOrders\Commands\ConfirmOrderCommand.cs:line 50
-   at SaveFoodBackend.Controllers.StoreOrdersController.Confirm(Guid storeId, Guid orderId, CancellationToken ct) in D:\SaveFood\SaveFoodBackend\Controllers\StoreOrdersController.cs:line 37
-   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.TaskOfIActionResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
+SaveFoodBackend.Common.Exceptions.BusinessException: Invalid email or password.
+   at SaveFood.Application.Features.Auth.LoginCommandHandler.Handle(LoginCommand command, CancellationToken ct) in D:\SaveFood\SaveFoodBackend\Application\Features\Auth\LoginCommand.cs:line 41
+   at SaveFoodBackend.Controllers.UsersController.Login(LoginRequest request) in D:\SaveFood\SaveFoodBackend\Controllers\UsersController.cs:line 147
+   at lambda_method738(Closure, Object)
+   at Microsoft.AspNetCore.Mvc.Infrastructure.ActionMethodExecutor.AwaitableObjectResultExecutor.Execute(ActionContext actionContext, IActionResultTypeMapper mapper, ObjectMethodExecutor executor, Object controller, Object[] arguments)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeActionMethodAsync>g__Awaited|12_0(ControllerActionInvoker invoker, ValueTask`1 actionResultValueTask)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.<InvokeNextActionFilterAsync>g__Awaited|10_0(ControllerActionInvoker invoker, Task lastTask, State next, Scope scope, Object state, Boolean isCompleted)
    at Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker.Rethrow(ActionExecutedContextSealed context)
