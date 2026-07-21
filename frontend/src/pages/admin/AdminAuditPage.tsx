@@ -104,7 +104,7 @@ export default function AdminAuditPage() {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [error, setError] = useState('');
-  
+
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
 
   useEffect(() => {
@@ -216,7 +216,7 @@ export default function AdminAuditPage() {
       {expanded && (
         <div className="bg-blue-50 border border-blue-200 text-blue-700 text-[14px] px-4 py-3 rounded-lg mb-6 flex items-center justify-between">
           <span>Đã mở rộng khoảng thời gian để hiển thị đơn hàng bạn tìm.</span>
-          <button 
+          <button
             onClick={() => {
               searchParams.delete('expanded');
               searchParams.delete('highlightId');
@@ -240,7 +240,7 @@ export default function AdminAuditPage() {
           <div className="flex-1 min-w-[200px] relative">
             <label className="block text-[13px] font-medium text-mint-stone mb-1">Tìm kiếm</label>
             <Search className="w-4 h-4 absolute left-3 bottom-3 text-mint-steel" />
-            <input 
+            <input
               type="text"
               placeholder="Ngân hàng, STK, Tên, Mã ĐH..."
               value={localSearch}
@@ -328,8 +328,8 @@ export default function AdminAuditPage() {
                   </tr>
                 )}
                 {data.items.map((item, idx) => (
-                  <tr 
-                    key={item.id} 
+                  <tr
+                    key={item.id}
                     ref={item.id === highlightId ? highlightRef : null}
                     className={clsx(
                       "transition-colors align-top",
