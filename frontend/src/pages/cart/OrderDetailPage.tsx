@@ -1,7 +1,7 @@
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useOrder, useExtendPickup, useCancelOrder, useBatchPay, useConfirmReceipt, useRepurchase } from '@/hooks/useOrders'
+import { useOrder, useExtendPickup, useCancelOrder, useBatchPay, useConfirmReceipt } from '@/hooks/useOrders'
 import { ROUTES } from '@/lib/constants'
-import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink } from 'lucide-react'
+import { Store, Clock, Package, CheckCircle, ChevronLeft, MapPin, ReceiptText, AlertCircle, X, Star, ExternalLink, Handshake, Loader2 } from 'lucide-react'
 import { ReviewForm } from '@/components/reviews/ReviewForm'
 import dayjs from 'dayjs'
 import { QRCodeSVG } from 'qrcode.react'
@@ -47,32 +47,6 @@ export function OrderDetailPage() {
   const navigate = useNavigate()
   const { isAuthenticated } = useAuthContext()
   const batchPayMutation = useBatchPay()
-  const confirmReceiptMutation = useConfirmReceipt(id)
-  const repurchaseMutation = useRepurchase(id)
-
-  const handleConfirmReceipt = () => {
-    confirmReceiptMutation.mutate(undefined, {
-      onSuccess: (res) => {
-        toast.success(res.message || "Xác nhận nhận hàng thành công");
-        queryClient.invalidateQueries({ queryKey: ['order', id] });
-      },
-      onError: (err: any) => {
-        toast.error(err.message || 'Có lỗi xảy ra.');
-      }
-    });
-  }
-
-  const handleRepurchase = () => {
-    repurchaseMutation.mutate(undefined, {
-      onSuccess: (res) => {
-        toast.success(res.message || "Đã thêm vào giỏ hàng");
-        navigate(ROUTES.CART);
-      },
-      onError: (err: any) => {
-        toast.error(err.message || 'Không thể mua lại.');
-      }
-    });
-  }
 
   const handleRetryPayment = () => {
     batchPayMutation.mutate(
@@ -125,6 +99,21 @@ export function OrderDetailPage() {
     });
   };
 
+  const confirmReceiptMutation = useConfirmReceipt()
+
+  const handleConfirmReceipt = () => {
+    confirmReceiptMutation.mutate(id, {
+      onSuccess: (res: any) => {
+        toast.success(res.message || 'Xác nhận nhận hàng thành công!')
+        queryClient.invalidateQueries({ queryKey: ['order', id] })
+        queryClient.invalidateQueries({ queryKey: ['myOrders'] })
+      },
+      onError: (err: any) => {
+        toast.error(err.message || 'Có lỗi xảy ra khi xác nhận nhận hàng.')
+      }
+    })
+  }
+
   // Lắng nghe sự kiện cập nhật trạng thái từ GlobalNotificationListener
   useEffect(() => {
     if (!id) return;
@@ -171,6 +160,7 @@ export function OrderDetailPage() {
       case 2: return { text: 'Chờ lấy hàng', color: 'text-indigo-600 bg-indigo-100' }
       case 3: return { text: 'Đã hoàn thành', color: 'text-brand-700 bg-brand-100' }
       case 4: return { text: 'Đã huỷ', color: 'text-red-600 bg-red-100' }
+      case 5: return { text: 'Chờ xác nhận nhận hàng', color: 'text-orange-600 bg-orange-100' }
       default: return { text: 'Không xác định', color: 'text-gray-600 bg-gray-100' }
     }
   }
@@ -178,6 +168,7 @@ export function OrderDetailPage() {
   const status = getStatusDisplay(order.orderStatus, order.payment?.paymentMethod, order.payment?.status)
   const isCompleted = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
+  const isAwaitingConfirm = order.orderStatus === 5
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-6 mt-14 mb-20">
@@ -206,7 +197,7 @@ export function OrderDetailPage() {
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0"></div>
                 <div 
                   className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-brand-500 rounded-full z-0 transition-all duration-500" 
-                  style={{ width: order.orderStatus === 3 ? '100%' : (order.orderStatus >= 2 || order.orderStatus === 5) ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
+                  style={{ width: order.orderStatus >= 3 ? '100%' : order.orderStatus === 5 ? '83.33%' : order.orderStatus >= 2 ? '66.66%' : order.orderStatus >= 1 ? '33.33%' : '0%' }}
                 ></div>
 
                 {/* Step 1: Đặt hàng */}
@@ -235,18 +226,18 @@ export function OrderDetailPage() {
 
                 {/* Step 4: Nhận hàng */}
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus === 3 ? 'bg-brand-500 text-white' : 'bg-gray-200 text-gray-400'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 border-white shadow-sm transition-colors duration-500 ${order.orderStatus >= 3 ? 'bg-brand-500 text-white' : order.orderStatus === 5 ? 'bg-orange-500 text-white animate-pulse' : 'bg-gray-200 text-gray-400'}`}>
                     4
                   </div>
-                  <span className={`text-xs font-bold mt-2 ${order.orderStatus === 3 ? 'text-gray-800' : 'text-gray-400'}`}>Nhận hàng</span>
+                  <span className={`text-xs font-bold mt-2 ${order.orderStatus >= 3 ? 'text-gray-800' : order.orderStatus === 5 ? 'text-orange-600' : 'text-gray-400'}`}>Nhận hàng</span>
                 </div>
               </div>
             </div>
           )}
 
-          {!isCompleted && !isCancelled && (order.qrToken || order.pickupCode) && (
+          {!isCompleted && !isCancelled && order.pickupCode && (
             <div className="bg-white p-4 rounded-xl shadow-sm mb-6 animate-[--animate-scale-in]">
-              <QRCodeSVG value={order.qrToken || `pickupCode=${order.pickupCode}`} size={200} />
+              <QRCodeSVG value={`pickupCode=${order.pickupCode}`} size={200} />
             </div>
           )}
 
@@ -349,7 +340,7 @@ export function OrderDetailPage() {
             </div>
           )}
 
-          {order.orderStatus === 0 || order.orderStatus === 5 || order.orderStatus === 3 || order.orderStatus === 4 ? (
+          {order.orderStatus === 0 ? (
             <div className="pt-6 mt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-end gap-3">
               {order.orderStatus === 0 && (
                 <button 
@@ -369,28 +360,30 @@ export function OrderDetailPage() {
                   {batchPayMutation.isPending ? 'Đang chuyển hướng...' : 'Tiếp tục thanh toán'}
                 </button>
               )}
-              
-              {order.orderStatus === 5 && (
-                <button 
-                  onClick={handleConfirmReceipt}
-                  disabled={confirmReceiptMutation.isPending}
-                  className="w-full sm:w-auto bg-green-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-green-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <CheckCircle className="w-5 h-5" /> {confirmReceiptMutation.isPending ? 'Đang xử lý...' : 'Xác nhận đã nhận hàng'}
-                </button>
-              )}
-
-              {(order.orderStatus === 3 || order.orderStatus === 4) && (
-                <button 
-                  onClick={handleRepurchase}
-                  disabled={repurchaseMutation.isPending}
-                  className="w-full sm:w-auto bg-brand-500 text-white px-6 py-2.5 rounded-xl font-bold hover:bg-brand-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  <Package className="w-5 h-5" /> {repurchaseMutation.isPending ? 'Đang xử lý...' : 'Mua lại đơn này'}
-                </button>
-              )}
             </div>
           ) : null}
+
+          {isAwaitingConfirm && (
+            <div className="pt-6 mt-4 border-t border-gray-100">
+              <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+                <p className="text-sm text-orange-800 font-medium flex items-center gap-2">
+                  <Handshake className="w-5 h-5 shrink-0" />
+                  Cửa hàng đã xác nhận bạn đến lấy hàng. Vui lòng xác nhận bạn đã nhận hàng để hoàn tất đơn hàng.
+                </p>
+              </div>
+              <button
+                onClick={handleConfirmReceipt}
+                disabled={confirmReceiptMutation.isPending}
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-base transition-all shadow-lg shadow-green-200 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                {confirmReceiptMutation.isPending ? (
+                  <><Loader2 className="w-5 h-5 animate-spin" /> Đang xác nhận...</>
+                ) : (
+                  <><Handshake className="w-5 h-5" /> Xác nhận đã nhận hàng</>
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -26,12 +26,13 @@ public class GetStoreOrdersQueryHandler : IRequestHandler<GetStoreOrdersQuery, I
 
     private static string GetStatusLabel(OrderStatusEnum status) => status switch
     {
-        OrderStatusEnum.Pending        => "Chờ xác nhận",
-        OrderStatusEnum.Confirmed      => "Đã xác nhận",
-        OrderStatusEnum.ReadyForPickup => "Chờ lấy hàng",
-        OrderStatusEnum.Completed      => "Hoàn thành",
-        OrderStatusEnum.Cancelled      => "Đã hủy",
-        _                              => "Không rõ"
+        OrderStatusEnum.Pending                     => "Chờ xác nhận",
+        OrderStatusEnum.Confirmed                   => "Đã xác nhận",
+        OrderStatusEnum.ReadyForPickup              => "Chờ lấy hàng",
+        OrderStatusEnum.Completed                   => "Hoàn thành",
+        OrderStatusEnum.Cancelled                   => "Đã hủy",
+        OrderStatusEnum.AwaitingCustomerConfirmation => "Chờ khách xác nhận",
+        _                                           => "Không rõ"
     };
 
     public async Task<IEnumerable<StoreOrderDTO>> Handle(GetStoreOrdersQuery request, CancellationToken cancellationToken)

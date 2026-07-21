@@ -18,6 +18,7 @@ const STATUS_CONFIG: Record<number, { label: string; color: string; bg: string; 
   2: { label: 'Chờ lấy hàng', color: 'text-purple-700', bg: 'bg-purple-50', dot: 'bg-purple-500' },
   3: { label: 'Hoàn thành', color: 'text-green-700', bg: 'bg-green-50', dot: 'bg-green-500' },
   4: { label: 'Đã hủy', color: 'text-gray-500', bg: 'bg-gray-50', dot: 'bg-gray-400' },
+  5: { label: 'Chờ khách xác nhận', color: 'text-orange-700', bg: 'bg-orange-50', dot: 'bg-orange-500' },
 };
 
 const PAYMENT_METHOD: Record<number, { label: string; icon: any; color: string }> = {
@@ -257,13 +258,16 @@ function OrderDetailModal({
               />
             )}
             {order.orderStatus === 2 && (
-              <ActionButton
-                icon={<Truck size={16} />}
-                label="Khách đã nhận hàng"
-                colorClass="bg-green-600 hover:bg-green-700"
-                loading={loading === 'Khách đã nhận hàng'}
-                onClick={() => act(() => storeOrdersApi.complete(storeId, order.id), 'Khách đã nhận hàng')}
-              />
+              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium border border-dashed border-gray-300 w-full">
+                <Truck size={16} />
+                Quét QR tại quầy để xác nhận khách nhận hàng
+              </div>
+            )}
+            {order.orderStatus === 5 && (
+              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-50 text-orange-700 text-sm font-medium border border-orange-200 w-full">
+                <Truck size={16} />
+                Đang chờ khách xác nhận nhận hàng
+              </div>
             )}
           </div>
         )}
@@ -510,7 +514,7 @@ export default function DashboardOrdersPage() {
       ) : (
         <div className="space-y-4">
           {/* Bulk action header */}
-          {['0', '1', '2'].includes(activeFilter) && (
+          {['0', '1'].includes(activeFilter) && (
             <div className="bg-white p-3 rounded-xl border border-gray-200 flex items-center justify-between sticky top-[72px] z-10 shadow-sm">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input 
@@ -534,10 +538,8 @@ export default function DashboardOrdersPage() {
                       Chuẩn bị xong
                     </button>
                   )}
-                  {activeFilter === '2' && (
-                    <button onClick={() => handleBulkAction(storeOrdersApi.complete, 'Khách đã nhận hàng')} className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 cursor-pointer">
-                      Khách đã nhận hàng
-                    </button>
+                  {activeFilter === '5' && (
+                    <span className="text-xs text-gray-400 italic">Đang chờ khách xác nhận</span>
                   )}
                 </div>
               )}

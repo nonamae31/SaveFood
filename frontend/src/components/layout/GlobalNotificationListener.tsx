@@ -40,7 +40,8 @@ export function GlobalNotificationListener() {
             1: 'Đã xác nhận',
             2: 'Chờ lấy hàng',
             3: 'Hoàn thành',
-            4: 'Đã hủy'
+            4: 'Đã hủy',
+            5: 'Chờ xác nhận nhận hàng'
         };
         const statusText = statusMap[status] || 'Đang xử lý';
 

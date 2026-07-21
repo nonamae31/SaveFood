@@ -24,7 +24,6 @@ export interface OrderDetailDTO {
   orderStatus: number
   createdAt: string
   pickupCode?: string
-  qrToken?: string
   orderCode?: number
   reservationExpiresAt?: string
   expectedPickupTime?: string
@@ -113,20 +112,10 @@ export function useBatchPay() {
   })
 }
 
-export function useConfirmReceipt(orderId: string) {
+export function useConfirmReceipt() {
   return useMutation({
-    mutationFn: async () => {
+    mutationFn: async (orderId: string) => {
       return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/confirm-receipt`, {
-        method: 'POST'
-      })
-    }
-  })
-}
-
-export function useRepurchase(orderId: string) {
-  return useMutation({
-    mutationFn: async () => {
-      return apiClient<{ success: boolean; message: string }>(`/orders/${orderId}/repurchase`, {
         method: 'POST'
       })
     }

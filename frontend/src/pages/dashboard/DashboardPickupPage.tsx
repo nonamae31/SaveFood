@@ -1,26 +1,26 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { Html5Qrcode } from 'html5-qrcode'
 import {
   ScanLine, Search, Camera, CameraOff, CheckCircle2, Clock,
-  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2, Wallet
+  XCircle, Banknote, CreditCard, Package, User, Hash, AlertCircle, Loader2, Wallet, Smartphone
 } from 'lucide-react'
 import { useAuthContext } from '@/contexts/AuthContext'
 import { storeOrdersApi, type StoreOrderDTO } from '@/api/store.orders.api'
 import { apiClient } from '@/api/client'
-import { QUERY_KEYS } from '@/lib/constants'
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const formatVND = (amount: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Math.round(amount))
 
-const ORDER_STATUS = {
+const ORDER_STATUS: Record<number, { label: string; color: string }> = {
   0: { label: 'Chờ xác nhận', color: 'text-amber-600 bg-amber-50 border-amber-200' },
   1: { label: 'Đã xác nhận', color: 'text-blue-600 bg-blue-50 border-blue-200' },
   2: { label: 'Chờ lấy hàng', color: 'text-purple-600 bg-purple-50 border-purple-200' },
   3: { label: 'Hoàn thành', color: 'text-green-600 bg-green-50 border-green-200' },
   4: { label: 'Đã hủy', color: 'text-red-600 bg-red-50 border-red-200' },
+  5: { label: 'Chờ khách xác nhận', color: 'text-orange-600 bg-orange-50 border-orange-200' },
 } as const
 
 const PAYMENT_METHOD = {
@@ -170,36 +170,13 @@ interface OrderCardProps {
   order: StoreOrderDTO
   storeId: string
   onActionComplete: () => void
+  scanInProgress?: boolean
+  scanError?: string | null
 }
 
-function OrderCard({ order, storeId, onActionComplete }: OrderCardProps) {
-  const queryClient = useQueryClient()
-  const [actionError, setActionError] = useState<string | null>(null)
+function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError }: OrderCardProps) {
 
-  const onSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: QUERY_KEYS.orders.store(storeId) })
-    onActionComplete()
-  }
-
-  const verifyMutation = useMutation({
-    mutationFn: () =>
-      apiClient(`/orders/${order.id}/verify-pickup`, {
-        method: 'POST',
-        body: JSON.stringify({ pickupCode: order.pickupCode }),
-      }),
-    onSuccess,
-    onError: (e: Error) => setActionError(e.message),
-  })
-
-  const completeMutation = useMutation({
-    mutationFn: () => storeOrdersApi.complete(storeId, order.id),
-    onSuccess,
-    onError: (e: Error) => setActionError(e.message),
-  })
-
-  const isBusy = verifyMutation.isPending || completeMutation.isPending
-
-  const statusInfo = ORDER_STATUS[order.orderStatus as keyof typeof ORDER_STATUS] ?? {
+  const statusInfo = ORDER_STATUS[order.orderStatus] ?? {
     label: 'Không rõ', color: 'text-gray-600 bg-gray-50 border-gray-200'
   }
   const payInfo = order.paymentMethod !== null && order.paymentMethod !== undefined
@@ -207,15 +184,13 @@ function OrderCard({ order, storeId, onActionComplete }: OrderCardProps) {
     : null
   const PayIcon = payInfo?.icon ?? Banknote
 
-  // Determine action button
-  const isCash = order.paymentMethod === 0
-  const canVerify = order.orderStatus === 0 || order.orderStatus === 1
-  const canComplete = order.orderStatus === 2
   const isDone = order.orderStatus === 3
   const isCancelled = order.orderStatus === 4
+  const isWaitingCustomer = order.orderStatus === 5
+  const canBeVerified = order.orderStatus === 0 || order.orderStatus === 1 || order.orderStatus === 2
 
   const isPaid = order.paymentStatus === 1
-  const isBlocked = (!isPaid && !isDone && !isCancelled)
+  const isBlocked = (!isPaid && !isDone && !isCancelled && !isWaitingCustomer)
 
   return (
     <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
@@ -280,11 +255,11 @@ function OrderCard({ order, storeId, onActionComplete }: OrderCardProps) {
           </div>
         </div>
 
-        {/* Error */}
-        {actionError && (
+        {/* Scan error */}
+        {scanError && (
           <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-red-700">
             <AlertCircle className="w-4 h-4 shrink-0" />
-            {actionError}
+            {scanError}
           </div>
         )}
 
@@ -296,46 +271,40 @@ function OrderCard({ order, storeId, onActionComplete }: OrderCardProps) {
           </div>
         )}
 
-        {/* Action buttons */}
-        {!isBlocked && (
-          <div className="pt-1">
-            {isCancelled && (
-              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium">
-                <XCircle className="w-4 h-4" />
-                Đơn hàng đã bị hủy
-              </div>
-            )}
+        {/* Status messages — no manual action buttons */}
+        <div className="pt-1">
+          {isCancelled && (
+            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-red-50 text-red-600 text-sm font-medium">
+              <XCircle className="w-4 h-4" />
+              Đơn hàng đã bị hủy
+            </div>
+          )}
 
-            {isDone && (
-              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">
-                <CheckCircle2 className="w-4 h-4" />
-                Đơn hàng đã hoàn thành
-              </div>
-            )}
+          {isDone && (
+            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-50 text-green-700 text-sm font-medium">
+              <CheckCircle2 className="w-4 h-4" />
+              Đơn hàng đã hoàn thành
+            </div>
+          )}
 
-            {canVerify && (
-              <button
-                onClick={() => { setActionError(null); verifyMutation.mutate() }}
-                disabled={isBusy}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-brand-600 hover:bg-brand-700 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-sm shadow-brand-200"
-              >
-                {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Xác nhận giao hàng
-              </button>
-            )}
+          {isWaitingCustomer && (
+            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-orange-50 text-orange-700 text-sm font-medium border border-orange-200">
+              <Smartphone className="w-4 h-4" />
+              Đã xác nhận — chờ khách hàng xác nhận trên ứng dụng
+            </div>
+          )}
 
-            {canComplete && (
-              <button
-                onClick={() => { setActionError(null); completeMutation.mutate() }}
-                disabled={isBusy}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold text-sm transition-colors disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-sm shadow-green-200"
-              >
-                {isBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                Hoàn thành đơn hàng
-              </button>
-            )}
-          </div>
-        )}
+          {canBeVerified && !isBlocked && (
+            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium border border-dashed border-gray-300">
+              <Camera className="w-4 h-4" />
+              {scanInProgress ? (
+                <>Đang xác nhận... <Loader2 className="w-4 h-4 animate-spin" /></>
+              ) : (
+                <>Quét mã QR từ khách hàng để xác nhận giao hàng</>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -352,6 +321,9 @@ export default function DashboardPickupPage() {
   const [showScanner, setShowScanner] = useState(false)
   const [order, setOrder] = useState<StoreOrderDTO | null>(null)
   const [lookupError, setLookupError] = useState<string | null>(null)
+  const [scanVerifyError, setScanVerifyError] = useState<string | null>(null)
+  const [isScanVerifying, setIsScanVerifying] = useState(false)
+  const scannedCodeRef = useRef<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const lookupMutation = useMutation({
@@ -359,10 +331,38 @@ export default function DashboardPickupPage() {
     onSuccess: (data) => {
       setOrder(data)
       setLookupError(null)
+      setScanVerifyError(null)
+
+      // If lookup came from QR scan, auto-verify
+      const scannedCode = scannedCodeRef.current
+      if (scannedCode && data.pickupCode === scannedCode) {
+        const canVerify = data.orderStatus === 0 || data.orderStatus === 1 || data.orderStatus === 2
+        if (canVerify) {
+          setIsScanVerifying(true)
+          verifyAfterScanMutation.mutate({ orderId: data.id, pickupCode: data.pickupCode ?? '' })
+        }
+      }
     },
     onError: () => {
       setOrder(null)
       setLookupError('Không tìm thấy đơn hàng với mã này. Vui lòng kiểm tra lại.')
+    },
+  })
+
+  const verifyAfterScanMutation = useMutation({
+    mutationFn: (payload: { orderId: string; pickupCode: string }) =>
+      apiClient(`/orders/${payload.orderId}/verify-pickup`, {
+        method: 'POST',
+        body: JSON.stringify({ pickupCode: payload.pickupCode }),
+      }),
+    onSuccess: () => {
+      setIsScanVerifying(false)
+      // Update local order status to 5
+      setOrder((prev) => prev ? { ...prev, orderStatus: 5 } : prev)
+    },
+    onError: (e: Error) => {
+      setIsScanVerifying(false)
+      setScanVerifyError(e.message)
     },
   })
 
@@ -372,29 +372,34 @@ export default function DashboardPickupPage() {
     setSearchCode(trimmed)
     setOrder(null)
     setLookupError(null)
+    setScanVerifyError(null)
+    scannedCodeRef.current = null // manual search, not from scan
     lookupMutation.mutate(trimmed)
   }, [lookupMutation])
 
   const handleScanSuccess = useCallback((code: string) => {
     setShowScanner(false)
     setInputCode(code)
-    handleSearch(code)
-  }, [handleSearch])
+    scannedCodeRef.current = code
+    const trimmed = code.trim().toUpperCase()
+    if (!trimmed) return
+    setSearchCode(trimmed)
+    setOrder(null)
+    setLookupError(null)
+    setScanVerifyError(null)
+    lookupMutation.mutate(trimmed)
+  }, [lookupMutation])
 
   const handleReset = () => {
     setInputCode('')
     setSearchCode('')
     setOrder(null)
     setLookupError(null)
+    setScanVerifyError(null)
+    setIsScanVerifying(false)
+    scannedCodeRef.current = null
     setTimeout(() => inputRef.current?.focus(), 50)
   }
-
-  // Refresh order after action (re-lookup same code)
-  const handleActionComplete = useCallback(() => {
-    if (searchCode) {
-      lookupMutation.mutate(searchCode)
-    }
-  }, [searchCode, lookupMutation])
 
   // Allow Enter key to trigger search
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -504,7 +509,9 @@ export default function DashboardPickupPage() {
           <OrderCard
             order={order}
             storeId={storeId}
-            onActionComplete={handleActionComplete}
+            onActionComplete={() => {}}
+            scanInProgress={isScanVerifying}
+            scanError={scanVerifyError}
           />
         </div>
       )}

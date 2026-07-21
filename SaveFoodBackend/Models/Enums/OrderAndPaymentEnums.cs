@@ -9,7 +9,7 @@ public enum OrderStatusEnum : byte
     ReadyForPickup = 2,
     Completed = 3,
     Cancelled = 4,
-    StoreConfirmed = 5
+    AwaitingCustomerConfirmation = 5
 }
 
 public enum PaymentMethodEnum : byte
