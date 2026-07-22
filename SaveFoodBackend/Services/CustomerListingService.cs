@@ -37,6 +37,7 @@ public class CustomerListingService : ICustomerListingService
     /// </summary>
     private static string BuildListingsCacheKey(CustomerListingFilterDTO filter)
     {
+        var storeId = filter.StoreId?.ToString() ?? "all";
         var categoryPart = filter.CategoryIds is { Count: > 0 }
             ? string.Join(",", filter.CategoryIds.OrderBy(x => x))
             : "all";
@@ -45,7 +46,7 @@ public class CustomerListingService : ICustomerListingService
         var surpriseBag = filter.IsSurpriseBag?.ToString() ?? "any";
         var sortBy = filter.SortBy ?? "default";
         var search = string.IsNullOrWhiteSpace(filter.SearchQuery) ? "none" : filter.SearchQuery.Trim().ToLower();
-        return $"listings:{categoryPart}:{minPrice}:{maxPrice}:{surpriseBag}:{sortBy}:{search}";
+        return $"listings:{storeId}:{categoryPart}:{minPrice}:{maxPrice}:{surpriseBag}:{sortBy}:{search}";
     }
 
     // ─── Distance helpers ─────────────────────────────────────────────────────
