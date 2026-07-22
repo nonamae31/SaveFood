@@ -172,9 +172,10 @@ interface OrderCardProps {
   onActionComplete: () => void
   scanInProgress?: boolean
   scanError?: string | null
+  onVerifyManual?: () => void
 }
 
-function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError }: OrderCardProps) {
+function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError, onVerifyManual }: OrderCardProps) {
 
   const statusInfo = ORDER_STATUS[order.orderStatus] ?? {
     label: 'Không rõ', color: 'text-gray-600 bg-gray-50 border-gray-200'
@@ -295,14 +296,18 @@ function OrderCard({ order, storeId, onActionComplete, scanInProgress, scanError
           )}
 
           {canBeVerified && !isBlocked && (
-            <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-gray-50 text-gray-500 text-sm font-medium border border-dashed border-gray-300">
-              <Camera className="w-4 h-4" />
+            <button
+              onClick={onVerifyManual}
+              disabled={scanInProgress}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[--color-brand-600] hover:bg-[--color-brand-700] text-white text-sm font-bold transition-all shadow-sm active:scale-[0.98] disabled:opacity-70"
+            >
+              <CheckCircle2 className="w-5 h-5" />
               {scanInProgress ? (
-                <>Đang xác nhận... <Loader2 className="w-4 h-4 animate-spin" /></>
+                <>Đang xác nhận... <Loader2 className="w-5 h-5 animate-spin" /></>
               ) : (
-                <>Quét mã QR từ khách hàng để xác nhận giao hàng</>
+                <>Xác nhận giao hàng</>
               )}
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -332,16 +337,6 @@ export default function DashboardPickupPage() {
       setOrder(data)
       setLookupError(null)
       setScanVerifyError(null)
-
-      // If lookup came from QR scan, auto-verify
-      const scannedCode = scannedCodeRef.current
-      if (scannedCode && data.pickupCode === scannedCode) {
-        const canVerify = data.orderStatus === 0 || data.orderStatus === 1 || data.orderStatus === 2
-        if (canVerify) {
-          setIsScanVerifying(true)
-          verifyAfterScanMutation.mutate({ orderId: data.id, pickupCode: data.pickupCode ?? '' })
-        }
-      }
     },
     onError: () => {
       setOrder(null)
@@ -512,6 +507,10 @@ export default function DashboardPickupPage() {
             onActionComplete={() => {}}
             scanInProgress={isScanVerifying}
             scanError={scanVerifyError}
+            onVerifyManual={() => {
+              setIsScanVerifying(true)
+              verifyAfterScanMutation.mutate({ orderId: order.id, pickupCode: order.pickupCode ?? '' })
+            }}
           />
         </div>
       )}

@@ -45,7 +45,8 @@ public class CustomerListingService : ICustomerListingService
         var surpriseBag = filter.IsSurpriseBag?.ToString() ?? "any";
         var sortBy = filter.SortBy ?? "default";
         var search = string.IsNullOrWhiteSpace(filter.SearchQuery) ? "none" : filter.SearchQuery.Trim().ToLower();
-        return $"listings:{categoryPart}:{minPrice}:{maxPrice}:{surpriseBag}:{sortBy}:{search}";
+        var storePart = filter.StoreId?.ToString() ?? "all";
+        return $"listings:{storePart}:{categoryPart}:{minPrice}:{maxPrice}:{surpriseBag}:{sortBy}:{search}";
     }
 
     // ─── Distance helpers ─────────────────────────────────────────────────────
@@ -153,7 +154,7 @@ public class CustomerListingService : ICustomerListingService
             .Distinct()
             .ToListAsync(ct);
 
-        IEnumerable<CustomerListingDTO> result;
+
 
         if (!favoriteCategoryIds.Any())
         {

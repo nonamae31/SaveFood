@@ -37,7 +37,7 @@ public class CustomerConfirmReceiptCommandHandler : IRequestHandler<CustomerConf
         if (order == null)
             throw new NotFoundException("Đơn hàng không tồn tại.");
 
-        if (order.OrderStatus != OrderStatusEnum.StoreConfirmed)
+        if (order.OrderStatus != OrderStatusEnum.AwaitingCustomerConfirmation)
             throw new BusinessException($"Đơn hàng chưa được cửa hàng quét mã QR xác nhận.");
 
         order.OrderStatus = OrderStatusEnum.Completed;

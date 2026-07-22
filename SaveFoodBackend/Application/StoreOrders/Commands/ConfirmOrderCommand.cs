@@ -7,7 +7,6 @@ using SaveFoodBackend.Interfaces.Repositories;
 using SaveFoodBackend.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using SaveFoodBackend.Models.Enums;
-using SaveFoodBackend.Models.Enums;
 using SaveFoodBackend.Common.Exceptions;
 using SaveFoodBackend.Interfaces;
 
@@ -47,7 +46,7 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, b
             throw new BusinessException($"Chỉ có thể xác nhận đơn hàng đang ở trạng thái 'Chờ xác nhận'.");
 
         if (!order.CanConfirm())
-            throw new BusinessException("Chưa đủ 30 phút để xác nhận đơn hàng.");
+            throw new BusinessException("Chưa đủ 10 giây để xác nhận đơn hàng.");
 
         order.OrderStatus    = OrderStatusEnum.Confirmed;
         order.ConfirmedById  = request.UserId;
