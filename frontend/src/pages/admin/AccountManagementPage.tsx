@@ -440,6 +440,7 @@ export default function AccountManagementPage() {
   const [data, setData] = useState<PaginatedList<AdminUserListDTO> | null>(null);
   const [loading, setLoading] = useState(true);
   const highlightRef = useRef<HTMLTableRowElement | null>(null);
+  const fetchUsersRef = useRef<() => void>(() => {});
   
   // Extract from URL
   const highlightId = searchParams.get('highlightId');
@@ -480,6 +481,7 @@ export default function AccountManagementPage() {
       }
     };
 
+    fetchUsersRef.current = fetchUsers;
     fetchUsers();
   }, [search, roleFilter, staffRoleFilter, statusFilter, sortBy, sortDirection, currentPage, pageSize]);
 
